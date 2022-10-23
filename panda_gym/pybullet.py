@@ -405,7 +405,7 @@ class PyBullet:
         lateral_friction: Optional[float] = None,
         spinning_friction: Optional[float] = None,
         texture: Optional[str] = None,
-    ) -> None:
+    ) -> int:
         """Create a box.
 
         Args:
@@ -430,7 +430,7 @@ class PyBullet:
             "rgbaColor": rgba_color,
         }
         collision_kwargs = {"halfExtents": half_extents}
-        self._create_geometry(
+        idx = self._create_geometry(
             body_name,
             geom_type=self.physics_client.GEOM_BOX,
             mass=mass,
@@ -446,6 +446,8 @@ class PyBullet:
             texture_uid = self.physics_client.loadTexture(texture_path)
             self.physics_client.changeVisualShape(self._bodies_idx[body_name], -1, textureUniqueId=texture_uid)
 
+        return idx
+
     def create_cylinder(
         self,
         body_name: str,
@@ -458,7 +460,7 @@ class PyBullet:
         ghost: bool = False,
         lateral_friction: Optional[float] = None,
         spinning_friction: Optional[float] = None,
-    ) -> None:
+    ) -> int:
         """Create a cylinder.
 
         Args:
@@ -484,7 +486,7 @@ class PyBullet:
             "rgbaColor": rgba_color,
         }
         collision_kwargs = {"radius": radius, "height": height}
-        self._create_geometry(
+        idx = self._create_geometry(
             body_name,
             geom_type=self.physics_client.GEOM_CYLINDER,
             mass=mass,
@@ -495,6 +497,8 @@ class PyBullet:
             visual_kwargs=visual_kwargs,
             collision_kwargs=collision_kwargs,
         )
+
+        return idx
 
     def create_sphere(
         self,
@@ -507,7 +511,7 @@ class PyBullet:
         ghost: bool = False,
         lateral_friction: Optional[float] = None,
         spinning_friction: Optional[float] = None,
-    ) -> None:
+    ) -> int:
         """Create a sphere.
 
         Args:
@@ -531,7 +535,7 @@ class PyBullet:
             "rgbaColor": rgba_color,
         }
         collision_kwargs = {"radius": radius}
-        self._create_geometry(
+        idx = self._create_geometry(
             body_name,
             geom_type=self.physics_client.GEOM_SPHERE,
             mass=mass,
@@ -542,6 +546,7 @@ class PyBullet:
             visual_kwargs=visual_kwargs,
             collision_kwargs=collision_kwargs,
         )
+        return idx
 
     def _create_geometry(
         self,
@@ -554,7 +559,7 @@ class PyBullet:
         spinning_friction: Optional[float] = None,
         visual_kwargs: Dict[str, Any] = {},
         collision_kwargs: Dict[str, Any] = {},
-    ) -> None:
+    ) -> int:
         """Create a geometry.
 
         Args:
@@ -587,6 +592,8 @@ class PyBullet:
             self.set_lateral_friction(body=body_name, link=-1, lateral_friction=lateral_friction)
         if spinning_friction is not None:
             self.set_spinning_friction(body=body_name, link=-1, spinning_friction=spinning_friction)
+
+        return baseCollisionShapeIndex
 
     def create_plane(self, z_offset: float) -> None:
         """Create a plane. (Actually, it is a thin box.)

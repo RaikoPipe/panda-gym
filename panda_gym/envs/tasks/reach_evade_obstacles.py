@@ -3,30 +3,38 @@ from typing import Any, Dict
 import numpy as np
 
 from panda_gym.envs.core import Task
+from panda_gym.envs.robots.panda import Panda
 from panda_gym.utils import distance
+from pyb_utils.collision import NamedCollisionObject, CollisionDetector
+
 
 # todo: add collision detection
-class Reach(Task):
+class ReachEvadeObstacles(Task):
     def __init__(
-        self,
-        sim,
-        get_ee_position,
-        reward_type="sparse",
-        distance_threshold=0.05,
-        goal_range=0.3,
+            self,
+            sim,
+            robot,
+            get_ee_position,
+            reward_type="sparse",
+            distance_threshold=0.05,
+            goal_range=0.3,
     ) -> None:
         super().__init__(sim)
+        self.robot: Panda = robot
         self.reward_type = reward_type
         self.distance_threshold = distance_threshold
         self.get_ee_position = get_ee_position
         self.goal_range_low = np.array([-goal_range / 2, -goal_range / 2, 0])
         self.goal_range_high = np.array([goal_range / 2, goal_range / 2, goal_range])
-        self.collision_detector = None
+
+        self.bodies = {"robot": self.robot.body_name}
+        self.named_collision_pairs = []
         with self.sim.no_rendering():
             self._create_scene()
             self.sim.place_visualizer(target_position=np.zeros(3), distance=0.9, yaw=45, pitch=-30)
-
-
+            # todo: get robot id for self.bodies
+            self.collision_detector = CollisionDetector(col_id=self.sim.physics_client._client, bodies=self.bodies,
+                                                        named_collision_pairs=self.named_collision_pairs)
 
     def _create_scene(self) -> None:
         # todo: create obstacles, return named collision object
@@ -40,7 +48,22 @@ class Reach(Task):
             position=np.zeros(3),
             rgba_color=np.array([0.1, 0.9, 0.1, 0.3]),
         )
-        return
+
+        obstacle_name = "obstacle"
+
+        self.sim.create_sphere(
+            body_name=obstacle_name,
+            radius=0.02,
+            mass=0.0,
+            ghost=True,
+            position=np.zeros(3),
+            rgba_color=np.array([0.5, 0.5, 0.5, 0.3]),
+        )
+
+        self.bodies["obstacle"] = obstacle_name
+        obstacle = NamedCollisionObject("obstacle")
+        robot = NamedCollisionObject("robot")
+        self.named_collision_pairs.append((robot, obstacle))
 
 
     def get_obs(self) -> np.ndarray:
