@@ -1,6 +1,7 @@
 from typing import Any, Dict
 
 import numpy as np
+import pybullet
 
 from panda_gym.envs.core import Task
 from panda_gym.envs.robots.panda import Panda
@@ -20,27 +21,41 @@ class ReachEvadeObstacles(Task):
             goal_range=0.3,
     ) -> None:
         super().__init__(sim)
+        self.sim_id = self.sim.physics_client._client
+
         self.robot: Panda = robot
+        self.robot_params = self.create_robot_debug_params()
+
         self.reward_type = reward_type
         self.distance_threshold = distance_threshold
         self.get_ee_position = get_ee_position
         self.goal_range_low = np.array([-goal_range / 2, -goal_range / 2, 0])
         self.goal_range_high = np.array([goal_range / 2, goal_range / 2, goal_range])
 
-        self.bodies = {"robot": self.robot.body_name}
+        self.bodies = {"robot": self.robot.id}
+        self.collision_links = self.robot.link_names[:9]
         self.named_collision_pairs = []
+
         with self.sim.no_rendering():
-            self._create_scene()
+            collision_objects = self._create_scene()
+
+            for link_name in self.collision_links:
+                link = NamedCollisionObject("robot", link_name=link_name)
+                for obstacle in collision_objects:
+                    obstacle:NamedCollisionObject
+                    self.named_collision_pairs.append((link, obstacle))
+
             self.sim.place_visualizer(target_position=np.zeros(3), distance=0.9, yaw=45, pitch=-30)
-            # todo: get robot id for self.bodies
-            self.collision_detector = CollisionDetector(col_id=self.sim.physics_client._client, bodies=self.bodies,
+            self.collision_detector = CollisionDetector(col_id=self.sim_id, bodies=self.bodies,
                                                         named_collision_pairs=self.named_collision_pairs)
 
-    def _create_scene(self) -> None:
+    def _create_scene(self) -> list:
         # todo: create obstacles, return named collision object
-        self.sim.create_plane(z_offset=-0.4)
-        self.sim.create_table(length=1.1, width=0.7, height=0.4, x_offset=-0.3)
-        self.sim.create_sphere(
+        collision_objects = []
+
+        id = self.sim.create_plane(z_offset=-0.4)
+        id = self.sim.create_table(length=1.1, width=0.7, height=0.4, x_offset=-0.3)
+        id = self.sim.create_sphere(
             body_name="target",
             radius=0.02,
             mass=0.0,
@@ -51,22 +66,41 @@ class ReachEvadeObstacles(Task):
 
         obstacle_name = "obstacle"
 
-        self.sim.create_sphere(
+        obstacle_id = self.sim.create_sphere(
             body_name=obstacle_name,
             radius=0.02,
             mass=0.0,
-            ghost=True,
-            position=np.zeros(3),
+            position=np.array([0.1,0,0.1]),
             rgba_color=np.array([0.5, 0.5, 0.5, 0.3]),
         )
 
-        self.bodies["obstacle"] = obstacle_name
-        obstacle = NamedCollisionObject("obstacle")
-        robot = NamedCollisionObject("robot")
-        self.named_collision_pairs.append((robot, obstacle))
+        collision_objects.append(NamedCollisionObject(obstacle_name))
+        self.bodies[obstacle_name] = obstacle_id
 
+        # obstacle = NamedCollisionObject("obstacle")
+        # robot = NamedCollisionObject("robot")
+        # self.named_collision_pairs.append((robot, obstacle))
 
+        return collision_objects
+
+    def create_robot_debug_params(self):
+        """Create debug params to set the robot joint positions from the GUI."""
+        params = {}
+        for i in range(pybullet.getNumJoints(self.robot.id, physicsClientId=self.sim_id)):
+            joint_name = pybullet.getJointInfo(self.robot.id, i)[1].decode("ascii")
+            params[joint_name] = pybullet.addUserDebugParameter(
+                joint_name,
+                rangeMin=-2 * np.pi,
+                rangeMax=2 * np.pi,
+                startValue=0,
+                physicsClientId=self.sim_id,
+            )
+        return params
     def get_obs(self) -> np.ndarray:
+        q = [self.robot.get_joint_angle(i) for i in self.robot.joint_indices[:7]]
+        d = self.collision_detector.compute_distances(q, self.robot.joint_indices[:7], max_distance=999.0)
+
+        print(f"Distance to obstacles = {d}")
         return np.array([])  # no task-specific observation
 
     def get_achieved_goal(self) -> np.ndarray:

@@ -385,13 +385,15 @@ class PyBullet:
         yield
         self.physics_client.configureDebugVisualizer(self.physics_client.COV_ENABLE_RENDERING, 1)
 
-    def loadURDF(self, body_name: str, **kwargs: Any) -> None:
+    def loadURDF(self, body_name: str, **kwargs: Any) -> int:
         """Load URDF file.
 
         Args:
             body_name (str): The name of the body. Must be unique in the sim.
         """
-        self._bodies_idx[body_name] = self.physics_client.loadURDF(**kwargs)
+        idx = self._bodies_idx[body_name] = self.physics_client.loadURDF(**kwargs)
+
+        return idx
 
     def create_box(
         self,
@@ -581,7 +583,7 @@ class PyBullet:
             baseCollisionShapeIndex = self.physics_client.createCollisionShape(geom_type, **collision_kwargs)
         else:
             baseCollisionShapeIndex = -1
-        self._bodies_idx[body_name] = self.physics_client.createMultiBody(
+        idx = self._bodies_idx[body_name] = self.physics_client.createMultiBody(
             baseVisualShapeIndex=baseVisualShapeIndex,
             baseCollisionShapeIndex=baseCollisionShapeIndex,
             baseMass=mass,
@@ -593,15 +595,15 @@ class PyBullet:
         if spinning_friction is not None:
             self.set_spinning_friction(body=body_name, link=-1, spinning_friction=spinning_friction)
 
-        return baseCollisionShapeIndex
+        return idx
 
-    def create_plane(self, z_offset: float) -> None:
+    def create_plane(self, z_offset: float) -> int:
         """Create a plane. (Actually, it is a thin box.)
 
         Args:
             z_offset (float): Offset of the plane.
         """
-        self.create_box(
+        idx = self.create_box(
             body_name="plane",
             half_extents=np.array([3.0, 3.0, 0.01]),
             mass=0.0,
@@ -609,6 +611,8 @@ class PyBullet:
             specular_color=np.zeros(3),
             rgba_color=np.array([0.15, 0.15, 0.15, 1.0]),
         )
+
+        return idx
 
     def create_table(
         self,
@@ -618,7 +622,7 @@ class PyBullet:
         x_offset: float = 0.0,
         lateral_friction: Optional[float] = None,
         spinning_friction: Optional[float] = None,
-    ) -> None:
+    ) -> int:
         """Create a fixed table. Top is z=0, centered in y.
 
         Args:
@@ -631,7 +635,7 @@ class PyBullet:
             spinning_friction (float or None, optional): Spinning friction. If None, use the default pybullet
                 value. Defaults to None.
         """
-        self.create_box(
+        idx = self.create_box(
             body_name="table",
             half_extents=np.array([length, width, height]) / 2,
             mass=0.0,
@@ -641,6 +645,8 @@ class PyBullet:
             lateral_friction=lateral_friction,
             spinning_friction=spinning_friction,
         )
+
+        return idx
 
     def set_lateral_friction(self, body: str, link: int, lateral_friction: float) -> None:
         """Set the lateral friction of a link.

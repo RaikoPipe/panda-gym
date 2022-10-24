@@ -7,6 +7,7 @@ from gymnasium import spaces
 from gymnasium.utils import seeding
 
 from panda_gym.pybullet import PyBullet
+import pybullet
 
 
 class PyBulletRobot(ABC):
@@ -30,27 +31,40 @@ class PyBulletRobot(ABC):
         joint_forces: np.ndarray,
     ) -> None:
         self.sim = sim
+        self.sim_id = self.sim.physics_client._client
+
         self.body_name = body_name
         with self.sim.no_rendering():
-            self._load_robot(file_name, base_position)
+            self.id = self._load_robot(file_name, base_position)
             self.setup()
+
+        self.link_names = []
+        n = pybullet.getNumJoints(self.id, self.sim_id)
+        for i in range(n):
+            info = pybullet.getJointInfo(self.id, i, self.sim_id)
+            link_name = info[12].decode("utf-8")
+            self.link_names.append(link_name)
+
         self.action_space = action_space
         self.joint_indices = joint_indices
         self.joint_forces = joint_forces
 
-    def _load_robot(self, file_name: str, base_position: np.ndarray) -> None:
+
+    def _load_robot(self, file_name: str, base_position: np.ndarray) -> int:
         """Load the robot.
 
         Args:
             file_name (str): The URDF file name of the robot.
             base_position (np.ndarray): The position of the robot, as (x, y, z).
         """
-        self.sim.loadURDF(
+        idx = self.sim.loadURDF(
             body_name=self.body_name,
             fileName=file_name,
             basePosition=base_position,
             useFixedBase=True,
         )
+
+        return idx
 
     def setup(self) -> None:
         """Called after robot loading."""
