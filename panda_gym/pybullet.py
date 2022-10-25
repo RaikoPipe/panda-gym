@@ -671,12 +671,12 @@ class PyBullet:
         if position is None:
             x = 0
             y = -0.5
-            z = +0.5 - len(self._string_idx) / 10
+            z = +0.5 - len(self._string_idx) / 50
             position = np.array([x, y, z])
 
         idx = self._string_idx[text_name] = p.addUserDebugText(text=text,
                                                                textSize=1, lifeTime=0,
-                                                               physicsClientId=self.physics_client.client,
+                                                               physicsClientId=self.physics_client._client,
                                                                textPosition=position,
                                                                textColorRGB=color)
 
@@ -685,8 +685,12 @@ class PyBullet:
     def remove_debug_text(self, text_name):
 
         self.physics_client.removeUserDebugItem(itemUniqueId=self._string_idx[text_name],
-                                                physicsClientId = self.physics_client.client)
+                                                physicsClientId = self.physics_client._client)
         self._string_idx.pop(text_name)
+
+    def remove_all_debug_text(self):
+        self.physics_client.removeAllUserDebugItems(physicsClientId=self.physics_client._client)
+        self._string_idx.clear()
 
     def set_debug_object_color(
             self,

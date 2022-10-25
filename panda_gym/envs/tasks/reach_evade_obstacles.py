@@ -23,7 +23,7 @@ class ReachEvadeObstacles(Task):
     ) -> None:
         super().__init__(sim)
         # todo: put labels into physics client
-        self.sim_id = self.sim.physics_client.client
+        self.sim_id = self.sim.physics_client._client
 
         self.robot: Panda = robot
         # self.robot_params = self.create_robot_debug_params()
@@ -132,8 +132,9 @@ class ReachEvadeObstacles(Task):
 
     def update_labels(self, manipulability, distance):
         with self.sim.no_rendering():
-            self.sim.remove_debug_text(self.debug_dist_label_name)
-            self.sim.remove_debug_text(self.debug_manip_label_name)
+            self.sim.remove_all_debug_text()
+            #self.sim.remove_debug_text(self.debug_dist_label_name)
+            #self.sim.remove_debug_text(self.debug_manip_label_name)
 
             self.sim.create_debug_text(self.debug_dist_label_name,
                                        f"{self.debug_dist_label_base_text} {round(distance, 3)}")
