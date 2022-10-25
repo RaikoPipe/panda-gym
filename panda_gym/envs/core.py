@@ -134,6 +134,7 @@ class PyBulletRobot(ABC):
         """
         return self.sim.get_joint_velocity(self.body_name, joint)
 
+
     def control_joints(self, target_angles: np.ndarray) -> None:
         """Control the joints of the robot.
 
@@ -168,6 +169,7 @@ class PyBulletRobot(ABC):
         """
         inverse_kinematics = self.sim.inverse_kinematics(self.body_name, link=link, position=position, orientation=orientation)
         return inverse_kinematics
+
 
 
 class Task(ABC):

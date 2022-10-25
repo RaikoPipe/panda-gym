@@ -22,7 +22,8 @@ class PyBullet:
             Defaults to np.array([223, 54, 45]).
     """
 
-    def __init__(self, render: bool = False, n_substeps: int = 20, background_color: Optional[np.ndarray] = None) -> None:
+    def __init__(self, render: bool = False, n_substeps: int = 20,
+                 background_color: Optional[np.ndarray] = None) -> None:
         background_color = background_color if background_color is not None else np.array([223.0, 54.0, 45.0])
         self.background_color = background_color.astype(np.float32) / 255
         options = "--background_color_red={} \
@@ -33,7 +34,7 @@ class PyBullet:
         self.connection_mode = p.GUI if render else p.DIRECT
         self.physics_client = bc.BulletClient(connection_mode=self.connection_mode, options=options)
         self.physics_client.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
-        self.physics_client.configureDebugVisualizer(p.COV_ENABLE_MOUSE_PICKING, 0)
+        self.physics_client.configureDebugVisualizer(p.COV_ENABLE_MOUSE_PICKING, 1)
 
         self.n_substeps = n_substeps
         self.timestep = 1.0 / 500
@@ -42,6 +43,7 @@ class PyBullet:
         self.physics_client.setAdditionalSearchPath(pybullet_data.getDataPath())
         self.physics_client.setGravity(0, 0, -9.81)
         self._bodies_idx = {}
+        self._string_idx = {}
 
     @property
     def dt(self):
@@ -83,15 +85,15 @@ class PyBullet:
         self.physics_client.removeState(state_id)
 
     def render(
-        self,
-        mode: str = "human",
-        width: int = 720,
-        height: int = 480,
-        target_position: Optional[np.ndarray] = None,
-        distance: float = 1.4,
-        yaw: float = 45,
-        pitch: float = -30,
-        roll: float = 0,
+            self,
+            mode: str = "human",
+            width: int = 720,
+            height: int = 480,
+            target_position: Optional[np.ndarray] = None,
+            distance: float = 1.4,
+            yaw: float = 45,
+            pitch: float = -30,
+            roll: float = 0,
     ) -> Optional[np.ndarray]:
         """Render.
 
@@ -396,17 +398,17 @@ class PyBullet:
         return idx
 
     def create_box(
-        self,
-        body_name: str,
-        half_extents: np.ndarray,
-        mass: float,
-        position: np.ndarray,
-        rgba_color: Optional[np.ndarray] = None,
-        specular_color: Optional[np.ndarray] = None,
-        ghost: bool = False,
-        lateral_friction: Optional[float] = None,
-        spinning_friction: Optional[float] = None,
-        texture: Optional[str] = None,
+            self,
+            body_name: str,
+            half_extents: np.ndarray,
+            mass: float,
+            position: np.ndarray,
+            rgba_color: Optional[np.ndarray] = None,
+            specular_color: Optional[np.ndarray] = None,
+            ghost: bool = False,
+            lateral_friction: Optional[float] = None,
+            spinning_friction: Optional[float] = None,
+            texture: Optional[str] = None,
     ) -> int:
         """Create a box.
 
@@ -451,17 +453,17 @@ class PyBullet:
         return idx
 
     def create_cylinder(
-        self,
-        body_name: str,
-        radius: float,
-        height: float,
-        mass: float,
-        position: np.ndarray,
-        rgba_color: Optional[np.ndarray] = None,
-        specular_color: Optional[np.ndarray] = None,
-        ghost: bool = False,
-        lateral_friction: Optional[float] = None,
-        spinning_friction: Optional[float] = None,
+            self,
+            body_name: str,
+            radius: float,
+            height: float,
+            mass: float,
+            position: np.ndarray,
+            rgba_color: Optional[np.ndarray] = None,
+            specular_color: Optional[np.ndarray] = None,
+            ghost: bool = False,
+            lateral_friction: Optional[float] = None,
+            spinning_friction: Optional[float] = None,
     ) -> int:
         """Create a cylinder.
 
@@ -503,16 +505,16 @@ class PyBullet:
         return idx
 
     def create_sphere(
-        self,
-        body_name: str,
-        radius: float,
-        mass: float,
-        position: np.ndarray,
-        rgba_color: Optional[np.ndarray] = None,
-        specular_color: Optional[np.ndarray] = None,
-        ghost: bool = False,
-        lateral_friction: Optional[float] = None,
-        spinning_friction: Optional[float] = None,
+            self,
+            body_name: str,
+            radius: float,
+            mass: float,
+            position: np.ndarray,
+            rgba_color: Optional[np.ndarray] = None,
+            specular_color: Optional[np.ndarray] = None,
+            ghost: bool = False,
+            lateral_friction: Optional[float] = None,
+            spinning_friction: Optional[float] = None,
     ) -> int:
         """Create a sphere.
 
@@ -551,16 +553,16 @@ class PyBullet:
         return idx
 
     def _create_geometry(
-        self,
-        body_name: str,
-        geom_type: int,
-        mass: float = 0.0,
-        position: Optional[np.ndarray] = None,
-        ghost: bool = False,
-        lateral_friction: Optional[float] = None,
-        spinning_friction: Optional[float] = None,
-        visual_kwargs: Dict[str, Any] = {},
-        collision_kwargs: Dict[str, Any] = {},
+            self,
+            body_name: str,
+            geom_type: int,
+            mass: float = 0.0,
+            position: Optional[np.ndarray] = None,
+            ghost: bool = False,
+            lateral_friction: Optional[float] = None,
+            spinning_friction: Optional[float] = None,
+            visual_kwargs: Dict[str, Any] = {},
+            collision_kwargs: Dict[str, Any] = {},
     ) -> int:
         """Create a geometry.
 
@@ -615,13 +617,13 @@ class PyBullet:
         return idx
 
     def create_table(
-        self,
-        length: float,
-        width: float,
-        height: float,
-        x_offset: float = 0.0,
-        lateral_friction: Optional[float] = None,
-        spinning_friction: Optional[float] = None,
+            self,
+            length: float,
+            width: float,
+            height: float,
+            x_offset: float = 0.0,
+            lateral_friction: Optional[float] = None,
+            spinning_friction: Optional[float] = None,
     ) -> int:
         """Create a fixed table. Top is z=0, centered in y.
 
@@ -647,6 +649,55 @@ class PyBullet:
         )
 
         return idx
+
+    def create_debug_text(
+            self,
+            text_name: str,
+            text: str,
+            position: np.ndarray = None,
+            color: Optional[str] = np.array([0.0, 1.0, 0.0]),
+
+    ) -> int:
+        """Create a geometry.
+
+        Args:
+            text_name (str): The name of the floating text. Must be unique in the sim.
+            text (str): Text to display.
+            position (np.ndarray): The position, as (x, y, z). Defaults to a position on the upper left.
+            color (str, optional): Color of the floating text.
+
+        """
+
+        if position is None:
+            x = 0
+            y = -0.5
+            z = +0.5 - len(self._string_idx) / 10
+            position = np.array([x, y, z])
+
+        idx = self._string_idx[text_name] = p.addUserDebugText(text=text,
+                                                               textSize=1, lifeTime=0,
+                                                               physicsClientId=self.physics_client.client,
+                                                               textPosition=position,
+                                                               textColorRGB=color)
+
+        return idx
+
+    def remove_debug_text(self, text_name):
+
+        self.physics_client.removeUserDebugItem(itemUniqueId=self._string_idx[text_name],
+                                                physicsClientId = self.physics_client.client)
+        self._string_idx.pop(text_name)
+
+    def set_debug_object_color(
+            self,
+            body_name:str,
+            color: Optional[str] = np.array([0.0, 1.0, 0.0])):
+
+        p.setDebugObjectColor(objectUniqueId=self._bodies_idx[body_name], objectDebugColorRGB=color,
+                              physicsClientId=self.physics_client.client,
+                              linkIndex=-1)
+
+
 
     def set_lateral_friction(self, body: str, link: int, lateral_friction: float) -> None:
         """Set the lateral friction of a link.

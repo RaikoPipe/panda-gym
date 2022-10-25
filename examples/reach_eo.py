@@ -6,7 +6,7 @@ env = gym.make("PandaReachEvadeObstacles-v3", render=True)
 
 observation, info = env.reset()
 
-for _ in range(1000):
+for _ in range(100000):
     action = env.action_space.sample()
     observation, reward, terminated, truncated, info = env.step(action)
 

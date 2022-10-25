@@ -6,6 +6,7 @@ from gymnasium import spaces
 from panda_gym.envs.core import PyBulletRobot
 from panda_gym.pybullet import PyBullet
 
+import roboticstoolbox as rtb
 
 class Panda(PyBulletRobot):
     """Panda robot in PyBullet.
@@ -48,6 +49,9 @@ class Panda(PyBulletRobot):
         self.sim.set_lateral_friction(self.body_name, self.fingers_indices[1], lateral_friction=1.0)
         self.sim.set_spinning_friction(self.body_name, self.fingers_indices[0], spinning_friction=0.001)
         self.sim.set_spinning_friction(self.body_name, self.fingers_indices[1], spinning_friction=0.001)
+
+        # get panda in roboticstoolbox
+        self.rtb_panda = rtb.models.Panda()
 
     def set_action(self, action: np.ndarray) -> None:
         action = action.copy()  # ensure action don't change
@@ -132,9 +136,16 @@ class Panda(PyBulletRobot):
         return finger1 + finger2
 
     def get_ee_position(self) -> np.ndarray:
-        """Returns the position of the ned-effector as (x, y, z)"""
+        """Returns the position of the end-effector as (x, y, z)"""
         return self.get_link_position(self.ee_link)
 
     def get_ee_velocity(self) -> np.ndarray:
         """Returns the velocity of the end-effector as (vx, vy, vz)"""
         return self.get_link_velocity(self.ee_link)
+    def get_manipulability(self) -> float:
+        """Returns the manipulability as the yoshikawa index"""
+        q = [self.get_joint_angle(i) for i in self.joint_indices[:7]]
+        return self.rtb_panda.manipulability(q, axes="trans")
+
+
+
