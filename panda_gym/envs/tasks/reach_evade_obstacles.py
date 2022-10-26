@@ -22,7 +22,6 @@ class ReachEvadeObstacles(Task):
             goal_range=0.3,
     ) -> None:
         super().__init__(sim)
-        # todo: put labels into physics client
         self.sim_id = self.sim.physics_client._client
 
         self.robot: Panda = robot
@@ -108,7 +107,7 @@ class ReachEvadeObstacles(Task):
         return params
 
     def get_obs(self) -> np.ndarray:
-        q = [self.robot.get_joint_angle(i) for i in self.robot.joint_indices[:7]]
+        q = self.robot.get_joint_angles(self.robot.joint_indices[:7])
         d = self.collision_detector.compute_distances(q, self.robot.joint_indices[:7], max_distance=999.0)
 
         return d  # no task-specific observation

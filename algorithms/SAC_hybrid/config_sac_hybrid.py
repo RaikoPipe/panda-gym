@@ -208,7 +208,7 @@ def get_sac_agent(env):
     MAX_EP_STEPS = 500
 
     # method specific parameters
-    METHOD = "policy"  # Options: policy, BCF, residual, CORE-RL
+    METHOD = "BCF"  # Options: policy, BCF, residual, CORE-RL
     USE_KL = True
     NUM_AGENTS = 1  # Number of agents in ensemble
     NUM_AGENTS = NUM_AGENTS if METHOD == "BCF" else 1
@@ -247,7 +247,7 @@ def get_sac_agent(env):
                         lr=1e-3,
                         batch_size=100,
                         start_steps=10000,
-                        num_test_episodes=10,
+                        num_eval_episodes=10,
                         alpha=ALPHA,
                         beta=BETA,
                         epsilon=EPSILON,

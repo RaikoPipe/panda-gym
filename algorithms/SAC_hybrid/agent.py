@@ -55,7 +55,7 @@ class SAC_Agent():
     def __init__(self, env_fn, prior, actor_critic=core.MLPActorCritic, ac_kwargs=dict(),
                  steps_per_epoch=4000, gamma=0.99, epochs=100, max_ep_steps=100,
                  polyak=0.995, lr=1e-3, alpha=0.2, beta=0.3, batch_size=100, start_steps=10000,
-                 update_after=1000, update_every=50, num_test_episodes=10,
+                 update_after=1000, update_every=50, num_eval_episodes=10,
                 use_kl_loss=False, epsilon=1e-5, target_KL_div=0, factor_c = 0.3, lambda_max = 15.0,
                  target_entropy=0.3, sigma_prior=0.4, save_freq = 1,
                  device=torch.device("cuda" if torch.cuda.is_available() else "cpu"), method="residual",
@@ -148,7 +148,7 @@ class SAC_Agent():
         self.beta = beta
         self.epsilon = epsilon
         self.polyak = polyak
-        self.num_test_episodes = num_test_episodes
+        self.num_eval_episodes = num_eval_episodes
         self.start_steps = start_steps
         self.batch_size = batch_size
         self.max_ep_steps = max_ep_steps
@@ -329,7 +329,7 @@ class SAC_Agent():
         act, mu, std = self.networks.act(state, False)
         return [mu.detach().squeeze(0).cpu().numpy(), std.detach().squeeze(0).cpu().numpy()]
 
-    def act_eval(self, state):
+    def get_action_eval(self, state):
         if self.method == "residual":
             act_policy, mu, sigma = self.get_policy_action(state, True)
             act_prior = self.prior.compute_action()
@@ -356,7 +356,7 @@ class SAC_Agent():
 
         return action
 
-    def get_action(self, state, **kwargs):
+    def get_action(self, state, kwargs):
         old_state = kwargs["old_state"]
         reward = kwargs["reward"]
 

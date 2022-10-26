@@ -123,6 +123,18 @@ class PyBulletRobot(ABC):
         """
         return self.sim.get_joint_angle(self.body_name, joint)
 
+    def get_joint_angles(self, joints: list) -> np.ndarray:
+        """Returns the angle of a joint
+
+        Args:
+            joints (list): A list of joint indices
+
+        Returns:
+            List: Joint angles for the given joint indices
+        """
+
+        return np.array([self.get_joint_angle(i) for i in joints])
+
     def get_joint_velocity(self, joint: int) -> float:
         """Returns the velocity of a joint as (wx, wy, wz)
 

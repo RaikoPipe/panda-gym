@@ -4,12 +4,16 @@ import numpy as np
 from spatialmath import SE3, SO3
 import pdb
 import roboticstoolbox as rb
+import numpy as np
+
+from panda_gym.envs.robots.panda import Panda
 
 class RRMC():
 
     def __init__(self, env):
         self.env = env
-        self.panda = rb.models.DH.Panda()
+        self.panda : Panda = env.robot
+        self.panda_rtb = rb.models.Panda()
 
     def p_servo(self, wTe, wTep, gain=2):
         '''
@@ -63,22 +67,24 @@ class RRMC():
     
     def fkine(self):
         # Tip pose in world coordinate frame
-        pose = self.env.panda.fkine(self.env.panda.q)
+        pose = self.panda_rtb.fkine(q=self.panda.get_joint_angles(self.panda.joint_indices[:7]))
         return pose
     
     def target_pose(self):
         # Target pose in world coordinate frame
-        pose = self.env.target_goal
+        pose = SE3(self.env.task.goal)
+        robot_pose = self.fkine()
+        pose.A[:3,:3] = robot_pose.A[:3,:3]
         return pose
 
 
     def compute_action(self, gain=1):
 
         try:
-            self.panda.q = self.env.panda.q
-            v = self.p_servo(self.panda.fkine(self.panda.q), self.target_pose(), gain=gain)
+            self.panda_rtb.q = self.panda.get_joint_angles(self.panda.joint_indices[:7])
+            v = self.p_servo(self.panda_rtb.fkine(self.panda_rtb.q), self.target_pose(), gain=gain)
             v[3:] *= 10
-            action = np.linalg.pinv(self.panda.jacobe(self.panda.q)) @ v
+            action = np.linalg.pinv(self.panda_rtb.jacobe(self.panda_rtb.q)) @ v
 
         except np.linalg.LinAlgError:
             action = np.zeros(self.env.action_space.shape[0])

@@ -39,16 +39,16 @@ def evaluate_policy():
     #     env_eval.mode_label.desc = "Evaluation"
 
     for j in range(agent.num_eval_episodes):
-        state, done = agent.test_env.reset(), False
+        state, done = agent.test_env.reset()[0]["observation"], False
         while not (done or (ep_len == agent.max_ep_steps)):
 
             action = agent.get_action_eval(state)
 
-            state, reward, done, _ = agent.test_env.step(action)
+            state, reward, done, _, _ = agent.test_env.step(action)
+            state = state["observation"]
 
             ep_ret += reward
             ep_len += 1
-            total_steps += 1
 
             # if env_eval.render:
             #     env_eval.rewards_label.desc = "Rewards: " + str(ep_ret)
@@ -146,7 +146,7 @@ def run():
         #     time.sleep(1)
 
         # End of trajectory handling
-        if done:
+        if done or ep_len >= agent.max_ep_steps:
             ep_rewards.append(ep_ret)
             print("\n")
             print(f"Episode Rewards: {ep_ret}")
@@ -158,7 +158,7 @@ def run():
             #     # update average rewards
             #     env.avg_rewards_label.desc = "Average Rewards: " + str(np.mean(ep_rewards))
 
-            state, ep_ret, ep_len = env_run.reset(), 0, 0
+            state, ep_ret, ep_len = env_run.reset()[0]["observation"], 0, 0
 
             # ee_rewards, obs_rewards, manip_rewards = 0, 0, 0
 
@@ -209,7 +209,7 @@ if __name__ == "__main__":
 
     #todo: integrate universal training parameters here
 
-    env = gym.make("PandaReach-v3", render=True)
+    env = gym.make("PandaReach-v3", render=True, control_type="")
     env.reset()
 
     # get agent
