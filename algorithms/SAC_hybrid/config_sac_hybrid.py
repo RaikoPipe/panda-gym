@@ -11,6 +11,7 @@ from copy import deepcopy, copy
 import numpy as np
 import torch
 from torch.distributions.normal import Normal
+from utils import wandb_logging
 
 
 import algorithms.SAC_hybrid.core as core
@@ -225,8 +226,8 @@ def get_sac_agent(env):
 
     # set up wandb
     variables = copy(locals())
-    # HYPERS = wandb_logging.get_ordered_hypers(variables)
-    # run_name = wandb_logging.start_wandb(PROJECT_LOG, TASK, SEED, METHOD, HYPERS)
+    HYPERS = wandb_logging.get_ordered_hypers(variables)
+    run_name = wandb_logging.start_wandb(PROJECT_LOG, TASK, SEED, METHOD, HYPERS)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Using ", device)
@@ -258,9 +259,7 @@ def get_sac_agent(env):
                         device=device,
                         method=METHOD)
 
-    #wandb_logging.watch_agent(agent.networks)
-
-    return agent#, run_name
+    return agent, run_name
 
     # test
     # agent = agents[0]

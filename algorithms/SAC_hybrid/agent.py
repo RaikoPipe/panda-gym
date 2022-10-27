@@ -132,7 +132,7 @@ class SAC_Agent():
                 the current policy and value function.
         """
 
-
+        self.alg_name = "SAC"
         self.device = device
         self.method = method
         self.prior = prior
@@ -325,7 +325,7 @@ class SAC_Agent():
         return act, mu, std
 
     def get_distr(self, state):
-        state = torch.FloatTensor(copy(state)).unsqueeze(0)  # .cuda()
+        state = torch.FloatTensor(copy(state)).unsqueeze(0).cuda()
         act, mu, std = self.networks.act(state, False)
         return [mu.detach().squeeze(0).cpu().numpy(), std.detach().squeeze(0).cpu().numpy()]
 

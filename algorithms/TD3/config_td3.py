@@ -3,11 +3,9 @@ import itertools
 import numpy as np
 import torch
 
-import gym
-import time
 from algorithms.TD3 import core
-from algorithms.TD3.replay_buffer import ReplayBuffer
 from algorithms.TD3.agent import TD3_Agent
+from utils import wandb_logging
 
 
 # todo: use this to make unified run function
@@ -99,6 +97,7 @@ def get_td3_agent(env):
     GAMMA = .99 # Discount Factor
     LEARNING_RATE = 1e-3
     LOSS_TYPE = "mse"
+    MAX_EP_STEPS=300
 
     # method specific parameters
     METHOD = "TD3"
@@ -107,9 +106,9 @@ def get_td3_agent(env):
     np.random.seed(SEED)
 
     # set up wandb
-    # variables = copy(locals())
-    # HYPERS = wandb_logging.get_ordered_hypers(variables)
-    # run_name = wandb_logging.start_wandb(PROJECT_LOG, TASK, SEED, METHOD, HYPERS)
+    variables = copy(locals())
+    HYPERS = wandb_logging.get_ordered_hypers(variables)
+    run_name = wandb_logging.start_wandb(PROJECT_LOG, TASK, SEED, METHOD, HYPERS)
 
     return TD3_Agent(lambda: env, actor_critic=core.MLPActorCritic,
-        gamma=GAMMA, seed=SEED, epochs=100)#, run_name
+        gamma=GAMMA, seed=SEED, epochs=100, max_ep_steps=MAX_EP_STEPS), run_name

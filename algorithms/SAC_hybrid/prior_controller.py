@@ -73,7 +73,7 @@ class RRMC():
     def target_pose(self):
         # Target pose in world coordinate frame
         pose = SE3(self.env.task.goal)
-        robot_pose = self.fkine()
+        robot_pose = self.panda_rtb.fkine(self.panda_rtb.qr) #self.fkine
         pose.A[:3,:3] = robot_pose.A[:3,:3]
         return pose
 
@@ -82,7 +82,12 @@ class RRMC():
 
         try:
             self.panda_rtb.q = self.panda.get_joint_angles(self.panda.joint_indices[:7])
-            v = self.p_servo(self.panda_rtb.fkine(self.panda_rtb.q), self.target_pose(), gain=gain)
+            ee_pos = self.panda.get_ee_position()
+            panda_rtb_pose = self.panda_rtb.fkine(self.panda_rtb.q)
+            panda_rtb_pose.A[:3,-1] = ee_pos
+
+
+            v = self.p_servo(panda_rtb_pose, self.target_pose(), gain=gain)
             v[3:] *= 10
             action = np.linalg.pinv(self.panda_rtb.jacobe(self.panda_rtb.q)) @ v
 

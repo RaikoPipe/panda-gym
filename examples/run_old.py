@@ -15,6 +15,8 @@ import gymnasium as gym
 import panda_gym
 
 from algorithms.SAC_hybrid import config_sac_hybrid
+from utils import wandb_logging
+from algorithms.TD3.config_td3 import get_td3_agent
 
 code_dict = {1: "Reached Goal", -2: "Collision", -1: "Max Timesteps reached"}
 
@@ -158,18 +160,17 @@ def run():
             #     # update average rewards
             #     env.avg_rewards_label.desc = "Average Rewards: " + str(np.mean(ep_rewards))
 
-            state, ep_ret, ep_len = env_run.reset()[0]["observation"], 0, 0
-
             # ee_rewards, obs_rewards, manip_rewards = 0, 0, 0
 
-            # wandb_logging.write_logs({'ep_rewards': reward}, t)
-            # wandb_logging.write_logs({'ep_length': ep_len}, t)
-            # wandb_logging.write_logs({'avg_rewards': np.mean(rewards)}, t)
+            wandb_logging.write_logs({'ep_rewards': ep_ret}, t)
+            wandb_logging.write_logs({'ep_length': ep_len}, t)
+            wandb_logging.write_logs({'avg_rewards': np.mean(ep_rewards)}, t)
+
+            state, ep_ret, ep_len = env_run.reset()[0]["observation"], 0, 0
 
         # Update handling
         if t >= agent.update_after and t % agent.update_every == 0:
             agent.update_agent()
-            #wandb_logging.write_logs(metrics, total_steps)
 
         # End of epoch handling
         if (t + 1) % agent.steps_per_epoch == 0:
@@ -183,7 +184,7 @@ def run():
             # Test the performance of the deterministic version of the agent.
             # env_run.mode_label.desc = "Exploring"
             metrics = evaluate_policy()
-            # wandb_logging.write_logs(metrics, t)
+            wandb_logging.write_logs(metrics, t)
             # env_run.mode_label.desc = "Training"
 
             # Log info about epoch
@@ -209,15 +210,15 @@ if __name__ == "__main__":
 
     #todo: integrate universal training parameters here
 
-    env = gym.make("PandaReach-v3", render=True, control_type="")
+    env = gym.make("PandaReach-v3", render=True, control_type="", reward_type="dense")
     env.reset()
 
     # get agent
-    agent = config_sac_hybrid.get_sac_agent(env)
+    agent, run_name = get_td3_agent(env)
 
-    #save_dir = fr"{ROOT_DIR}/saved_models/{agent.method}/{run_name}"
+    save_dir = fr"{ROOT_DIR}/saved_models/{agent.alg_name}/{run_name}"
 
-    #wandb_logging.watch_agent(agent.networks)
+    wandb_logging.watch_agent(agent.networks)
 
     # run agent
     #try:

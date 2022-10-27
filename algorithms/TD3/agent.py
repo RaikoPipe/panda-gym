@@ -9,8 +9,8 @@ import numpy as np
 
 class TD3_Agent:
     def __init__(self, env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
-            steps_per_epoch=4000, epochs=100, replay_size=int(1e6), gamma=0.99,
-            polyak=0.995, pi_lr=1e-3, q_lr=1e-3, batch_size=100, start_steps=0,
+            steps_per_epoch=4000, epochs=100, replay_size=int(1e6), gamma=0.99, max_ep_steps=100,
+            polyak=0.995, pi_lr=1e-3, q_lr=1e-3, batch_size=100, start_steps=10000,
             update_after=1000, update_every=50, act_noise=0.1, target_noise=0.2,
             noise_clip=0.5, policy_delay=2, num_test_episodes=10, method = "TD3",
             logger_kwargs=dict(), device=torch.device("cuda" if torch.cuda.is_available() else "cpu"), save_freq=1):
@@ -83,22 +83,22 @@ class TD3_Agent:
             save_freq (int): How often (in terms of gap between epochs) to save
                 the current policy and value function.
         """
-
+        self.alg_name= "TD3"
         self.device = device
         self.method = method
 
         self.env, self.test_env = env_fn(), env_fn()
-        self.obs_dim = self.env.observation_space.shape[0]
+        self.obs_dim = self.env.observation_space.spaces["observation"].shape[0]
         self.act_dim = self.env.action_space.shape[0]
 
         self.replay_buffer = ReplayBuffer(self.obs_dim, self.act_dim, size=int(1e6))
 
         self.gamma = gamma
         self.polyak = polyak
-        self.num_test_episodes = num_test_episodes
+        self.num_eval_episodes = num_test_episodes
         self.start_steps = start_steps
         self.batch_size = batch_size
-        self.max_ep_steps = self.env.max_ep_steps
+        self.max_ep_steps = max_ep_steps
         self.update_every = update_every
         self.update_after = update_after
         self.steps_per_epoch = steps_per_epoch
@@ -116,15 +116,8 @@ class TD3_Agent:
         # Action limit for clamping: critically, assumes all dimensions share the same bound!
         self.act_limit = self.env.action_space.high[0]
 
-        self.env, self.test_env = env_fn(), env_fn()
-        obs_dim = self.env.observation_space.shape
-        act_dim = self.env.action_space.shape[0]
-
-        # Action limit for clamping: critically, assumes all dimensions share the same bound!
-        act_limit = self.env.action_space.high[0]
-
         # Create actor-critic module and target networks
-        self.networks = actor_critic(self.env.observation_space, self.env.action_space, **ac_kwargs)
+        self.networks = actor_critic(self.env.observation_space.spaces["observation"], self.env.action_space, **ac_kwargs)
         self.networks_target = deepcopy(self.networks)
 
         # Freeze target networks with respect to optimizers (only update via polyak averaging)
@@ -135,7 +128,7 @@ class TD3_Agent:
         self.q_params = itertools.chain(self.networks.q1.parameters(), self.networks.q2.parameters())
 
         # Experience buffer
-        self.replay_buffer = ReplayBuffer(obs_dim=obs_dim, act_dim=act_dim, size=replay_size)
+        self.replay_buffer = ReplayBuffer(obs_dim=self.obs_dim, act_dim=self.act_dim, size=replay_size)
 
         # Set up optimizers for policy and q-function
         self.pi_optimizer = Adam(self.networks.pi.parameters(), lr=pi_lr)
@@ -237,6 +230,10 @@ class TD3_Agent:
 
     def get_sample(self):
         return self.env.action_space.sample()
+
+    def get_action_eval(self, o):
+        a = self.networks.act(torch.as_tensor(o, dtype=torch.float32))
+        return np.clip(a, -self.act_limit, self.act_limit)
     def get_action(self, o, _):
         a = self.networks.act(torch.as_tensor(o, dtype=torch.float32))
         a += self.act_noise * np.random.randn(self.act_dim)
