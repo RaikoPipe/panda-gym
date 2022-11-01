@@ -22,6 +22,7 @@ setup(
     version=__version__,
     install_requires=["gymnasium~=0.26", "pybullet", "numpy", "scipy",
                       'pyb_utils @ git+ssh://git@git+https://github.com/RaikoPipe/pyb_utils',
+                      'stable_baselines3 @ git+ssh://git@git+https://github.com/RaikoPipe/stable-baselines3',
                       "roboticstoolbox-python"],
     extras_require={
         "develop": ["pytest-cov", "black", "isort", "pytype", "sphinx", "sphinx-rtd-theme"],
