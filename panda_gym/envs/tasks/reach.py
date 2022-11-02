@@ -42,6 +42,9 @@ class Reach(Task):
         )
         return
 
+    def is_truncated(self) -> np.ndarray:
+        return np.array(False)
+
 
     def get_obs(self) -> np.ndarray:
         return np.array([])  # no task-specific observation

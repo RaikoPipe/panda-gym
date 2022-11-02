@@ -4,10 +4,12 @@ import gymnasium as gym
 from stable_baselines3 import HerReplayBuffer, TD3
 from wandb.integration.sb3 import WandbCallback
 import wandb
+from torch.utils import tensorboard
 
+# noinspection PyUnresolvedReferences
 import panda_gym
 
-env = gym.make("PandaReach-v3", render=True)
+env = gym.make("PandaReachEvadeObstacles-v3", render=True, realtime=False)
 
 config = {
     "policy_type": "MultiInputPolicy",
@@ -29,11 +31,12 @@ run = wandb.init(
 model = TD3(config["policy_type"], env=env, replay_buffer_class=HerReplayBuffer, verbose=1,
             tensorboard_log=f"runs/{run.id}")
 
+# fixme: charts not being visualized? Problem might lie in tensorboard -> verify if setup at home still works
 model.learn(
     total_timesteps=config["total_timesteps"],
     callback=WandbCallback(
-        model_save_path=f"models/{run.id}",
-        verbose=2,
+        model_save_path=f"models/{run.id}"
     ),
 )
+
 run.finish()

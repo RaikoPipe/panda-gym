@@ -220,6 +220,10 @@ class Task(ABC):
         """Returns whether the achieved goal match the desired goal."""
 
     @abstractmethod
+    def is_truncated(self) -> np.ndarray:
+        """Returns whether the episode was truncated because some condition was violated."""
+
+    @abstractmethod
     def compute_reward(self, achieved_goal: np.ndarray, desired_goal: np.ndarray, info: Dict[str, Any] = {}) -> np.ndarray:
         """Compute reward associated to the achieved and the desired goal."""
 
@@ -256,7 +260,7 @@ class RobotTaskEnv(gym.Env):
 
     def _get_obs(self) -> Dict[str, np.ndarray]:
         robot_obs = self.robot.get_obs().astype(np.float32)  # robot state
-        task_obs = self.task.get_obs().astype(np.float32)  # object position, velococity, etc...
+        task_obs = self.task.get_obs().astype(np.float32)  # object position, velocity, etc...
         observation = np.concatenate([robot_obs, task_obs])
         achieved_goal = self.task.get_achieved_goal().astype(np.float32)
         return {
@@ -311,9 +315,11 @@ class RobotTaskEnv(gym.Env):
         observation = self._get_obs()
         # An episode is terminated if the agent has reached the target
         terminated = bool(self.task.is_success(observation["achieved_goal"], self.task.get_goal()))
-        truncated = False
-        info = {"is_success": terminated}
+        truncated = bool(self.task.is_truncated())
+
+        info = {"is_success": terminated, "is_truncated":truncated}
         reward = float(self.task.compute_reward(observation["achieved_goal"], self.task.get_goal(), info))
+
         return observation, reward, terminated, truncated, info
 
     def close(self) -> None:

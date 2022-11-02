@@ -22,7 +22,7 @@ class PyBullet:
             Defaults to np.array([223, 54, 45]).
     """
 
-    def __init__(self, render: bool = False, n_substeps: int = 20,
+    def __init__(self, render: bool = False, realtime=False, n_substeps: int = 20,
                  background_color: Optional[np.ndarray] = None) -> None:
         background_color = background_color if background_color is not None else np.array([223.0, 54.0, 45.0])
         self.background_color = background_color.astype(np.float32) / 255
@@ -32,9 +32,14 @@ class PyBullet:
             *self.background_color
         )
         self.connection_mode = p.GUI if render else p.DIRECT
+        self.render_env = render
+
         self.physics_client = bc.BulletClient(connection_mode=self.connection_mode, options=options)
         self.physics_client.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
         self.physics_client.configureDebugVisualizer(p.COV_ENABLE_MOUSE_PICKING, 1)
+        # todo: test if this changes behaviour of the physics simulation
+        if render and realtime:
+            p.setRealTimeSimulation(1, self.physics_client._client)
 
         self.n_substeps = n_substeps
         self.timestep = 1.0 / 500
