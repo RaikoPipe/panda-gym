@@ -20,18 +20,21 @@ class ReachEvadeObstacles(Task):
             reward_type="sparse",
             distance_threshold=0.05,
             goal_range=0.3,
-            show_goal_space=False
+            show_goal_space=False,
+            joint_obstacle_observation ="all",
+            obstacle_layout = 1,
+            show_debug_labels=True
     ) -> None:
         super().__init__(sim)
         self.sim_id = self.sim.physics_client._client
 
         self.robot: Panda = robot
         self.obstacles = {}
+        self.joint_obstacle_observation = joint_obstacle_observation
+        create_obstacle_layout = {1: self.create_obstacle_layout_1, 2: self.create_obstacle_layout_2}
         # self.robot_params = self.create_robot_debug_params()
 
-        # extra observations
-        self.obs_d = None
-        self.is_collided = False
+
 
         self.reward_type = reward_type
         self.distance_threshold = distance_threshold
@@ -45,21 +48,18 @@ class ReachEvadeObstacles(Task):
         self.collision_links = [i for i in self.robot.link_names if i not in exclude_links]
         self.collision_objects = []
 
-        self.debug_manip_label_name = "manip"
-        self.debug_manip_label_base_text = "Manipulability Score:"
-        self.debug_dist_label_name = "dist"
-        self.debug_dist_label_base_text = "Distance:"
-        self.debug_obs_label_name = "obs"
-        self.debug_obs_label_base_text = "Closest Obstacle Distance"
+        # extra observations
+        self.obs_d = np.zeros(len(self.collision_links))
+        self.is_collided = False
 
-        self.sim.create_debug_text(self.debug_manip_label_name, f"{self.debug_manip_label_base_text} 0")
-        self.sim.create_debug_text(self.debug_dist_label_name, f"{self.debug_dist_label_base_text} 0")
-        self.sim.create_debug_text(self.debug_obs_label_name, f"{self.debug_obs_label_base_text} 0")
-
+        # set scene
         with self.sim.no_rendering():
             self._create_scene(show_goal_space)
-            self.create_obstacle_layout_1()
+
             self.sim.place_visualizer(target_position=np.zeros(3), distance=0.9, yaw=45, pitch=-30)
+
+            if obstacle_layout:
+                create_obstacle_layout[obstacle_layout]()
 
         # add collision detector for robot
         self.named_collision_pairs_rob_obs = []
@@ -68,7 +68,19 @@ class ReachEvadeObstacles(Task):
             for obstacle in self.collision_objects:
                 self.named_collision_pairs_rob_obs.append((link, obstacle))
         self.collision_detector = CollisionDetector(col_id=self.sim_id, bodies=self.bodies,
-                                                    named_collision_pairs=self.named_collision_pairs_rob_obs)
+                                                     named_collision_pairs=self.named_collision_pairs_rob_obs)
+
+        if show_debug_labels:
+            self.debug_manip_label_name = "manip"
+            self.debug_manip_label_base_text = "Manipulability Score:"
+            self.debug_dist_label_name = "dist"
+            self.debug_dist_label_base_text = "Distance:"
+            self.debug_obs_label_name = "obs"
+            self.debug_obs_label_base_text = "Closest Obstacle Distance"
+
+            self.sim.create_debug_text(self.debug_manip_label_name, f"{self.debug_manip_label_base_text} 0")
+            self.sim.create_debug_text(self.debug_dist_label_name, f"{self.debug_dist_label_base_text} 0")
+            self.sim.create_debug_text(self.debug_obs_label_name, f"{self.debug_obs_label_base_text} 0")
 
 
     def _create_scene(self, show_goal_space):
@@ -104,6 +116,24 @@ class ReachEvadeObstacles(Task):
             )
 
     def create_obstacle_layout_1(self):
+        spacing = 4
+        spacing_x = 5
+        x_fix = -0.1
+        y_fix = -0.1
+        z_fix = 0.15
+        for x in range(1):
+            for y in range(2):
+                for z in range(1):
+                    self.create_obstacle_cuboid(
+                        np.array([x / spacing_x + x_fix, y / spacing + y_fix, z / spacing + z_fix]),
+                    size=np.array([0.02,0.02, 0.02]))
+
+        for obstacle_name, obstacle_id in self.obstacles.items():
+            self.collision_objects.append(NamedCollisionObject(obstacle_name))
+            self.bodies[obstacle_name] = obstacle_id
+
+
+    def create_obstacle_layout_2(self):
         spacing = 10
         spacing_x = 5
         x_fix = -0.1
@@ -158,12 +188,18 @@ class ReachEvadeObstacles(Task):
         return params
 
     def get_obs(self) -> np.ndarray:
-        q = self.robot.get_joint_angles(self.robot.joint_indices[:7])
-        obs_per_link = self.collision_detector.compute_distances_per_link(q, self.robot.joint_indices[:7],
-                                                                          max_distance=10.0)
-        self.obs_d = np.array([min(i) for i in obs_per_link.values()])
+        if self.obstacles:
+            q = self.robot.get_joint_angles(self.robot.joint_indices[:7])
+            obs_per_link = self.collision_detector.compute_distances_per_link(q, self.robot.joint_indices[:7],
+                                                                              max_distance=10.0)
 
-        self.is_collided = min(self.obs_d) <= 0
+            if self.joint_obstacle_observation == "all":
+                self.obs_d = np.array([min(i) for i in obs_per_link.values()])
+            elif self.joint_obstacle_observation == "closest":
+                self.obs_d = min(obs_per_link.values())
+
+            self.is_collided = min(self.obs_d) <= 0
+
 
         return self.obs_d
 
@@ -175,9 +211,10 @@ class ReachEvadeObstacles(Task):
         collision = True
         margin = 0.0  # margin in which overlapping counts as a collision
 
+        self.goal = self._sample_goal()
         # get collision free goal
-        while collision:
-            self.goal = self._sample_goal()
+        while collision and self.obstacles:
+
             self.sim.set_base_pose("dummy_target", self.goal, np.array([0.0, 0.0, 0.0, 1.0]))
             self.sim.physics_client.performCollisionDetection()
             for obstacle in self.obstacles:
@@ -187,6 +224,7 @@ class ReachEvadeObstacles(Task):
                 contact_distance = np.min([pt[8] for pt in closest_points])
                 collision = margin >= contact_distance
                 if collision:
+                    self.goal = self._sample_goal()
                     break
             if not collision:
                 collision = False

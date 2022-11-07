@@ -10,7 +10,8 @@ with open("README.md", "r") as f:
 
 setup(
     name="panda_gym",
-    description="Set of robotic environments based on PyBullet physics engine and gymnasium.",
+    description="Set of robotic environments based on PyBullet physics engine and gymnasium. "
+                "Fork of panda-gym by https://github.com/qgallouedec",
     author="Richard Reider",
     author_email="richard.reider@ovgu.de",
     long_description=long_description,
