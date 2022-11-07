@@ -275,7 +275,4 @@ def get_sac_agent(env):
     # #print(evaluate_prior())
 
     # todo:
-    #   implement dqn naf
-    #   speed up training (multiple agents at the same time) -> warpdrive? marl
-    #   research methods to achieve obstacle avoidance in training
-    #   consider implementing neo guided training
+    #   implemented neo guided training

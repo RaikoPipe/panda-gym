@@ -73,10 +73,12 @@ class PandaReachEnv(RobotTaskEnv):
             Defaults to "ee".
     """
 
-    def __init__(self, render: bool = False, realtime:bool=False, reward_type: str = "sparse", control_type: str = "ee") -> None:
+    def __init__(self, render: bool = False, realtime:bool=False, reward_type: str = "sparse", control_type: str = "ee",
+                goal_range=0.3, show_goal_space=False) -> None:
         sim = PyBullet(render=render, realtime=realtime)
         robot = Panda(sim, block_gripper=True, base_position=np.array([-0.6, 0.0, 0.0]), control_type=control_type)
-        task = Reach(sim, reward_type=reward_type, get_ee_position=robot.get_ee_position)
+        task = Reach(sim, reward_type=reward_type, get_ee_position=robot.get_ee_position, goal_range=goal_range,
+                      show_goal_space=show_goal_space)
         super().__init__(robot, task)
 
 
@@ -90,10 +92,12 @@ class PandaReachEvadeObstaclesEnv(RobotTaskEnv):
             Defaults to "ee".
     """
 
-    def __init__(self, render: bool = False, realtime:bool=False, reward_type: str = "sparse", control_type: str = "ee") -> None:
-        sim = PyBullet(render=render,realtime=realtime)
+    def __init__(self, render: bool = False, realtime:bool=False, goal_range:float=0.3, reward_type: str = "sparse",
+                 control_type: str = "ee", show_goal_space=False) -> None:
+        sim = PyBullet(render=render, realtime=realtime)
         robot = Panda(sim, block_gripper=True, base_position=np.array([-0.6, 0.0, 0.0]), control_type=control_type)
-        task = ReachEvadeObstacles(sim, robot, reward_type=reward_type, get_ee_position=robot.get_ee_position)
+        task = ReachEvadeObstacles(sim, robot, goal_range=goal_range, reward_type=reward_type,
+                                   get_ee_position=robot.get_ee_position, show_goal_space=show_goal_space)
         super().__init__(robot, task)
 
 

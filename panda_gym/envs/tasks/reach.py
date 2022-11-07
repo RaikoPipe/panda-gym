@@ -5,7 +5,6 @@ import numpy as np
 from panda_gym.envs.core import Task
 from panda_gym.utils import distance
 
-# todo: add collision detection
 class Reach(Task):
     def __init__(
         self,
@@ -14,6 +13,7 @@ class Reach(Task):
         reward_type="sparse",
         distance_threshold=0.05,
         goal_range=0.3,
+        show_goal_space=False
     ) -> None:
         super().__init__(sim)
         self.reward_type = reward_type
@@ -23,13 +23,12 @@ class Reach(Task):
         self.goal_range_high = np.array([goal_range / 2, goal_range / 2, goal_range])
         self.collision_detector = None
         with self.sim.no_rendering():
-            self._create_scene()
+            self._create_scene(show_goal_space)
             self.sim.place_visualizer(target_position=np.zeros(3), distance=0.9, yaw=45, pitch=-30)
 
 
 
-    def _create_scene(self) -> None:
-        # todo: create obstacles, return named collision object
+    def _create_scene(self, show_goal_space) -> None:
         self.sim.create_plane(z_offset=-0.4)
         self.sim.create_table(length=1.1, width=0.7, height=0.4, x_offset=-0.3)
         self.sim.create_sphere(
@@ -40,6 +39,15 @@ class Reach(Task):
             position=np.zeros(3),
             rgba_color=np.array([0.1, 0.9, 0.1, 0.3]),
         )
+        if show_goal_space:
+            self.sim.create_box(
+                body_name="goal_space",
+                ghost=True,
+                half_extents=self.goal_range_high,
+                mass=0.0,
+                position=np.array([0.0, 0.0, 0.0]),
+                rgba_color=np.array([0.0, 0.0, 0.5, 0.2]),
+            )
         return
 
     def is_truncated(self) -> np.ndarray:

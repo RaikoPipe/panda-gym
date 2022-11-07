@@ -20,7 +20,7 @@ setup(
     include_package_data=True,
     package_data={"panda_gym": ["version.txt"]},
     version=__version__,
-    install_requires=["gymnasium~=0.26", "pybullet", "numpy", "scipy", "torch"
+    install_requires=["gymnasium~=0.26", "pybullet", "numpy", "scipy", "torch", "wandb",
                       'pyb_utils @ git+ssh://git@git+https://github.com/RaikoPipe/pyb_utils',
                       'stable_baselines3 @ git+ssh://git@git+https://github.com/RaikoPipe/stable-baselines3',
                       "roboticstoolbox-python"],

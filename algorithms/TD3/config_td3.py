@@ -8,7 +8,6 @@ from algorithms.TD3.agent import TD3_Agent
 from utils import wandb_logging
 
 
-# todo: use this to make unified run function
 #
 # def run(agent):
 #     # Prepare for interaction with environment

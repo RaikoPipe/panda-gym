@@ -208,8 +208,6 @@ if __name__ == "__main__":
     REWARD_TYPE = ""
     MAX_EP_STEPS = 500
 
-    #todo: integrate universal training parameters here
-
     env = gym.make("PandaReach-v3", render=True, control_type="", reward_type="dense")
     env.reset()
 
