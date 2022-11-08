@@ -1,8 +1,10 @@
 import wandb
 from stable_baselines3 import TD3
-import panda_gym
+
 import gymnasium as gym
 import numpy as np
+import train
+from time import sleep
 
 
 def evaluate(model, num_steps=1000):
@@ -18,11 +20,19 @@ def evaluate(model, num_steps=1000):
         # _states are only useful when using LSTM policies
         action, _states = model.predict(obs)
 
-        obs, reward, done, info, _ = env.step(action)
+        obs, reward, done, truncated, info, = env.step(action)
+        sleep(0.05)
 
         # Stats
         episode_rewards[-1] += reward
-        if done:
+        if done or truncated:
+            sleep(2)
+            if info["is_success"]:
+                print("Success!")
+            elif info["is_truncated"]:
+                print("Collision...")
+            else:
+                print("Timeout...")
             obs, _ = env.reset()
             episode_rewards.append(0.0)
     # Compute mean reward for the last 100 episodes
@@ -32,7 +42,7 @@ def evaluate(model, num_steps=1000):
     return mean_100ep_reward
 
 
-env = gym.make("PandaReach-v3", render=True)
-model = TD3.load(r"run_data/wandb/run-20221031_114132-134upbh8/files/model.zip", env=env)
+env = train.env
+model = TD3.load(r"run_data/wandb/run_obs_layout_1_best_08_11/files/model.zip", env=env)
 
 evaluate(model)

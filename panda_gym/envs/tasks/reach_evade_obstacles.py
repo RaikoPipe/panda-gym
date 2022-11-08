@@ -39,7 +39,7 @@ class ReachEvadeObstacles(Task):
         self.reward_type = reward_type
         self.distance_threshold = distance_threshold
         self.get_ee_position = get_ee_position
-        self.goal_range_low = np.array([-goal_range/1.25, -goal_range / 2, 0])
+        self.goal_range_low = np.array([-goal_range/1.5, -goal_range / 1.5, 0])
         self.goal_range_high = np.array([goal_range/2.5, goal_range / 1.5, goal_range])
         self.obstacle_count = 0
 
@@ -109,6 +109,15 @@ class ReachEvadeObstacles(Task):
             self.sim.create_box(
                 body_name="goal_space",
                 ghost=True,
+                half_extents=np.array([self.goal_range_high[0]+self.goal_range_low[0], self.goal_range_low[1], self.goal_range_high[2]]),
+                mass=0.0,
+                position=np.array([self.goal_range_low[0]/2, 0, 0]),
+                rgba_color=np.array([0.0, 0.0, 0.5, 0.2]),
+            )
+
+            self.sim.create_box(
+                body_name="goal_space",
+                ghost=True,
                 half_extents=self.goal_range_high,
                 mass=0.0,
                 position=np.array([0.0, 0.0, 0.0]),
@@ -118,7 +127,7 @@ class ReachEvadeObstacles(Task):
     def create_obstacle_layout_1(self):
         spacing = 4
         spacing_x = 5
-        x_fix = -0.1
+        x_fix = -0.025
         y_fix = -0.1
         z_fix = 0.15
         for x in range(1):
