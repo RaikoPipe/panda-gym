@@ -8,6 +8,8 @@ from panda_gym.pybullet import PyBullet
 
 import roboticstoolbox as rtb
 
+import ruckig
+
 class Panda(PyBulletRobot):
     """Panda robot in PyBullet.
 
@@ -72,6 +74,35 @@ class Panda(PyBulletRobot):
 
         target_angles = np.concatenate((target_arm_angles, [target_fingers_width / 2, target_fingers_width / 2]))
         self.control_joints(target_angles=target_angles)
+
+    def set_action_ruckig(self, action: np.ndarray):
+        action = action.copy()  # ensure action don't change
+        action = np.clip(action, self.action_space.low, self.action_space.high)
+
+
+        if self.control_type == "ee":
+            ee_displacement = action[:3]
+
+            target_arm_angles = self.ee_displacement_to_target_arm_angles(ee_displacement)
+        else:
+            arm_joint_ctrl = action[:7]
+            target_arm_angles = self.arm_joint_ctrl_to_target_arm_angles(arm_joint_ctrl)
+
+        if self.block_gripper:
+            target_fingers_width = 0
+        else:
+            fingers_ctrl = action[-1] * 0.2  # limit maximum change in position
+            fingers_width = self.get_fingers_width()
+            target_fingers_width = fingers_width + fingers_ctrl
+
+        # todo: limit jerk with ruckig
+        #   question: Can I limit the change in target angles by supplying q_dot=(q_new-q_curr)/timestep
+        #   note: pybullet is also limiting the torques applied (see setJointMotorControlArray
+
+        target_angles = np.concatenate((target_arm_angles, [target_fingers_width / 2, target_fingers_width / 2]))
+        self.control_joints(target_angles=target_angles)
+
+
 
     def ee_displacement_to_target_arm_angles(self, ee_displacement: np.ndarray) -> np.ndarray:
         """Compute the target arm angles from the end-effector displacement.
