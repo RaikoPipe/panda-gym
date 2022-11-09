@@ -93,7 +93,7 @@ class ReachEvadeObstacles(Task):
             mass=0.0,
             ghost=True,
             position=np.zeros(3),
-            rgba_color=np.array([0.1, 0.9, 0.1, 0.3]),
+            rgba_color=np.array([0.1, 0.9, 0.1, 0.8]),
         )
 
         self.bodies["dummy_target"] = self.sim.create_sphere(

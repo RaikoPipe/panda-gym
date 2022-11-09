@@ -21,7 +21,7 @@ joint_obstacle_observation = "closest"  # "all": closest distance to any obstacl
 # "closest": only closest joint distance is observed
 
 env = gym.make(env_name, render=render, goal_range=goal_range, control_type=control_type,
-               show_goal_space=show_goal_space, obstacle_layout=1)
+               show_goal_space=show_goal_space, obstacle_layout=1, show_debug_labels=True)
 
 config = {
     "policy_type": policy_type,
