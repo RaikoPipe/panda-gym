@@ -22,9 +22,9 @@ setup(
     package_data={"panda_gym": ["version.txt"]},
     version=__version__,
     install_requires=["gymnasium~=0.26", "pybullet", "numpy", "scipy", "torch", "wandb", "ruckig",
-                      'pyb_utils @ git+ssh://git@git+https://github.com/RaikoPipe/pyb_utils',
-                      'stable_baselines3 @ git+ssh://git@git+https://github.com/RaikoPipe/stable-baselines3',
-                      "roboticstoolbox-python"],
+                      'pyb_utils @ git+https://git@github.com/RaikoPipe/pyb_utils',
+                      'stable_baselines3 @ git+https://git@github.com/RaikoPipe/stable-baselines3',
+                      "roboticstoolbox-python", "tensorboard"],
     extras_require={
         "develop": ["pytest-cov", "black", "isort", "pytype", "sphinx", "sphinx-rtd-theme"],
     },
