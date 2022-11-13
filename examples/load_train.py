@@ -29,7 +29,7 @@ run = wandb.init(
     # save_code=True,  # optional
 )
 
-model = TD3.load(r"run_data/wandb/run_panda_reach_solve/files/model.zip", env=env)
+model = TD3.load(r"run_data/wandb/run-20221113_123938-3kwof6ai/files/model.zip", env=env)
 
 # fixme: charts not being visualized? Problem might lie in tensorboard -> probably missing admin priv
 model.learn(

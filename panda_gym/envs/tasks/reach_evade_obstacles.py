@@ -125,10 +125,21 @@ class ReachEvadeObstacles(Task):
             )
 
     def create_obstacle_layout_1(self):
-        spacing = 4
+        """one obstacle in the corner of the goal space"""
+        self.create_obstacle_cuboid(
+            np.array([0,0.05,0.15]),
+            size=np.array([0.02, 0.02, 0.02]))
+
+        for obstacle_name, obstacle_id in self.obstacles.items():
+            self.collision_objects.append(NamedCollisionObject(obstacle_name))
+            self.bodies[obstacle_name] = obstacle_id
+
+    def create_obstacle_layout_2(self):
+        """Two obstacles surrounding end effector"""
+        spacing = 3.3
         spacing_x = 5
         x_fix = -0.025
-        y_fix = -0.1
+        y_fix = -0.15
         z_fix = 0.15
         for x in range(1):
             for y in range(2):
@@ -142,7 +153,8 @@ class ReachEvadeObstacles(Task):
             self.bodies[obstacle_name] = obstacle_id
 
 
-    def create_obstacle_layout_2(self):
+    def create_obstacle_layout_3(self):
+        # todo: make next layout
         spacing = 10
         spacing_x = 5
         x_fix = -0.1
