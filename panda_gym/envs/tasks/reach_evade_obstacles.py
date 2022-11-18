@@ -21,8 +21,8 @@ class ReachEvadeObstacles(Task):
             distance_threshold=0.05,
             goal_range=0.3,
             show_goal_space=False,
-            joint_obstacle_observation ="all",
-            obstacle_layout = 1,
+            joint_obstacle_observation="all",
+            obstacle_layout=1,
             show_debug_labels=True
     ) -> None:
         super().__init__(sim)
@@ -31,16 +31,14 @@ class ReachEvadeObstacles(Task):
         self.robot: Panda = robot
         self.obstacles = {}
         self.joint_obstacle_observation = joint_obstacle_observation
-        create_obstacle_layout = {1: self.create_obstacle_layout_1, 2: self.create_obstacle_layout_2}
+        create_obstacle_layout = {1: self.create_stage_1, 2: self.create_stage_2, 3: self.create_stage_3,
+                                  "shelf_1": self.create_stage_shelf_1, "wall_parkour_1": self.create_stage_wall_parkour_1}
         # self.robot_params = self.create_robot_debug_params()
-
-
 
         self.reward_type = reward_type
         self.distance_threshold = distance_threshold
         self.get_ee_position = get_ee_position
-        self.goal_range_low = np.array([-goal_range/1.5, -goal_range / 1.5, 0])
-        self.goal_range_high = np.array([goal_range/2.5, goal_range / 1.5, goal_range])
+        self.goal_range = 0.3
         self.obstacle_count = 0
 
         self.bodies = {"robot": self.robot.id}
@@ -54,12 +52,26 @@ class ReachEvadeObstacles(Task):
 
         # set scene
         with self.sim.no_rendering():
-            self._create_scene(show_goal_space)
+            self._create_scene()
 
             self.sim.place_visualizer(target_position=np.zeros(3), distance=0.9, yaw=45, pitch=-30)
 
             if obstacle_layout:
                 create_obstacle_layout[obstacle_layout]()
+
+                # register collision objects for collision detector
+                for obstacle_name, obstacle_id in self.obstacles.items():
+                    self.collision_objects.append(NamedCollisionObject(obstacle_name))
+                    self.bodies[obstacle_name] = obstacle_id
+
+            # set goal range
+            self.goal_range_low = np.array([-self.goal_range / 2.5, -self.goal_range / 1.5, 0])
+            self.goal_range_high = np.array([self.goal_range / 2.5, self.goal_range / 1.5, self.goal_range])
+
+            if show_goal_space:
+                self.show_goal_space()
+
+
 
         # add collision detector for robot
         self.named_collision_pairs_rob_obs = []
@@ -68,7 +80,7 @@ class ReachEvadeObstacles(Task):
             for obstacle in self.collision_objects:
                 self.named_collision_pairs_rob_obs.append((link, obstacle))
         self.collision_detector = CollisionDetector(col_id=self.sim_id, bodies=self.bodies,
-                                                     named_collision_pairs=self.named_collision_pairs_rob_obs)
+                                                    named_collision_pairs=self.named_collision_pairs_rob_obs)
 
         if show_debug_labels:
             self.debug_manip_label_name = "manip"
@@ -82,8 +94,7 @@ class ReachEvadeObstacles(Task):
             self.sim.create_debug_text(self.debug_dist_label_name, f"{self.debug_dist_label_base_text} 0")
             self.sim.create_debug_text(self.debug_obs_label_name, f"{self.debug_obs_label_base_text} 0")
 
-
-    def _create_scene(self, show_goal_space):
+    def _create_scene(self):
 
         self.sim.create_plane(z_offset=-0.4)
         self.sim.create_table(length=1.1, width=0.7, height=0.4, x_offset=-0.3)
@@ -104,38 +115,18 @@ class ReachEvadeObstacles(Task):
             rgba_color=np.array([0.1, 0.9, 0.1, 0.0]),
         )
 
-        if show_goal_space:
-            # fixme: show actual space (based on goal_range_low and goal_range_high)
-            self.sim.create_box(
-                body_name="goal_space",
-                ghost=True,
-                half_extents=np.array([self.goal_range_high[0]+self.goal_range_low[0], self.goal_range_low[1], self.goal_range_high[2]]),
-                mass=0.0,
-                position=np.array([self.goal_range_low[0]/2, 0, 0]),
-                rgba_color=np.array([0.0, 0.0, 0.5, 0.2]),
-            )
+    def create_stage_1(self):
+        """one obstacle in the corner of the goal space, small goal space"""
+        self.goal_range = 0.3
 
-            self.sim.create_box(
-                body_name="goal_space",
-                ghost=True,
-                half_extents=self.goal_range_high,
-                mass=0.0,
-                position=np.array([0.0, 0.0, 0.0]),
-                rgba_color=np.array([0.0, 0.0, 0.5, 0.2]),
-            )
-
-    def create_obstacle_layout_1(self):
-        """one obstacle in the corner of the goal space"""
         self.create_obstacle_cuboid(
-            np.array([0,0.05,0.15]),
+            np.array([0, 0.05, 0.15]),
             size=np.array([0.02, 0.02, 0.02]))
 
-        for obstacle_name, obstacle_id in self.obstacles.items():
-            self.collision_objects.append(NamedCollisionObject(obstacle_name))
-            self.bodies[obstacle_name] = obstacle_id
+    def create_stage_2(self):
+        """Two obstacles surrounding end effector, small goal space"""
+        self.goal_range = 0.3
 
-    def create_obstacle_layout_2(self):
-        """Two obstacles surrounding end effector"""
         spacing = 3.3
         spacing_x = 5
         x_fix = -0.025
@@ -146,29 +137,45 @@ class ReachEvadeObstacles(Task):
                 for z in range(1):
                     self.create_obstacle_cuboid(
                         np.array([x / spacing_x + x_fix, y / spacing + y_fix, z / spacing + z_fix]),
-                    size=np.array([0.02,0.02, 0.02]))
+                        size=np.array([0.02, 0.02, 0.02]))
 
-        for obstacle_name, obstacle_id in self.obstacles.items():
-            self.collision_objects.append(NamedCollisionObject(obstacle_name))
-            self.bodies[obstacle_name] = obstacle_id
-
-
-    def create_obstacle_layout_3(self):
-        # todo: make next layout
-        spacing = 10
+    def create_stage_3(self):
+        """Two big obstacles surrounding end effector, big goal range"""
+        self.goal_range = 0.5
+        spacing = 2.5
         spacing_x = 5
-        x_fix = -0.1
-        y_fix = -0.1
-        z_fix = 0.05
-        for x in range(2):
-            for y in range(3):
-                for z in range(3):
+        x_fix = -0.025
+        y_fix = -0.15
+        z_fix = 0.15
+        for x in range(1):
+            for y in range(2):
+                for z in range(1):
                     self.create_obstacle_cuboid(
-                        np.array([x / spacing_x + x_fix, y / spacing + y_fix, z / spacing + z_fix]))
+                        np.array([x / spacing_x + x_fix, y / spacing + y_fix, z / spacing + z_fix]),
+                        size=np.array([0.05, 0.05, 0.05]))
 
-        for obstacle_name, obstacle_id in self.obstacles.items():
-            self.collision_objects.append(NamedCollisionObject(obstacle_name))
-            self.bodies[obstacle_name] = obstacle_id
+    def create_stage_shelf_1(self):
+        """Shelf."""
+        self.goal_range = 0.4
+
+        self.create_obstacle_cuboid(
+            np.array([0.2, 0.0, 0.25]),
+            size=np.array([0.1, 0.4, 0.001]))
+
+    def create_stage_wall_parkour_1(self):
+        """wall parkour."""
+        self.goal_range = 0.4
+
+        self.create_obstacle_cuboid(
+            np.array([0.0, -0.05, 0.1]),
+            size=np.array([0.1, 0.001, 0.1]))
+
+        # self.create_obstacle_cuboid(
+        #     np.array([0.2, 0.0, 0.25]),
+        #     size=np.array([0.1, 0.4, 0.001]))
+        # self.create_obstacle_cuboid(
+        #     np.array([0.2, 0.0, 0.25]),
+        #     size=np.array([0.1, 0.4, 0.001]))
 
     def create_obstacle_sphere(self, position=np.array([0.1, 0, 0.1]), radius=0.02, alpha=0.8):
         obstacle_name = "obstacle"
@@ -221,7 +228,6 @@ class ReachEvadeObstacles(Task):
 
             self.is_collided = min(self.obs_d) <= 0
 
-
         return self.obs_d
 
     def get_achieved_goal(self) -> np.ndarray:
@@ -240,8 +246,8 @@ class ReachEvadeObstacles(Task):
             self.sim.physics_client.performCollisionDetection()
             for obstacle in self.obstacles:
                 closest_points = p.getClosestPoints(bodyA=self.bodies["dummy_target"], bodyB=self.bodies[obstacle],
-                                                        distance=10.0,
-                                                        physicsClientId=self.sim_id)
+                                                    distance=10.0,
+                                                    physicsClientId=self.sim_id)
                 contact_distance = np.min([pt[8] for pt in closest_points])
                 collision = margin >= contact_distance
                 if collision:
@@ -251,7 +257,8 @@ class ReachEvadeObstacles(Task):
                 collision = False
 
         self.sim.set_base_pose("target", self.goal, np.array([0.0, 0.0, 0.0, 1.0]))
-        self.sim.set_base_pose("dummy_target", np.array([0.0,0.0,-5.0]), np.array([0.0, 0.0, 0.0, 1.0])) # move dummy away
+        self.sim.set_base_pose("dummy_target", np.array([0.0, 0.0, -5.0]),
+                               np.array([0.0, 0.0, 0.0, 1.0]))  # move dummy away
 
     def _sample_goal(self) -> np.ndarray:
         """Randomize goal."""
@@ -292,4 +299,19 @@ class ReachEvadeObstacles(Task):
         if self.reward_type == "sparse":
             return -np.array((d > self.distance_threshold) + (min(obs_d) <= 0) * 100, dtype=np.float32)
         else:
-            return -(d + exp(-min(d))).astype(np.float32)
+            collision = min(obs_d) <= 0
+            if collision:
+                return -np.array(d + 100, dtype=np.float32)
+            else:
+                return -np.array(d + exp(-min(obs_d)), dtype=np.float32)
+
+    def show_goal_space(self):
+        self.sim.create_box(
+            body_name="goal_space",
+            ghost=True,
+            half_extents=np.array([(self.goal_range_high[0] - self.goal_range_low[0]) / 2, self.goal_range_high[1],
+                                   self.goal_range_high[2]]),
+            mass=0.0,
+            position=np.array([0.0, 0.0, 0.0]),
+            rgba_color=np.array([0.0, 0.0, 0.5, 0.2]),
+        )
