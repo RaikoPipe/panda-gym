@@ -18,7 +18,7 @@ config = {
     "replay_buffer_class": str(HerReplayBuffer.__name__)
 }
 
-wandb.login(key="5d65c571cf2a6110b15190696682f6e36ddcdd11")
+wandb.login(key=os.getenv("wandb_key"))
 #wandb.tensorboard.patch(root_logdir="run_data")
 run = wandb.init(
     project="sb3",

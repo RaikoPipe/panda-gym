@@ -39,7 +39,7 @@ config = {
 if __name__ == "__main__":
     env = make_vec_env(env_name, n_envs=5, seed=1, vec_env_cls=SubprocVecEnv)
 
-    wandb.login(key="5d65c571cf2a6110b15190696682f6e36ddcdd11")
+    wandb.login(key=os.getenv("wandb_key"))
     # wandb.tensorboard.patch(root_logdir="run_data")
     run = wandb.init(
         project=f"{env_name}",

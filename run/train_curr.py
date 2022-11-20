@@ -6,6 +6,7 @@ from stable_baselines3 import TD3
 
 
 import panda_gym
+import os
 from utils.learning import curriculum_learn
 from utils.learning import get_env
 
@@ -32,7 +33,7 @@ config = {
 }
 
 if __name__ == "__main__":
-    wandb.login(key="5d65c571cf2a6110b15190696682f6e36ddcdd11")
+    wandb.login(key=os.getenv("wandb_key"))
 
     # register envs to gymnasium
     panda_gym.register_envs(config["max_ep_steps"])
@@ -42,7 +43,7 @@ if __name__ == "__main__":
     #                show_goal_space=False, obstacle_layout=1,
     #                show_debug_labels=True)
 
-    env = get_env(config, "box_1")
+    env = get_env(config, "box_3")
 
     # model = TD3.load(r"run_data/wandb/run-20221120_093738-vpgfx0te/files/model.zip", env=env, train_freq=config["n_envs"],
     #                  gradient_steps=config["gradient_steps"])
