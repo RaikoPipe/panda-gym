@@ -1,0 +1,24 @@
+{
+    "os": "Windows-10-10.0.22000-SP0",
+    "python": "3.10.8",
+    "heartbeatAt": "2022-11-20T08:32:02.976993",
+    "startedAt": "2022-11-20T08:32:02.418826",
+    "docker": null,
+    "gpu": "NVIDIA GeForce GTX 1070",
+    "gpu_count": 1,
+    "cpu_count": 12,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "C:\\Users\\eclip\\Documents\\GitHub\\panda-gym\\run\\train_curr.py",
+    "codePath": "run\\train_curr.py",
+    "git": {
+        "remote": "https://github.com/RaikoPipe/panda-gym.git",
+        "commit": "9d7051a2f85f2bdf2e531997573edf4e692f3e75"
+    },
+    "email": "eclipsedust@gmail.com",
+    "root": "C:/Users/eclip/Documents/GitHub/panda-gym",
+    "host": "Destiny",
+    "username": "eclip",
+    "executable": "C:\\Users\\eclip\\Documents\\GitHub\\panda-gym\\venv\\Scripts\\python.exe"
+}

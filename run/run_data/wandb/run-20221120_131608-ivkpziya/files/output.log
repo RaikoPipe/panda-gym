@@ -1,0 +1,110 @@
+C:\Users\eclip\Documents\GitHub\panda-gym\venv\lib\site-packages\stable_baselines3\common\callbacks.py:399: UserWarning: Training and eval env are not of the same type<stable_baselines3.common.vec_env.subproc_vec_env.SubprocVecEnv object at 0x000001A9293ACA30> != <stable_baselines3.common.vec_env.dummy_vec_env.DummyVecEnv object at 0x000001A9B61A62F0>
+  warnings.warn("Training and eval env are not of the same type" f"{self.training_env} != {self.eval_env}")
+Logging to runs/vpgfx0te\TD3_3
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 1.5      |
+|    ep_rew_mean     | -102     |
+|    success_rate    | 0        |
+| time/              |          |
+|    episodes        | 4        |
+|    fps             | 188      |
+|    time_elapsed    | 0        |
+|    total_timesteps | 10       |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 3.38     |
+|    ep_rew_mean     | -103     |
+|    success_rate    | 0        |
+| time/              |          |
+|    episodes        | 8        |
+|    fps             | 333      |
+|    time_elapsed    | 0        |
+|    total_timesteps | 28       |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 4.5      |
+|    ep_rew_mean     | -104     |
+|    success_rate    | 0        |
+| time/              |          |
+|    episodes        | 12       |
+|    fps             | 425      |
+|    time_elapsed    | 0        |
+|    total_timesteps | 60       |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 4.56     |
+|    ep_rew_mean     | -105     |
+|    success_rate    | 0        |
+| time/              |          |
+|    episodes        | 16       |
+|    fps             | 448      |
+|    time_elapsed    | 0        |
+|    total_timesteps | 78       |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 5.62     |
+|    ep_rew_mean     | -96      |
+|    success_rate    | 0.0952   |
+| time/              |          |
+|    episodes        | 20       |
+|    fps             | 142      |
+|    time_elapsed    | 0        |
+|    total_timesteps | 118      |
+| train/             |          |
+|    actor_loss      | 10.7     |
+|    critic_loss     | 687      |
+|    learning_rate   | 0.001    |
+|    n_updates       | 479792   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 8.25     |
+|    ep_rew_mean     | -87.2    |
+|    success_rate    | 0.167    |
+| time/              |          |
+|    episodes        | 24       |
+|    fps             | 97       |
+|    time_elapsed    | 2        |
+|    total_timesteps | 238      |
+| train/             |          |
+|    actor_loss      | 15       |
+|    critic_loss     | 51.8     |
+|    learning_rate   | 0.001    |
+|    n_updates       | 479912   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 10.9     |
+|    ep_rew_mean     | -78.5    |
+|    success_rate    | 0.214    |
+| time/              |          |
+|    episodes        | 28       |
+|    fps             | 89       |
+|    time_elapsed    | 3        |
+|    total_timesteps | 350      |
+| train/             |          |
+|    actor_loss      | 28.2     |
+|    critic_loss     | 29.7     |
+|    learning_rate   | 0.001    |
+|    n_updates       | 480024   |
+---------------------------------
+---------------------------------
+| rollout/           |          |
+|    ep_len_mean     | 14.6     |
+|    ep_rew_mean     | -73.8    |
+|    success_rate    | 0.219    |
+| time/              |          |
+|    episodes        | 32       |
+|    fps             | 85       |
+|    time_elapsed    | 5        |
+|    total_timesteps | 486      |
+| train/             |          |
+|    actor_loss      | 48.2     |
+|    critic_loss     | 19.7     |
+|    learning_rate   | 0.001    |
+|    n_updates       | 480160   |

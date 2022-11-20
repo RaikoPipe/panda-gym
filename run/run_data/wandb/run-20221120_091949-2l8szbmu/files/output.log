@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "C:\Users\eclip\Documents\GitHub\panda-gym\run\train_curr.py", line 56, in <module>
+    curriculum_learn(config=config, initial_model= model, starting_stage="wall_parkour_1", )
+  File "C:\Users\eclip\Documents\GitHub\panda-gym\run\utils\learning.py", line 77, in curriculum_learn
+    model.env = get_env(config, stage)
+  File "C:\Users\eclip\Documents\GitHub\panda-gym\run\utils\learning.py", line 30, in get_env
+    show_goal_space, show_debug_labels = True if config["render"] else False
+TypeError: cannot unpack non-iterable bool object

@@ -1,0 +1,23 @@
+Using cuda device
+Wrapping the env with a `Monitor` wrapper
+Wrapping the env in a DummyVecEnv.
+Traceback (most recent call last):
+  File "C:\Users\eclip\Documents\GitHub\panda-gym\run\train_curr.py", line 53, in <module>
+    curriculum_learn(config=config, )#initial_model= model, starting_stage="wall_parkour_1", )
+  File "C:\Users\eclip\Documents\GitHub\panda-gym\run\utils\learning.py", line 89, in curriculum_learn
+    model.learn(
+  File "C:\Users\eclip\Documents\GitHub\panda-gym\venv\lib\site-packages\stable_baselines3\td3\td3.py", line 214, in learn
+    return super().learn(
+  File "C:\Users\eclip\Documents\GitHub\panda-gym\venv\lib\site-packages\stable_baselines3\common\off_policy_algorithm.py", line 323, in learn
+    total_timesteps, callback = self._setup_learn(
+  File "C:\Users\eclip\Documents\GitHub\panda-gym\venv\lib\site-packages\stable_baselines3\common\off_policy_algorithm.py", line 305, in _setup_learn
+    return super()._setup_learn(
+  File "C:\Users\eclip\Documents\GitHub\panda-gym\venv\lib\site-packages\stable_baselines3\common\base_class.py", line 409, in _setup_learn
+    self._last_episode_starts = np.ones((self.env.num_envs,), dtype=bool)
+  File "C:\Users\eclip\Documents\GitHub\panda-gym\venv\lib\site-packages\gymnasium\core.py", line 320, in __getattr__
+    return getattr(self.env, name)
+  File "C:\Users\eclip\Documents\GitHub\panda-gym\venv\lib\site-packages\gymnasium\core.py", line 320, in __getattr__
+    return getattr(self.env, name)
+  File "C:\Users\eclip\Documents\GitHub\panda-gym\venv\lib\site-packages\gymnasium\core.py", line 320, in __getattr__
+    return getattr(self.env, name)
+AttributeError: 'PandaReachEvadeObstaclesEnv' object has no attribute 'num_envs'

@@ -1,0 +1,20 @@
+
+Logging to runs/313yv0p4\TD3_2
+C:\Users\eclip\Documents\GitHub\panda-gym\venv\lib\site-packages\stable_baselines3\common\callbacks.py:399: UserWarning: Training and eval env are not of the same type<stable_baselines3.common.vec_env.subproc_vec_env.SubprocVecEnv object at 0x0000018EFA1C32B0> != <stable_baselines3.common.vec_env.dummy_vec_env.DummyVecEnv object at 0x0000018F4FF5F550>
+  warnings.warn("Training and eval env are not of the same type" f"{self.training_env} != {self.eval_env}")
+Traceback (most recent call last):
+  File "C:\Users\eclip\Documents\GitHub\panda-gym\run\train_curr.py", line 55, in <module>
+    curriculum_learn(config=config, initial_model= model, starting_stage="wall_parkour_1", )
+  File "C:\Users\eclip\Documents\GitHub\panda-gym\run\utils\learning.py", line 89, in curriculum_learn
+    model.learn(
+  File "C:\Users\eclip\Documents\GitHub\panda-gym\venv\lib\site-packages\stable_baselines3\td3\td3.py", line 214, in learn
+    return super().learn(
+  File "C:\Users\eclip\Documents\GitHub\panda-gym\venv\lib\site-packages\stable_baselines3\common\off_policy_algorithm.py", line 334, in learn
+    rollout = self.collect_rollouts(
+  File "C:\Users\eclip\Documents\GitHub\panda-gym\venv\lib\site-packages\stable_baselines3\common\off_policy_algorithm.py", line 582, in collect_rollouts
+    self._store_transition(replay_buffer, buffer_actions, new_obs, rewards, dones, infos)
+  File "C:\Users\eclip\Documents\GitHub\panda-gym\venv\lib\site-packages\stable_baselines3\common\off_policy_algorithm.py", line 494, in _store_transition
+    replay_buffer.add(
+  File "C:\Users\eclip\Documents\GitHub\panda-gym\venv\lib\site-packages\stable_baselines3\her\her_replay_buffer.py", line 406, in add
+    self._buffer["action"][self.pos][self.current_idx] = action
+ValueError: could not broadcast input array from shape (4,7) into shape (7,)

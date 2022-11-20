@@ -41,11 +41,22 @@ def curriculum_learn(config: dict, eval_freq=5000, initial_model: Optional[OffPo
                      starting_stage: Optional[str] = None):
     env_name = config["env_name"]
     project = f"curriculum_learn_{env_name}"
+
+    tags = []
+    tags.extend(config["stages"])
+    if initial_model:
+        tags.append("pre-trained")
+        tags.append("curriculum_learning")
+    elif len(config["stages"]) > 1:
+        tags.append("curriculum_learning")
+
+
     run = wandb.init(
         project=f"{project}",
         config=config,
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
         dir="run_data",
+        tags=config["stages"]
         # monitor_gym=True,  # auto-upload the videos of agents playing the game
         # save_code=True,  # optional
     )
@@ -57,16 +68,14 @@ def curriculum_learn(config: dict, eval_freq=5000, initial_model: Optional[OffPo
                     config["gradient_steps"])
     else:
         model = initial_model
-        stages:list = config["stages"]
+        stages: list = config["stages"]
         reward_thresholds = config["reward_thresholds"]
+        if starting_stage:
+            assert starting_stage in stages
 
-        assert starting_stage in stages
-
-        idx = stages.index(starting_stage)
-        config["stages"] = stages[idx:]
-        config["reward_thresholds"] = reward_thresholds[idx:]
-
-
+            idx = stages.index(starting_stage)
+            config["stages"] = stages[idx:]
+            config["reward_thresholds"] = reward_thresholds[idx:]
 
     # model = TD3.load(r"run_data/wandb/run_panda_reach_evade_obstacle_stage_2_best_run/files/model.zip", env=env,
     #                  device="cuda", train_freq=n_envs, gradient_steps=2, replay_buffer=replay_buffer)

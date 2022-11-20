@@ -1,0 +1,330 @@
+wandb_version: 1
+
+_current_progress_remaining:
+  desc: null
+  value: -1.0000000000065512e-05
+_custom_logger:
+  desc: null
+  value: 'False'
+_episode_num:
+  desc: null
+  value: 0
+_episode_storage:
+  desc: null
+  value: None
+_last_episode_starts:
+  desc: null
+  value: '[ True  True  True  True]'
+_last_obs:
+  desc: null
+  value: "OrderedDict([('achieved_goal', array([[ 3.8439669e-02, -2.1944723e-12, \
+    \ 1.9740014e-01],\n       [ 3.8439669e-02, -2.1944723e-12,  1.9740014e-01],\n\
+    \       [ 3.8439669e-02, -2.1944723e-12,  1.9740014e-01],\n       [ 3.8439669e-02,\
+    \ -2.1944723e-12,  1.9740014e-01]], dtype=float32)), ('desired_goal', array([[\
+    \ 0.02252155,  0.04696251,  0.09448389],\n       [ 0.0614153 , -0.23496285,  0.34915838],\n\
+    \       [ 0.02084743, -0.15736319,  0.06351265],\n       [ 0.0868481 , -0.16594361,\
+    \  0.28752524]], dtype=float32)), ('observation', array([[ 3.8439669e-02, -2.1944723e-12,\
+    \  1.9740014e-01,  0.0000000e+00,\n        -0.0000000e+00,  0.0000000e+00,  4.4480667e-01,\
+    \  4.5858955e-01,\n         4.3814492e-01,  3.8233116e-01,  1.7351229e-01,  1.5733254e-01,\n\
+    \         1.0324227e-01,  3.5442084e-02,  2.9381085e-02,  4.7883701e-02],\n  \
+    \     [ 3.8439669e-02, -2.1944723e-12,  1.9740014e-01,  0.0000000e+00,\n     \
+    \   -0.0000000e+00,  0.0000000e+00,  4.4480667e-01,  4.5858955e-01,\n        \
+    \ 4.3814492e-01,  3.8233116e-01,  1.7351229e-01,  1.5733254e-01,\n         1.0324227e-01,\
+    \  3.5442084e-02,  2.9381085e-02,  4.7883701e-02],\n       [ 3.8439669e-02, -2.1944723e-12,\
+    \  1.9740014e-01,  0.0000000e+00,\n        -0.0000000e+00,  0.0000000e+00,  4.4480667e-01,\
+    \  4.5858955e-01,\n         4.3814492e-01,  3.8233116e-01,  1.7351229e-01,  1.5733254e-01,\n\
+    \         1.0324227e-01,  3.5442084e-02,  2.9381085e-02,  4.7883701e-02],\n  \
+    \     [ 3.8439669e-02, -2.1944723e-12,  1.9740014e-01,  0.0000000e+00,\n     \
+    \   -0.0000000e+00,  0.0000000e+00,  4.4480667e-01,  4.5858955e-01,\n        \
+    \ 4.3814492e-01,  3.8233116e-01,  1.7351229e-01,  1.5733254e-01,\n         1.0324227e-01,\
+    \  3.5442084e-02,  2.9381085e-02,  4.7883701e-02]],\n      dtype=float32))])"
+_last_original_obs:
+  desc: null
+  value: "OrderedDict([('achieved_goal', array([[0.03191726, 0.08936334, 0.16218306]],\
+    \ dtype=float32)), ('desired_goal', array([[-0.00998066,  0.08967716,  0.13295422]],\
+    \ dtype=float32)), ('observation', array([[ 0.03191858,  0.089551  ,  0.16238275,\
+    \ -0.00056521, -0.09381165,\n        -0.09985731,  0.50275725,  0.5160472 ,  0.4761315\
+    \ ,  0.41361994,\n         0.16569872,  0.16090344,  0.10767054,  0.04417884,\
+    \  0.04859335,\n         0.03604656]], dtype=float32))])"
+_logger:
+  desc: null
+  value: <stable_baselines3.common.logger.Logger object at 0x000001DF4E51F820>
+_n_updates:
+  desc: null
+  value: 399911
+_num_timesteps_at_start:
+  desc: null
+  value: 0
+_total_timesteps:
+  desc: null
+  value: 10000000
+_vec_normalize_env:
+  desc: null
+  value: None
+_wandb:
+  desc: null
+  value:
+    cli_version: 0.13.4
+    framework: torch
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    python_version: 3.10.8
+    start_time: 1668932214.334242
+    t:
+      1:
+      - 1
+      - 55
+      2:
+      - 1
+      - 55
+      3:
+      - 16
+      - 22
+      - 23
+      - 35
+      4: 3.10.8
+      5: 0.13.4
+      8:
+      - 3
+      - 5
+action_noise:
+  desc: null
+  value: None
+action_space:
+  desc: null
+  value: Box(-1.0, 1.0, (7,), float32)
+actor:
+  desc: null
+  value: "Actor(\n  (features_extractor): CombinedExtractor(\n    (extractors): ModuleDict(\n\
+    \      (achieved_goal): Flatten(start_dim=1, end_dim=-1)\n      (desired_goal):\
+    \ Flatten(start_dim=1, end_dim=-1)\n      (observation): Flatten(start_dim=1,\
+    \ end_dim=-1)\n    )\n  )\n  (mu): Sequential(\n    (0): Linear(in_features=22,\
+    \ out_features=400, bias=True)\n    (1): ReLU()\n    (2): Linear(in_features=400,\
+    \ out_features=300, bias=True)\n    (3): ReLU()\n    (4): Linear(in_features=300,\
+    \ out_features=7, bias=True)\n    (5): Tanh()\n  )\n)"
+actor_batch_norm_stats:
+  desc: null
+  value: '[]'
+actor_batch_norm_stats_target:
+  desc: null
+  value: '[]'
+actor_target:
+  desc: null
+  value: "Actor(\n  (features_extractor): CombinedExtractor(\n    (extractors): ModuleDict(\n\
+    \      (achieved_goal): Flatten(start_dim=1, end_dim=-1)\n      (desired_goal):\
+    \ Flatten(start_dim=1, end_dim=-1)\n      (observation): Flatten(start_dim=1,\
+    \ end_dim=-1)\n    )\n  )\n  (mu): Sequential(\n    (0): Linear(in_features=22,\
+    \ out_features=400, bias=True)\n    (1): ReLU()\n    (2): Linear(in_features=400,\
+    \ out_features=300, bias=True)\n    (3): ReLU()\n    (4): Linear(in_features=300,\
+    \ out_features=7, bias=True)\n    (5): Tanh()\n  )\n)"
+algo:
+  desc: null
+  value: TD3
+batch_size:
+  desc: null
+  value: 100
+buffer_size:
+  desc: null
+  value: 1000000
+control_type:
+  desc: null
+  value: js
+critic:
+  desc: null
+  value: "ContinuousCritic(\n  (features_extractor): CombinedExtractor(\n    (extractors):\
+    \ ModuleDict(\n      (achieved_goal): Flatten(start_dim=1, end_dim=-1)\n     \
+    \ (desired_goal): Flatten(start_dim=1, end_dim=-1)\n      (observation): Flatten(start_dim=1,\
+    \ end_dim=-1)\n    )\n  )\n  (qf0): Sequential(\n    (0): Linear(in_features=29,\
+    \ out_features=400, bias=True)\n    (1): ReLU()\n    (2): Linear(in_features=400,\
+    \ out_features=300, bias=True)\n    (3): ReLU()\n    (4): Linear(in_features=300,\
+    \ out_features=1, bias=True)\n  )\n  (qf1): Sequential(\n    (0): Linear(in_features=29,\
+    \ out_features=400, bias=True)\n    (1): ReLU()\n    (2): Linear(in_features=400,\
+    \ out_features=300, bias=True)\n    (3): ReLU()\n    (4): Linear(in_features=300,\
+    \ out_features=1, bias=True)\n  )\n)"
+critic_batch_norm_stats:
+  desc: null
+  value: '[]'
+critic_batch_norm_stats_target:
+  desc: null
+  value: '[]'
+critic_target:
+  desc: null
+  value: "ContinuousCritic(\n  (features_extractor): CombinedExtractor(\n    (extractors):\
+    \ ModuleDict(\n      (achieved_goal): Flatten(start_dim=1, end_dim=-1)\n     \
+    \ (desired_goal): Flatten(start_dim=1, end_dim=-1)\n      (observation): Flatten(start_dim=1,\
+    \ end_dim=-1)\n    )\n  )\n  (qf0): Sequential(\n    (0): Linear(in_features=29,\
+    \ out_features=400, bias=True)\n    (1): ReLU()\n    (2): Linear(in_features=400,\
+    \ out_features=300, bias=True)\n    (3): ReLU()\n    (4): Linear(in_features=300,\
+    \ out_features=1, bias=True)\n  )\n  (qf1): Sequential(\n    (0): Linear(in_features=29,\
+    \ out_features=400, bias=True)\n    (1): ReLU()\n    (2): Linear(in_features=400,\
+    \ out_features=300, bias=True)\n    (3): ReLU()\n    (4): Linear(in_features=300,\
+    \ out_features=1, bias=True)\n  )\n)"
+device:
+  desc: null
+  value: cuda
+env:
+  desc: null
+  value: <stable_baselines3.common.vec_env.subproc_vec_env.SubprocVecEnv object at
+    0x000001DEFFC93340>
+env_name:
+  desc: null
+  value: PandaReachEvadeObstacles-v3
+ep_info_buffer:
+  desc: null
+  value: deque([], maxlen=100)
+ep_success_buffer:
+  desc: null
+  value: deque([], maxlen=100)
+eval_freq:
+  desc: null
+  value: 10000
+gamma:
+  desc: null
+  value: 0.99
+gradient_steps:
+  desc: null
+  value: -1
+joint_obstacle_observation:
+  desc: null
+  value: closest
+learning_rate:
+  desc: null
+  value: 0.001
+learning_starts:
+  desc: null
+  value: 1000
+lr_schedule:
+  desc: null
+  value: <function constant_fn.<locals>.func at 0x000001DEE58DE170>
+max_ep_steps:
+  desc: null
+  value: 50
+n_envs:
+  desc: null
+  value: 4
+num_timesteps:
+  desc: null
+  value: 0
+observation_space:
+  desc: null
+  value: 'Dict(''achieved_goal'': Box(-10.0, 10.0, (3,), float32), ''desired_goal'':
+    Box(-10.0, 10.0, (3,), float32), ''observation'': Box(-10.0, 10.0, (16,), float32))'
+optimize_memory_usage:
+  desc: null
+  value: 'False'
+policy:
+  desc: null
+  value: "MultiInputPolicy(\n  (actor): Actor(\n    (features_extractor): CombinedExtractor(\n\
+    \      (extractors): ModuleDict(\n        (achieved_goal): Flatten(start_dim=1,\
+    \ end_dim=-1)\n        (desired_goal): Flatten(start_dim=1, end_dim=-1)\n    \
+    \    (observation): Flatten(start_dim=1, end_dim=-1)\n      )\n    )\n    (mu):\
+    \ Sequential(\n      (0): Linear(in_features=22, out_features=400, bias=True)\n\
+    \      (1): ReLU()\n      (2): Linear(in_features=400, out_features=300, bias=True)\n\
+    \      (3): ReLU()\n      (4): Linear(in_features=300, out_features=7, bias=True)\n\
+    \      (5): Tanh()\n    )\n  )\n  (actor_target): Actor(\n    (features_extractor):\
+    \ CombinedExtractor(\n      (extractors): ModuleDict(\n        (achieved_goal):\
+    \ Flatten(start_dim=1, end_dim=-1)\n        (desired_goal): Flatten(start_dim=1,\
+    \ end_dim=-1)\n        (observation): Flatten(start_dim=1, end_dim=-1)\n     \
+    \ )\n    )\n    (mu): Sequential(\n      (0): Linear(in_features=22, out_features=400,\
+    \ bias=True)\n      (1): ReLU()\n      (2): Linear(in_features=400, out_features=300,\
+    \ bias=True)\n      (3): ReLU()\n      (4): Linear(in_features=300, out_features=7,\
+    \ bias=True)\n      (5): Tanh()\n    )\n  )\n  (critic): ContinuousCritic(\n \
+    \   (features_extractor): CombinedExtractor(\n      (extractors): ModuleDict(\n\
+    \        (achieved_goal): Flatten(start_dim=1, end_dim=-1)\n        (desired_goal):\
+    \ Flatten(start_dim=1, end_dim=-1)\n        (observation): Flatten(start_dim=1,\
+    \ end_dim=-1)\n      )\n    )\n    (qf0): Sequential(\n      (0): Linear(in_features=29,\
+    \ out_features=400, bias=True)\n      (1): ReLU()\n      (2): Linear(in_features=400,\
+    \ out_features=300, bias=True)\n      (3): ReLU()\n      (4): Linear(in_features=300,\
+    \ out_features=1, bias=True)\n    )\n    (qf1): Sequential(\n      (0): Linear(in_features=29,\
+    \ out_features=400, bias=True)\n      (1): ReLU()\n      (2): Linear(in_features=400,\
+    \ out_features=300, bias=True)\n      (3): ReLU()\n      (4): Linear(in_features=300,\
+    \ out_features=1, bias=True)\n    )\n  )\n  (critic_target): ContinuousCritic(\n\
+    \    (features_extractor): CombinedExtractor(\n      (extractors): ModuleDict(\n\
+    \        (achieved_goal): Flatten(start_dim=1, end_dim=-1)\n        (desired_goal):\
+    \ Flatten(start_dim=1, end_dim=-1)\n        (observation): Flatten(start_dim=1,\
+    \ end_dim=-1)\n      )\n    )\n    (qf0): Sequential(\n      (0): Linear(in_features=29,\
+    \ out_features=400, bias=True)\n      (1): ReLU()\n      (2): Linear(in_features=400,\
+    \ out_features=300, bias=True)\n      (3): ReLU()\n      (4): Linear(in_features=300,\
+    \ out_features=1, bias=True)\n    )\n    (qf1): Sequential(\n      (0): Linear(in_features=29,\
+    \ out_features=400, bias=True)\n      (1): ReLU()\n      (2): Linear(in_features=400,\
+    \ out_features=300, bias=True)\n      (3): ReLU()\n      (4): Linear(in_features=300,\
+    \ out_features=1, bias=True)\n    )\n  )\n)"
+policy_class:
+  desc: null
+  value: <class 'stable_baselines3.td3.policies.MultiInputPolicy'>
+policy_delay:
+  desc: null
+  value: 2
+policy_kwargs:
+  desc: null
+  value: '{}'
+policy_type:
+  desc: null
+  value: MultiInputPolicy
+render:
+  desc: null
+  value: false
+replay_buffer:
+  desc: null
+  value: null
+replay_buffer_class:
+  desc: null
+  value: <class 'stable_baselines3.her.her_replay_buffer.HerReplayBuffer'>
+replay_buffer_kwargs:
+  desc: null
+  value: '{}'
+reward_thresholds:
+  desc: null
+  value:
+  - -7
+  - -7
+reward_type:
+  desc: null
+  value: sparse
+sde_sample_freq:
+  desc: null
+  value: -1
+seed:
+  desc: null
+  value: 12
+show_debug_labels:
+  desc: null
+  value: true
+show_goal_space:
+  desc: null
+  value: true
+stages:
+  desc: null
+  value:
+  - 1
+  - wall_parkour_1
+start_time:
+  desc: null
+  value: 1668932219671156400
+target_noise_clip:
+  desc: null
+  value: 0.5
+target_policy_noise:
+  desc: null
+  value: 0.2
+tau:
+  desc: null
+  value: 0.005
+tensorboard_log:
+  desc: null
+  value: runs/313yv0p4
+total_timesteps:
+  desc: null
+  value: 400000
+train_freq:
+  desc: null
+  value: 'TrainFreq(frequency=4, unit=<TrainFrequencyUnit.STEP: ''step''>)'
+use_sde:
+  desc: null
+  value: 'False'
+use_sde_at_warmup:
+  desc: null
+  value: 'False'
+verbose:
+  desc: null
+  value: 1

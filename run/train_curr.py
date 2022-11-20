@@ -2,10 +2,8 @@ import time
 
 import wandb
 #from pygame import mixer
-from stable_baselines3 import TD3, SAC, PPO
-import gymnasium as gym
-from stable_baselines3.common.env_util import make_vec_env
-from stable_baselines3.common.vec_env import SubprocVecEnv
+from stable_baselines3 import TD3
+
 
 import panda_gym
 from utils.learning import curriculum_learn
@@ -24,33 +22,33 @@ config = {
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": True,
     "learning_starts": 1000,
-    "n_envs": 4,
+    "n_envs": 3,
     "max_ep_steps": 50,
     "eval_freq": 10_000,
-    "stages": [1,"wall_parkour_1"],  # 0: No obstacles; 1: 1 small cube near ee; 2: 2 small cubes neighboring ee
-    "reward_thresholds": [-7, -7],
+    "stages": ["box_1"],  # 0: No obstacles; 1: 1 small cube near ee; 2: 2 small cubes neighboring ee
+    "reward_thresholds": [-7],
     "joint_obstacle_observation": "closest",  # "all": closest distance to any obstacle of all joints is observed;
     # "closest": only closest joint distance is observed
 }
 
-# register envs to gymnasium
-panda_gym.register_envs(config["max_ep_steps"])
-
 if __name__ == "__main__":
     wandb.login(key="5d65c571cf2a6110b15190696682f6e36ddcdd11")
+
+    # register envs to gymnasium
+    panda_gym.register_envs(config["max_ep_steps"])
 
     # env = gym.make(config["env_name"], render=config["render"], control_type=config["control_type"],
     #                reward_type=config["reward_type"],
     #                show_goal_space=False, obstacle_layout=1,
     #                show_debug_labels=True)
 
-    #env = get_env(config, "wall_parkour_1")
+    env = get_env(config, "box_1")
 
-    # model = TD3.load(r"run_data/wandb/run_obs_layout_1_best_08_11/files/model.zip", env=env, train_freq=config["n_envs"],
+    # model = TD3.load(r"run_data/wandb/run-20221120_093738-vpgfx0te/files/model.zip", env=env, train_freq=config["n_envs"],
     #                  gradient_steps=config["gradient_steps"])
 
 
-    curriculum_learn(config=config, )#initial_model= model, starting_stage="wall_parkour_1", )
+    curriculum_learn(config=config, ) #initial_model=model)
 
     # mixer.init()
     # mixer.music.load("learning_complete.mp3")

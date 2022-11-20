@@ -31,8 +31,14 @@ class ReachEvadeObstacles(Task):
         self.robot: Panda = robot
         self.obstacles = {}
         self.joint_obstacle_observation = joint_obstacle_observation
-        create_obstacle_layout = {1: self.create_stage_1, 2: self.create_stage_2, 3: self.create_stage_3,
-                                  "shelf_1": self.create_stage_shelf_1, "wall_parkour_1": self.create_stage_wall_parkour_1}
+        create_obstacle_layout = {
+            1: self.create_stage_1,
+            2: self.create_stage_2,
+            3: self.create_stage_3,
+            "shelf_1": self.create_stage_shelf_1,
+            "wall_parkour_1": self.create_stage_wall_parkour_1,
+            "box_1": self.create_stage_box_3
+        }
         # self.robot_params = self.create_robot_debug_params()
 
         self.reward_type = reward_type
@@ -176,6 +182,18 @@ class ReachEvadeObstacles(Task):
         # self.create_obstacle_cuboid(
         #     np.array([0.2, 0.0, 0.25]),
         #     size=np.array([0.1, 0.4, 0.001]))
+
+    def create_stage_box_3(self):
+        """box."""
+        self.goal_range = 0.4
+
+        self.create_obstacle_cuboid(
+            np.array([0.0, 0.26, 0.1]),
+            size=np.array([0.18, 0.001, 0.2]))
+
+        self.create_obstacle_cuboid(
+            np.array([0.0, -0.26, 0.1]),
+            size=np.array([0.18, 0.001, 0.2]))
 
     def create_obstacle_sphere(self, position=np.array([0.1, 0, 0.1]), radius=0.02, alpha=0.8):
         obstacle_name = "obstacle"

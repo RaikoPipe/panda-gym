@@ -1,0 +1,28 @@
+2022-11-20 09:32:02,420 INFO    MainThread:4872 [wandb_setup.py:_flush():68] Configure stats pid to 4872
+2022-11-20 09:32:02,420 INFO    MainThread:4872 [wandb_setup.py:_flush():68] Loading settings from C:\Users\eclip\.config\wandb\settings
+2022-11-20 09:32:02,420 INFO    MainThread:4872 [wandb_setup.py:_flush():68] Loading settings from C:\Users\eclip\Documents\GitHub\panda-gym\run\wandb\settings
+2022-11-20 09:32:02,420 INFO    MainThread:4872 [wandb_setup.py:_flush():68] Loading settings from environment variables: {'_require_service': 'True'}
+2022-11-20 09:32:02,420 INFO    MainThread:4872 [wandb_setup.py:_flush():68] Inferring run settings from compute environment: {'program_relpath': 'run\\train_curr.py', 'program': 'C:\\Users\\eclip\\Documents\\GitHub\\panda-gym\\run\\train_curr.py'}
+2022-11-20 09:32:02,420 INFO    MainThread:4872 [wandb_setup.py:_flush():68] Applying login settings: {'api_key': '***REDACTED***'}
+2022-11-20 09:32:02,420 INFO    MainThread:4872 [wandb_setup.py:_flush():68] Applying login settings: {'api_key': '***REDACTED***'}
+2022-11-20 09:32:02,421 INFO    MainThread:4872 [wandb_init.py:_log_setup():476] Logging user logs to run_data\wandb\run-20221120_093202-3rs55fm8\logs\debug.log
+2022-11-20 09:32:02,421 INFO    MainThread:4872 [wandb_init.py:_log_setup():477] Logging internal logs to run_data\wandb\run-20221120_093202-3rs55fm8\logs\debug-internal.log
+2022-11-20 09:32:02,421 INFO    MainThread:4872 [wandb_init.py:init():516] calling init triggers
+2022-11-20 09:32:02,421 INFO    MainThread:4872 [wandb_init.py:init():519] wandb.init called with sweep_config: {}
+config: {'env_name': 'PandaReachEvadeObstacles-v3', 'reward_type': 'sparse', 'total_timesteps': 400000, 'seed': 12, 'gradient_steps': -1, 'render': False, 'control_type': 'js', 'show_goal_space': True, 'replay_buffer': None, 'policy_type': 'MultiInputPolicy', 'show_debug_labels': True, 'learning_starts': 1000, 'n_envs': 1, 'max_ep_steps': 50, 'eval_freq': 10000, 'stages': [1, 'wall_parkour_1'], 'reward_thresholds': [-7, -7], 'joint_obstacle_observation': 'closest'}
+2022-11-20 09:32:02,422 INFO    MainThread:4872 [wandb_init.py:init():569] starting backend
+2022-11-20 09:32:02,422 INFO    MainThread:4872 [wandb_init.py:init():573] setting up manager
+2022-11-20 09:32:02,425 INFO    MainThread:4872 [backend.py:_multiprocessing_setup():102] multiprocessing start_methods=spawn, using: spawn
+2022-11-20 09:32:02,428 INFO    MainThread:4872 [wandb_init.py:init():580] backend started and connected
+2022-11-20 09:32:02,437 INFO    MainThread:4872 [wandb_init.py:init():658] updated telemetry
+2022-11-20 09:32:02,467 INFO    MainThread:4872 [wandb_init.py:init():693] communicating run to backend with 60 second timeout
+2022-11-20 09:32:02,872 INFO    MainThread:4872 [wandb_run.py:_on_init():2000] communicating current version
+2022-11-20 09:32:02,948 INFO    MainThread:4872 [wandb_run.py:_on_init():2004] got version response upgrade_message: "wandb version 0.13.5 is available!  To upgrade, please run:\n $ pip install wandb --upgrade"
+
+2022-11-20 09:32:02,948 INFO    MainThread:4872 [wandb_init.py:init():728] starting run threads in backend
+2022-11-20 09:32:03,090 INFO    MainThread:4872 [wandb_run.py:_console_start():1980] atexit reg
+2022-11-20 09:32:03,091 INFO    MainThread:4872 [wandb_run.py:_redirect():1838] redirect: SettingsConsole.WRAP_RAW
+2022-11-20 09:32:03,091 INFO    MainThread:4872 [wandb_run.py:_redirect():1903] Wrapping output streams.
+2022-11-20 09:32:03,091 INFO    MainThread:4872 [wandb_run.py:_redirect():1925] Redirects installed.
+2022-11-20 09:32:03,091 INFO    MainThread:4872 [wandb_init.py:init():765] run started, returning control to user process
+2022-11-20 09:32:09,349 WARNING MsgRouterThr:4872 [router.py:message_loop():77] message_loop has been closed
