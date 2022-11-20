@@ -3,7 +3,7 @@ from stable_baselines3 import TD3
 
 import gymnasium as gym
 import numpy as np
-from train_preo import config
+from train_curr import config
 from time import sleep
 
 
@@ -41,10 +41,10 @@ def evaluate(model, num_steps=1000):
 
     return mean_100ep_reward
 
-env = gym.make(config["env_name"], render=True, control_type="js", reward_type="sparse",
-               show_goal_space=False, obstacle_layout=1,
+env = gym.make(config["env_name"], render=True, control_type=config["control_type"], reward_type=config["reward_type"],
+               show_goal_space=False, obstacle_layout="wall_parkour_1",
                show_debug_labels=True)
 
-model = TD3.load(r"run_data/wandb/run_obs_layout_1_best_08_11/files/model.zip", env=env)
+model = TD3.load(r"run_data/wandb/run-20221120_093738-vpgfx0te/files/model.zip", env=env)
 
 evaluate(model)

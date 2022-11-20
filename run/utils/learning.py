@@ -19,7 +19,7 @@ from wandb.integration.sb3 import WandbCallback
 def get_env(config, stage):
     if config["n_envs"] > 1:
         # rendering is not allowed in multiprocessing
-        render, show_goal_space, show_debug_labels = False, False, False
+        render = show_goal_space = show_debug_labels = False
 
         env = make_vec_env(config["env_name"], n_envs=config["n_envs"],
                            env_kwargs={"render": render, "control_type": config["control_type"],
@@ -27,7 +27,7 @@ def get_env(config, stage):
                                        "show_goal_space": show_goal_space, "obstacle_layout": stage,
                                        "show_debug_labels": show_debug_labels}, vec_env_cls=SubprocVecEnv)
     else:
-        show_goal_space, show_debug_labels = True if config["render"] else False
+        show_goal_space = show_debug_labels = True if config["render"] else False
 
         env = gym.make(config["env_name"], render=config["render"], control_type=config["control_type"],
                        reward_type=config["reward_type"],
@@ -78,7 +78,7 @@ def curriculum_learn(config: dict, eval_freq=5000, initial_model: Optional[OffPo
 
         eval_env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
                             reward_type=config["reward_type"],
-                            show_goal_space=False, obstacle_layout=config["stages"][0],
+                            show_goal_space=False, obstacle_layout=stage,
                             show_debug_labels=True)
 
         stop_train_callback = StopTrainingOnRewardThreshold(reward_threshold=reward_threshold, verbose=1)
