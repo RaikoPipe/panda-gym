@@ -8,7 +8,10 @@ from panda_gym.pybullet import PyBullet
 
 import roboticstoolbox as rtb
 
+from ruckig import InputParameter, Ruckig, Trajectory, Result
+
 import ruckig
+
 
 class Panda(PyBulletRobot):
     """Panda robot in PyBullet.
@@ -16,21 +19,24 @@ class Panda(PyBulletRobot):
     Args:
         sim (PyBullet): Simulation instance.
         block_gripper (bool, optional): Whether the gripper is blocked. Defaults to False.
-        base_position (np.ndarray, optionnal): Position of the base base of the robot, as (x, y, z). Defaults to (0, 0, 0).
+        base_position (np.ndarray, optional): Position of the base base of the robot, as (x, y, z). Defaults to (0, 0, 0).
         control_type (str, optional): "ee" to control end-effector displacement or "joints" to control joint angles.
             Defaults to "ee".
     """
 
     def __init__(
-        self,
-        sim: PyBullet,
-        block_gripper: bool = False,
-        base_position: Optional[np.ndarray] = None,
-        control_type: str = "ee",
+            self,
+            sim: PyBullet,
+            block_gripper: bool = False,
+            base_position: Optional[np.ndarray] = None,
+            control_type: str = "ee",
+            obs_type: str = "ee",
+            limiter: str = "sim"
     ) -> None:
         base_position = base_position if base_position is not None else np.zeros(3)
         self.block_gripper = block_gripper
         self.control_type = control_type
+        self.obs_type = obs_type
         n_action = 3 if self.control_type == "ee" else 7  # control (x, y z) if "ee", else, control the 7 joints
         n_action += 0 if self.block_gripper else 1
         action_space = spaces.Box(-1.0, 1.0, shape=(n_action,), dtype=np.float32)
@@ -55,15 +61,36 @@ class Panda(PyBulletRobot):
         # get panda in roboticstoolbox
         self.rtb_panda = rtb.models.Panda()
 
+        # limits
+        self.joint_position_limits_min = np.array([-166, -101, -166, -176, -166, -1, -166])
+        self.joint_position_limits_max = np.array([166, 101, 166, -4, 166, 215, 166])
+
+        self.joint_velocity_limits = np.array([150, 150, 150, 150, 180, 180, 180])  # degrees per second
+        self.joint_acceleration_limits = np.array([150, 150, 150, 150, 180, 180, 180])  # degrees per second
+        self.joint_max_jerk = np.array([150, 150, 150, 150, 180, 180, 180])
+
+        # ruckig
+        self.use_ruckig_limiter = True if limiter == "ruckig" else False
+
+        # current state (ruckig)
+        self.current_joint_angles = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        self.previous_joint_velocities = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        self.current_joint_acceleration = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+
     def set_action(self, action: np.ndarray) -> None:
+
         action = action.copy()  # ensure action don't change
         action = np.clip(action, self.action_space.low, self.action_space.high)
+
         if self.control_type == "ee":
             ee_displacement = action[:3]
             target_arm_angles = self.ee_displacement_to_target_arm_angles(ee_displacement)
         else:
             arm_joint_ctrl = action[:7]
-            target_arm_angles = self.arm_joint_ctrl_to_target_arm_angles(arm_joint_ctrl)
+            if self.use_ruckig_limiter:
+                target_arm_angles = self.arm_joint_ctrl_to_target_arm_angles_ruckig(arm_joint_ctrl)
+            else:
+                target_arm_angles = self.arm_joint_ctrl_to_target_arm_angles(arm_joint_ctrl)
 
         if self.block_gripper:
             target_fingers_width = 0
@@ -74,35 +101,6 @@ class Panda(PyBulletRobot):
 
         target_angles = np.concatenate((target_arm_angles, [target_fingers_width / 2, target_fingers_width / 2]))
         self.control_joints(target_angles=target_angles)
-
-    def set_action_ruckig(self, action: np.ndarray):
-        action = action.copy()  # ensure action don't change
-        action = np.clip(action, self.action_space.low, self.action_space.high)
-
-
-        if self.control_type == "ee":
-            ee_displacement = action[:3]
-
-            target_arm_angles = self.ee_displacement_to_target_arm_angles(ee_displacement)
-        else:
-            arm_joint_ctrl = action[:7]
-            target_arm_angles = self.arm_joint_ctrl_to_target_arm_angles(arm_joint_ctrl)
-
-        if self.block_gripper:
-            target_fingers_width = 0
-        else:
-            fingers_ctrl = action[-1] * 0.2  # limit maximum change in position
-            fingers_width = self.get_fingers_width()
-            target_fingers_width = fingers_width + fingers_ctrl
-
-        # todo: limit jerk with ruckig
-        #   question: Can I limit the change in target angles by supplying q_dot=(q_new-q_curr)/timestep
-        #   note: pybullet is also limiting the torques applied (see setJointMotorControlArray
-
-        target_angles = np.concatenate((target_arm_angles, [target_fingers_width / 2, target_fingers_width / 2]))
-        self.control_joints(target_angles=target_angles)
-
-
 
     def ee_displacement_to_target_arm_angles(self, ee_displacement: np.ndarray) -> np.ndarray:
         """Compute the target arm angles from the end-effector displacement.
@@ -136,21 +134,73 @@ class Panda(PyBulletRobot):
             np.ndarray: Target arm angles, as the angles of the 7 arm joints.
         """
         arm_joint_ctrl = arm_joint_ctrl * 0.05  # limit maximum change in position
+
         # get the current position and the target position
         current_arm_joint_angles = np.array([self.get_joint_angle(joint=i) for i in range(7)])
         target_arm_angles = current_arm_joint_angles + arm_joint_ctrl
         return target_arm_angles
 
+    def arm_joint_ctrl_to_target_arm_angles_ruckig(self, arm_joint_ctrl: np.ndarray) -> np.ndarray:
+        """Compute the target arm angles from the arm joint control.
+
+        Args:
+            arm_joint_ctrl (np.ndarray): Control of the 7 joints.
+
+        Returns:
+            np.ndarray: Target arm angles, as the angles of the 7 arm joints.
+        """
+        arm_joint_ctrl = arm_joint_ctrl * 0.05  # limit maximum change in position
+
+        inp = InputParameter(7)  # DOFs
+
+        current_joint_angles = np.array([self.get_joint_angle(joint=i) for i in range(7)])
+        current_joint_velocities = np.array([self.get_joint_velocity(joint=i) for i in range(7)])
+        current_acceleration = current_joint_velocities - self.previous_joint_velocities
+
+        inp.current_position = current_joint_angles
+        inp.current_velocity = current_joint_velocities
+        inp.current_acceleration = current_acceleration
+
+        inp.target_position = self.current_joint_angles + arm_joint_ctrl
+
+        inp.max_position = self.joint_position_limits_max
+        inp.max_velocity = self.joint_velocity_limits
+        inp.max_acceleration = self.joint_acceleration_limits
+        inp.max_jerk = self.joint_max_jerk
+
+        otg = Ruckig(7)
+        trajectory = Trajectory(7)
+        result = otg.calculate(inp, trajectory)
+        if result == Result.ErrorInvalidInput:
+            raise Exception('Invalid input!')
+
+        new_time = self.sim.timestep
+
+        target_joint_angles, target_joint_velocities, target_joint_accelerations = trajectory.at_time(new_time)
+
+        self.previous_joint_velocities = current_joint_velocities
+
+        # target_arm_angles = current_arm_joint_angles + arm_joint_ctrl
+        return target_joint_angles
+
     def get_obs(self) -> np.ndarray:
-        # end-effector position and velocity
-        ee_position = np.array(self.get_ee_position())
-        ee_velocity = np.array(self.get_ee_velocity())
+        if self.obs_type == "ee":
+            # end-effector position and velocity
+            position = np.array(self.get_ee_position())
+            velocity = np.array(self.get_ee_velocity())
+
+        else:
+            # joint angles and joint velocities
+            position = np.array([self.get_joint_angle(joint=i) for i in range(7)])
+            velocity = np.array([self.get_joint_velocity(joint=i) for i in range(7)])
+
         # fingers opening
         if not self.block_gripper:
             fingers_width = self.get_fingers_width()
-            observation = np.concatenate((ee_position, ee_velocity, [fingers_width]))
+            observation = np.concatenate((position, velocity, [fingers_width]))
         else:
-            observation = np.concatenate((ee_position, ee_velocity))
+            observation = np.concatenate((position, velocity))
+
         return observation
 
     def reset(self) -> None:
@@ -173,10 +223,8 @@ class Panda(PyBulletRobot):
     def get_ee_velocity(self) -> np.ndarray:
         """Returns the velocity of the end-effector as (vx, vy, vz)"""
         return self.get_link_velocity(self.ee_link)
+
     def get_manipulability(self) -> float:
         """Returns the manipulability as the yoshikawa index"""
         q = [self.get_joint_angle(i) for i in self.joint_indices[:7]]
         return self.rtb_panda.manipulability(q, axes="trans")
-
-
-

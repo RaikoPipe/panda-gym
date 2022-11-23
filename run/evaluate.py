@@ -48,9 +48,9 @@ def evaluate(model, num_steps=1000):
 panda_gym.register_envs(100)
 
 env = gym.make(config["env_name"], render=True, control_type=config["control_type"], reward_type=config["reward_type"],
-               show_goal_space=False, obstacle_layout="box_1",
-               show_debug_labels=True)
+               show_goal_space=False, obstacle_layout="box_3",
+               show_debug_labels=True, limiter=config["limiter"])
 
-model = TD3.load(r"run_data/wandb/run-20221120_144057-2790lgkp/files/model.zip", env=env)
+model = TD3.load(r"run_data/wandb/run_panda_reach_evade_obstacle_wall_parkour_1_best_run/files/model.zip", env=env)
 
 evaluate(model)

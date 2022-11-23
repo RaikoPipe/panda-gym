@@ -37,7 +37,16 @@ class ReachEvadeObstacles(Task):
             3: self.create_stage_3,
             "shelf_1": self.create_stage_shelf_1,
             "wall_parkour_1": self.create_stage_wall_parkour_1,
-            "box_1": self.create_stage_box_3
+            "box_3": self.create_stage_box_3,
+
+            # for curriculum learning
+            "cube_1": self.create_stage_cube_1,
+            "cube_2": self.create_stage_cube_2,
+            "cube_3": self.create_stage_cube_3,
+            "cube_4": self.create_stage_cube_4,
+            # "cube_5": self.create_stage_cube_5,
+            # "cube_6": self.create_stage_cube_6,
+
         }
         # self.robot_params = self.create_robot_debug_params()
 
@@ -51,6 +60,7 @@ class ReachEvadeObstacles(Task):
         exclude_links = ["panda_link8", "panda_grasptarget"]
         self.collision_links = [i for i in self.robot.link_names if i not in exclude_links]
         self.collision_objects = []
+        self.randomize = False  # Randomize obstacle placement
 
         # extra observations
         self.obs_d = np.zeros(len(self.collision_links))
@@ -76,8 +86,6 @@ class ReachEvadeObstacles(Task):
 
             if show_goal_space:
                 self.show_goal_space()
-
-
 
         # add collision detector for robot
         self.named_collision_pairs_rob_obs = []
@@ -195,6 +203,43 @@ class ReachEvadeObstacles(Task):
             np.array([0.0, -0.26, 0.1]),
             size=np.array([0.18, 0.001, 0.2]))
 
+    def create_stage_cube_1(self):
+        """1 small cube in the corner of the goal space. Easy to ignore."""
+        self.goal_range = 0.4
+
+        self.create_obstacle_cuboid(
+            np.array([0.1, 0.16, 0.3]),
+            size=np.array([0.01, 0.01, 0.01]))
+
+    def create_stage_cube_2(self):
+        """1 small cube near the ee. Harder to ignore."""
+        self.goal_range = 0.4
+
+        self.create_obstacle_cuboid(
+            np.array([0.05, 0.08, 0.2]),
+            size=np.array([0.01, 0.01, 0.01]))
+
+    def create_stage_cube_3(self):
+        """2 small cubes near the ee. Hard to ignore."""
+        self.goal_range = 0.4
+        # todo: place diagonally to ee
+        self.create_obstacle_cuboid(
+            np.array([0.05, 0.08, 0.2]),
+            size=np.array([0.01, 0.01, 0.01]))
+
+    def create_stage_cube_4(self):
+        """2 random small cubes. Annoying."""
+        self.goal_range = 0.4
+        self.randomize = True
+
+        self.create_obstacle_cuboid(
+            np.array([0.05, 0.08, 0.2]),
+            size=np.array([0.01, 0.01, 0.01]))
+
+        self.create_obstacle_cuboid(
+            np.array([-0.05, -0.08, 0.5]),
+            size=np.array([0.01, 0.01, 0.01]))
+
     def create_obstacle_sphere(self, position=np.array([0.1, 0, 0.1]), radius=0.02, alpha=0.8):
         obstacle_name = "obstacle"
 
@@ -253,30 +298,43 @@ class ReachEvadeObstacles(Task):
         return ee_position
 
     def reset(self) -> None:
-        collision = True
-        margin = 0.0  # margin in which overlapping counts as a collision
 
         self.goal = self._sample_goal()
+        if self.randomize:
+            # randomize obstacle position within goal space
+            for obstacle in self.obstacles.keys():
+                # get collision free obstacle position
+                collision = True
+                while collision:
+                    self.sim.set_base_pose(obstacle, self._sample_goal(), np.array([0.0, 0.0, 0.0, 1.0]))
+                    collision = self.get_collision("robot", obstacle)
+
+        collision = True
         # get collision free goal
         while collision and self.obstacles:
 
             self.sim.set_base_pose("dummy_target", self.goal, np.array([0.0, 0.0, 0.0, 1.0]))
             self.sim.physics_client.performCollisionDetection()
             for obstacle in self.obstacles:
-                closest_points = p.getClosestPoints(bodyA=self.bodies["dummy_target"], bodyB=self.bodies[obstacle],
-                                                    distance=10.0,
-                                                    physicsClientId=self.sim_id)
-                contact_distance = np.min([pt[8] for pt in closest_points])
-                collision = margin >= contact_distance
+                collision = self.get_collision("dummy_target", obstacle)
                 if collision:
                     self.goal = self._sample_goal()
                     break
-            if not collision:
-                collision = False
 
         self.sim.set_base_pose("target", self.goal, np.array([0.0, 0.0, 0.0, 1.0]))
         self.sim.set_base_pose("dummy_target", np.array([0.0, 0.0, -5.0]),
                                np.array([0.0, 0.0, 0.0, 1.0]))  # move dummy away
+
+    def get_collision(self, obstacle_1, obstacle_2):
+        """Check if given bodies collide."""
+        margin = 0.0  # margin in which overlapping counts as a collision
+        self.sim.physics_client.performCollisionDetection()
+        closest_points = p.getClosestPoints(bodyA=self.bodies[obstacle_1], bodyB=self.bodies[obstacle_2],
+                                            distance=10.0,
+                                            physicsClientId=self.sim_id)
+        contact_distance = np.min([pt[8] for pt in closest_points])
+        collision = margin >= contact_distance
+        return collision
 
     def _sample_goal(self) -> np.ndarray:
         """Randomize goal."""
