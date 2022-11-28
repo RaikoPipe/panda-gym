@@ -16,6 +16,7 @@ class RRMC:
     def __init__(self, env, collisions):
         self.env = env
         self.panda: Panda = env.robot
+        # todo: idea: if we can get the robot from the env, why not also the stage and obstacles?
         self.panda_rtb = rtb.models.Panda()
 
         # todo: get target as pose
