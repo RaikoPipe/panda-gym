@@ -44,11 +44,13 @@ class ReachEvadeObstacles(Task):
             "cube_2": self.create_stage_cube_2,
             "cube_3": self.create_stage_cube_3,
             "cube_4": self.create_stage_cube_4,
-            # "cube_5": self.create_stage_cube_5,
+            "cube_5": self.create_stage_cube_5,
             # "cube_6": self.create_stage_cube_6,
 
         }
         # self.robot_params = self.create_robot_debug_params()
+        self.cube_size_small = np.array([0.02, 0.02, 0.02])
+        self.cube_size_mini = np.array([0.01, 0.01, 0.01])
 
         self.reward_type = reward_type
         self.distance_threshold = distance_threshold
@@ -209,36 +211,56 @@ class ReachEvadeObstacles(Task):
 
         self.create_obstacle_cuboid(
             np.array([0.1, 0.16, 0.3]),
-            size=np.array([0.01, 0.01, 0.01]))
+            size=self.cube_size_small)
 
     def create_stage_cube_2(self):
         """1 small cube near the ee. Harder to ignore."""
         self.goal_range = 0.4
 
         self.create_obstacle_cuboid(
-            np.array([0.05, 0.08, 0.2]),
-            size=np.array([0.01, 0.01, 0.01]))
+            np.array([0.05, 0.1, 0.15]),
+            size=self.cube_size_small)
 
     def create_stage_cube_3(self):
         """2 small cubes near the ee. Hard to ignore."""
-        self.goal_range = 0.4
-        # todo: place diagonally to ee
+        self.goal_range = 0.5
+
         self.create_obstacle_cuboid(
-            np.array([0.05, 0.08, 0.2]),
-            size=np.array([0.01, 0.01, 0.01]))
+            np.array([0.05, 0.1, 0.15]),
+            size=self.cube_size_small)
+
+        self.create_obstacle_cuboid(
+            np.array([-0.05, -0.1, 0.25]),
+            size=self.cube_size_small)
 
     def create_stage_cube_4(self):
         """2 random small cubes. Annoying."""
-        self.goal_range = 0.4
+        self.goal_range = 0.5
         self.randomize = True
 
         self.create_obstacle_cuboid(
             np.array([0.05, 0.08, 0.2]),
-            size=np.array([0.01, 0.01, 0.01]))
+            size=self.cube_size_small)
 
         self.create_obstacle_cuboid(
             np.array([-0.05, -0.08, 0.5]),
-            size=np.array([0.01, 0.01, 0.01]))
+            size=self.cube_size_small)
+
+    def create_stage_cube_5(self):
+        """3 random small cubes. Infuriating."""
+        self.goal_range = 0.5
+        self.randomize = True
+        self.create_obstacle_cuboid(
+            np.array([0.05, 0.08, 0.2]),
+            size=self.cube_size_small)
+
+        self.create_obstacle_cuboid(
+            np.array([-0.05, -0.08, 0.5]),
+            size=self.cube_size_small)
+
+        self.create_obstacle_cuboid(
+            np.array([-0.05, -0.08, 0.5]),
+            size=self.cube_size_small)
 
     def create_obstacle_sphere(self, position=np.array([0.1, 0, 0.1]), radius=0.02, alpha=0.8):
         obstacle_name = "obstacle"

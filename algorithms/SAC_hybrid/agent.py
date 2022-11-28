@@ -318,8 +318,6 @@ class SAC_Agent():
         else:
             self.replay_buffer.store(state, action, reward, new_state, done, self.last_mu_prior, mu_prior2)
 
-
-
     def get_policy_action(self, o, deterministic=False):
         act, mu, std = self.networks.act(torch.as_tensor(o, dtype=torch.float32).to(self.device), deterministic)
         return act, mu, std

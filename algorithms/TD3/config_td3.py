@@ -5,7 +5,7 @@ import torch
 
 from algorithms.TD3 import core
 from algorithms.TD3.agent import TD3_Agent
-from utils import wandb_logging
+from wandb_utils import wandb_logging
 
 
 #

@@ -12,7 +12,7 @@ import wandb
 
 from algorithms.NAF.agent import NAF_Agent
 from env import PandaEnv
-from utils import wandb_logging
+from wandb_utils import wandb_logging
 
 
 # # def evaluate_policy(use_single_agent=True):

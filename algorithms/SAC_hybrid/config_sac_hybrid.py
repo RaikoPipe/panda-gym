@@ -11,12 +11,12 @@ from copy import deepcopy, copy
 import numpy as np
 import torch
 from torch.distributions.normal import Normal
-from utils import wandb_logging
+from wandb_utils import wandb_logging
 
 
 import algorithms.SAC_hybrid.core as core
 from algorithms.SAC_hybrid.agent import SAC_Agent
-from algorithms.SAC_hybrid.prior_controller import RRMC
+from algorithms.SAC_hybrid.prior_controller_neo import RRMC
 
 
 
@@ -234,7 +234,7 @@ def get_sac_agent(env):
 
     torch.set_num_threads(torch.get_num_threads())
 
-    prior = RRMC(env)
+    prior = RRMC(env, [])
     sigma_prior = SIGMA_PRIOR
 
     torch.manual_seed(SEED)
@@ -274,5 +274,3 @@ def get_sac_agent(env):
     # print(toc-tic)
     # #print(evaluate_prior())
 
-    # todo:
-    #   implemented neo guided training

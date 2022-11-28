@@ -15,8 +15,10 @@ import gymnasium as gym
 import panda_gym
 
 from algorithms.SAC_hybrid import config_sac_hybrid
-from utils import wandb_logging
-from algorithms.TD3.config_td3 import get_td3_agent
+from wandb_utils import wandb_logging
+from train_curr import config
+
+from utils.learning import get_env
 
 code_dict = {1: "Reached Goal", -2: "Collision", -1: "Max Timesteps reached"}
 
@@ -111,7 +113,7 @@ def run():
             action = agent.get_sample()
 
         # Step the env
-        next_state, reward, done, _, _ = env_run.step(action)
+        next_state, reward, done, truncated, info = env_run.step(action)
         next_state = next_state["observation"]
         ep_ret += reward
         ep_len += 1
@@ -148,7 +150,7 @@ def run():
         #     time.sleep(1)
 
         # End of trajectory handling
-        if done or ep_len >= agent.max_ep_steps:
+        if done or truncated or ep_len >= agent.max_ep_steps:
             ep_rewards.append(ep_ret)
             print("\n")
             print(f"Episode Rewards: {ep_ret}")
@@ -208,11 +210,11 @@ if __name__ == "__main__":
     REWARD_TYPE = ""
     MAX_EP_STEPS = 500
 
-    env = gym.make("PandaReach-v3", render=True, control_type="", reward_type="dense")
+    env = get_env(config, stage=1)
     env.reset()
 
     # get agent
-    agent, run_name = get_td3_agent(env)
+    agent, run_name = config_sac_hybrid.get_sac_agent(env)
 
     save_dir = fr"{ROOT_DIR}/saved_models/{agent.alg_name}/{run_name}"
 

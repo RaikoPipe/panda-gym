@@ -36,7 +36,7 @@ def get_env(config, stage):
     return env
 
 
-def curriculum_learn(config: dict, eval_freq=500, initial_model: Optional[OffPolicyAlgorithm] = None,
+def curriculum_learn(config: dict, eval_freq=5000, initial_model: Optional[OffPolicyAlgorithm] = None,
                      starting_stage: Optional[str] = None, algorithm: str = "TD3"):
     env_name = config["env_name"]
     project = f"curriculum_learn_{env_name}"
@@ -87,7 +87,7 @@ def curriculum_learn(config: dict, eval_freq=500, initial_model: Optional[OffPol
     for stage, reward_threshold in zip(config["stages"], config["reward_thresholds"]):
         model.env = get_env(config, stage)
 
-        eval_env = gym.make(config["env_name"], render=False, control_type=config["control_type"],
+        eval_env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
                             reward_type=config["reward_type"],
                             show_goal_space=False, obstacle_layout=stage,
                             show_debug_labels=False)
