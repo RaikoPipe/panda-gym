@@ -19,18 +19,19 @@ config = {
     "algorithm": "TD3",
     "reward_type": "sparse",  # sparse; dense
     "total_timesteps": 400_000,
-    "seed": 12,
+    "seed": 23,
     "render": False,  # renders the pybullet env
-    "control_type": "js",  # "ee": end effector displacement; "js": joint angles
+    "obs_type": "ee",
+    "control_type": "js",  # "ee": end effector displacement; "js": joint space
     "limiter": "sim",
     "show_goal_space": True,
     "replay_buffer": None,  # HerReplayBuffer
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": True,
-    "n_envs": 4,
+    "n_envs": 1,
     "max_ep_steps": 50,
-    "eval_freq": 10_000,
-    "stages": ["cube_5"],
+    "eval_freq": 100_000, #5_000,
+    "stages": ["wall_parkour_1"],
     "reward_thresholds": [-10],  # [-7, -10, -12, -17, -20]
     "joint_obstacle_observation": "closest",  # "all": closest distance to any obstacle of all joints is observed;
     # "closest": only closest joint distance is observed
@@ -39,7 +40,7 @@ config = {
 # hyperparameters are from rl-baselines3 zoo and https://arxiv.org/pdf/2106.13687.pdf
 
 hyperparameters_td3 = {
-    "learning_starts": 10000,
+    "learning_starts": 0,#10000,
     "learning_rate": 0.001,
     "gamma": 0.98,
     "tau": 0.005,
@@ -82,10 +83,10 @@ if __name__ == "__main__":
         config.update(hyperparameters_sac)
 
 
-    model = TD3.load(r"run_data/wandb/run-20221127_132947-o4r3k0bj/files/model.zip", env=env, train_freq=config["n_envs"],
-                     gradient_steps=config["gradient_steps"])
+    # model = TD3.load(r"run_data/wandb/run-20221127_132947-o4r3k0bj/files/model.zip", env=env, train_freq=config["n_envs"],
+    #                  gradient_steps=config["gradient_steps"])
 
-    model = curriculum_learn(config=config, algorithm=config["algorithm"], initial_model=model)
+    model = curriculum_learn(config=config, algorithm=config["algorithm"], )#initial_model=model)
 
     model.env.close()
     del model
