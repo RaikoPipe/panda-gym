@@ -9,6 +9,7 @@ import numpy as np
 import qpsolvers as qp
 
 from panda_gym.envs.robots.panda import Panda
+from swift import Swift
 
 
 class RRMC:
@@ -18,8 +19,10 @@ class RRMC:
         self.panda: Panda = env.robot
         # todo: idea: if we can get the robot from the env, why not also the stage and obstacles?
         self.panda_rtb = rtb.models.Panda()
+        move = spatialmath.SE3(-0.6,0,0)
+        self.panda_rtb.base = move
+        self.panda_rtb.q = self.panda.get_joint_angles(self.panda.joint_indices[:7])
 
-        # todo: get target as pose
         # Tep = panda.fkine(panda.q)
         # Tep.A[:3, 3] = target.T[:3, -1]
 
@@ -30,6 +33,17 @@ class RRMC:
         s0 = Cuboid(np.array([0.02, 0.02, 0.02]), pose=spatialmath.SE3(0, 0.05, 0.15))
 
         self.collisions = [s0]
+
+        # this might not be necessary
+        self.env_rtb = Swift()
+        self.env_rtb.launch()
+
+        self.env_rtb.add(self.panda_rtb)
+        self.env_rtb.add(s0)
+
+        self.env_rtb.step()
+
+
 
     def p_servo(self, wTe, wTep, gain=2):
         '''
@@ -92,7 +106,11 @@ class RRMC:
         pose.A[:3, :3] = robot_pose.A[:3, :3]
         return pose
 
-    def compute_action(self, gain=1):
+    def compute_action(self, target, gain=1):
+
+        # get goal
+        Tep = self.panda_rtb.fkine(self.panda.get_joint_angles(self.panda.joint_indices[:7]))
+        Tep.A[:3, 3] = target
 
         try:
             self.panda_rtb.q = self.panda.get_joint_angles(self.panda.joint_indices[:7])
@@ -111,18 +129,23 @@ class RRMC:
         return action
 
     def compute_action_neo(self, target):
+        # get goal
+        Tep = self.panda_rtb.fkine(self.panda.get_joint_angles(self.panda.joint_indices[:7]))
+        Tep.A[:3, 3] = target
+
         # The pose of the Panda's end-effector
-        Te = self.panda_rtb.fkine(self.panda.get_joint_angles(self.panda.joint_indices[:7]))
+        Te = self.panda.get_ee_position()
+        Te = spatialmath.SE3(Te)
 
         # Transform from the end-effector to desired pose
-        eTep = Te.inv() * target
+        eTep = Te.inv() * Tep
 
         # Spatial error
         e = np.sum(np.abs(np.r_[eTep.t, eTep.rpy() * np.pi / 180]))
 
         # Calulate the required end-effector spatial velocity for the robot
         # to approach the goal. Gain is set to 1.0
-        v, arrived = rtb.p_servo(Te, target, 0.5, 0.01)
+        v, arrived = rtb.p_servo(Te, Tep, 0.5, 0.01)
 
         # Gain term (lambda) for control minimisation
         Y = 0.01
@@ -184,8 +207,10 @@ class RRMC:
         ub = np.r_[self.panda_rtb.qdlim[:self.n], 10 * np.ones(6)]
 
         # Solve for the joint velocities dq
-        qd = qp.solve_qp(Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub)
+        qd = qp.solve_qp(Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver="gurobi")
 
+        self.panda_rtb.qd[:self.n] = qd[:self.n]
+        self.env_rtb.step()
         # Return the joint velocities
         return qd[:self.n]
 

@@ -17,10 +17,10 @@ from stable_baselines3 import TD3
 config = {
     "env_name": "PandaReachEvadeObstacles-v3",
     "algorithm": "TD3",
-    "reward_type": "sparse",  # sparse; dense
+    "reward_type": "dense",  # sparse; dense
     "total_timesteps": 400_000,
     "seed": 23,
-    "render": False,  # renders the pybullet env
+    "render": True,  # renders the pybullet env
     "obs_type": "ee",
     "control_type": "js",  # "ee": end effector displacement; "js": joint space
     "limiter": "sim",

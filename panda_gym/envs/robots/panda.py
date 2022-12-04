@@ -72,6 +72,10 @@ class Panda(PyBulletRobot):
         # ruckig
         self.use_ruckig_limiter = True if limiter == "ruckig" else False
 
+        # remember actions
+        self.previous_action = None
+        self.recent_action = None
+
         # current state (ruckig)
         self.current_joint_angles = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         self.previous_joint_velocities = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
@@ -81,6 +85,10 @@ class Panda(PyBulletRobot):
 
         action = action.copy()  # ensure action don't change
         action = np.clip(action, self.action_space.low, self.action_space.high)
+
+        # save action
+        self.previous_action = self.recent_action
+        self.recent_action = action
 
         if self.control_type == "ee":
             ee_displacement = action[:3]
@@ -100,6 +108,7 @@ class Panda(PyBulletRobot):
             target_fingers_width = fingers_width + fingers_ctrl
 
         target_angles = np.concatenate((target_arm_angles, [target_fingers_width / 2, target_fingers_width / 2]))
+
         self.control_joints(target_angles=target_angles)
 
     def ee_displacement_to_target_arm_angles(self, ee_displacement: np.ndarray) -> np.ndarray:

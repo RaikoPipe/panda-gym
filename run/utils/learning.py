@@ -16,7 +16,7 @@ from wandb.integration.sb3 import WandbCallback
 
 
 def get_env(config, stage):
-    if config["n_envs"] > 0:
+    if config["n_envs"] > 1:
         # rendering is not allowed in multiprocessing
         render = show_goal_space = show_debug_labels = False
 
