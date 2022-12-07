@@ -19,16 +19,15 @@ class ReachEvadeObstacles(Task):
             get_ee_position,
             reward_type="sparse",
             distance_threshold=0.05,
-            goal_range=0.3,
             show_goal_space=False,
             joint_obstacle_observation="all",
             obstacle_layout=1,
             show_debug_labels=True,
-            factor_punish_distance=1.0,
+            factor_punish_distance=10.0,
             factor_punish_collision=1.0,
-            factor_punish_action_magnitude=0.0,
-            factor_punish_action_difference_magnitude=1.0,
-            factor_punish_obstacle_distance=1.0
+            factor_punish_action_magnitude=0.005,
+            factor_punish_action_difference_magnitude=0.0,
+            factor_punish_obstacle_proximity=0.0
 
 
     ) -> None:
@@ -44,7 +43,7 @@ class ReachEvadeObstacles(Task):
         self.factor_punish_collision = factor_punish_collision
         self.factor_punish_action_magnitude = factor_punish_action_magnitude
         self.factor_punish_action_difference_magnitude = factor_punish_action_difference_magnitude
-        self.factor_punish_obstacle_distance = factor_punish_obstacle_distance
+        self.factor_punish_obstacle_proximity = factor_punish_obstacle_proximity
 
         create_obstacle_layout = {
             1: self.create_stage_1,
@@ -428,7 +427,7 @@ class ReachEvadeObstacles(Task):
     def get_reward_action_difference(self) -> float:
         """Calculate the magnitude of deviation between the recent and the previous action."""
         if self.robot.previous_action is None:
-            # There has not been any action this episode
+            # There has not been any recorded action yet
             return 0.0
 
         action_diff = self.robot.recent_action - self.robot.previous_action
@@ -436,6 +435,10 @@ class ReachEvadeObstacles(Task):
 
     def get_reward_small_actions(self) -> float:
         """Calculate the magnitude of the action, i.e. calculate the square of the norm of the action."""
+        if self.robot.recent_action is None:
+            # There has not been any recorded action yet
+            return 0.0
+
         return np.square(np.linalg.norm(self.robot.recent_action))
 
     def compute_reward(self, achieved_goal, desired_goal, info: Dict[str, Any]) -> np.ndarray:
@@ -449,10 +452,9 @@ class ReachEvadeObstacles(Task):
             reward = -np.array((d > self.distance_threshold) + (min(obs_d) <= 0) * 100, dtype=np.float32)
         else:
             # calculate dense rewards
-            action_diff *= self.factor_punish_action_difference_magnitude
-            action_smallness *= self.factor_punish_action_magnitude
 
-            reward = -np.array(action_diff + action_smallness, dtype=np.float32)
+            reward = -np.array(action_diff*self.factor_punish_action_difference_magnitude +
+                               action_smallness*self.factor_punish_action_magnitude, dtype=np.float32)
 
             collision = min(obs_d) <= 0
 
@@ -460,7 +462,7 @@ class ReachEvadeObstacles(Task):
             if collision:
                 reward += -np.array(d + 100 * self.factor_punish_collision, dtype=np.float32)
             else:
-                reward += -np.array(d + exp(-min(obs_d)*self.factor_punish_obstacle_distance), dtype=np.float32)
+                reward += -np.array(d + exp(-min(obs_d)) * self.factor_punish_obstacle_proximity, dtype=np.float32)
 
         if self.sim.render_env:
             self.update_labels(manip, d, obs_d, action_diff, action_smallness, reward)

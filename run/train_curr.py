@@ -17,20 +17,21 @@ from stable_baselines3 import TD3
 config = {
     "env_name": "PandaReachEvadeObstacles-v3",
     "algorithm": "TD3",
-    "reward_type": "dense",  # sparse; dense
-    "total_timesteps": 400_000,
+    "reward_type": "sparse",  # sparse; dense
+    "distance_threshold": 0.02,
+    "max_timesteps": 1e6,
     "seed": 23,
     "render": True,  # renders the pybullet env
     "obs_type": "ee",
     "control_type": "js",  # "ee": end effector displacement; "js": joint space
     "limiter": "sim",
     "show_goal_space": True,
-    "replay_buffer": None,  # HerReplayBuffer
+    "replay_buffer": HerReplayBuffer,  # HerReplayBuffer
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": True,
     "n_envs": 1,
-    "max_ep_steps": 50,
-    "eval_freq": 100_000, #5_000,
+    "max_ep_steps": 100,
+    "eval_freq": 5_000,
     "stages": ["wall_parkour_1"],
     "reward_thresholds": [-10],  # [-7, -10, -12, -17, -20]
     "joint_obstacle_observation": "closest",  # "all": closest distance to any obstacle of all joints is observed;
@@ -40,7 +41,7 @@ config = {
 # hyperparameters are from rl-baselines3 zoo and https://arxiv.org/pdf/2106.13687.pdf
 
 hyperparameters_td3 = {
-    "learning_starts": 0,#10000,
+    "learning_starts": 0,  # 10000,
     "learning_rate": 0.001,
     "gamma": 0.98,
     "tau": 0.005,
@@ -73,8 +74,7 @@ if __name__ == "__main__":
     # register envs to gymnasium
     panda_gym.register_envs(config["max_ep_steps"])
 
-    env = get_env(config, 1)
-
+    env = get_env(config, "box_3")
 
     # for algorithm in "PPO":
     if config["algorithm"] in ("TD3", "DDPG"):
@@ -82,8 +82,8 @@ if __name__ == "__main__":
     elif config["algorithm"] == "SAC":
         config.update(hyperparameters_sac)
 
-
-    # model = TD3.load(r"run_data/wandb/run-20221127_132947-o4r3k0bj/files/model.zip", env=env, train_freq=config["n_envs"],
+    # model = TD3.load(r"run_data/wandb/run-20221206_122636-k1fwbcbr/files/model.zip", env=env,
+    #                  train_freq=config["n_envs"],
     #                  gradient_steps=config["gradient_steps"])
 
     model = curriculum_learn(config=config, algorithm=config["algorithm"], )#initial_model=model)

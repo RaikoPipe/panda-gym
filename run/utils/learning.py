@@ -16,24 +16,23 @@ from wandb.integration.sb3 import WandbCallback
 
 
 def get_env(config, stage):
-    if config["n_envs"] > 1:
-        # rendering is not allowed in multiprocessing
-        render = show_goal_space = show_debug_labels = False
+    if config["n_envs"] > 0:
 
         env = make_vec_env(config["env_name"], n_envs=config["n_envs"],
-                           env_kwargs={"render": render, "control_type": config["control_type"],
+                           env_kwargs={"render": False, "control_type": config["control_type"],
                                        "obs_type": config["obs_type"],
-                                       "reward_type": config["reward_type"], "limiter": config["limiter"],
-                                       "show_goal_space": show_goal_space, "obstacle_layout": stage,
-                                       "show_debug_labels": show_debug_labels}, vec_env_cls=SubprocVecEnv)
+                                       "reward_type": config["reward_type"],
+                                       "distance_threshold":config["distance_threshold"],
+                                       "limiter": config["limiter"],
+                                       "show_goal_space": False, "obstacle_layout": stage,
+                                       "show_debug_labels": False}, vec_env_cls=SubprocVecEnv)
     else:
-        show_goal_space = show_debug_labels = True if config["render"] else False
-
-        env = gym.make(config["env_name"], render=config["render"], control_type=config["control_type"],
-                       obs_type=config["obs_type"],
+        # todo: check if obsolete
+        env = gym.make(config["env_name"], render=False, control_type=config["control_type"],
+                       obs_type=config["obs_type"], distance_threshold=config["distance_threshold"],
                        reward_type=config["reward_type"], limiter=config["limiter"],
-                       show_goal_space=show_goal_space, obstacle_layout=stage,
-                       show_debug_labels=show_debug_labels)
+                       show_goal_space=False, obstacle_layout=stage,
+                       show_debug_labels=False)
 
     return env
 
@@ -63,7 +62,6 @@ def get_model(algorithm, config, run):
                     buffer_size=config["buffer_size"],
                     policy_kwargs=config["policy_kwargs"],
                     action_noise=action_noise
-
                     )
     elif algorithm == "SAC":
         model = SAC(config["policy_type"], env=get_env(config, config["stages"][0]),
@@ -93,6 +91,7 @@ def curriculum_learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] =
     # set wandb tags
     tags = []
     tags.extend(str(x) for x in config["stages"])
+
     if initial_model:
         tags.append("pre-trained")
         tags.append("curriculum_learning")
@@ -103,6 +102,7 @@ def curriculum_learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] =
         tags.append("multi_env")
 
     tags.append(config["algorithm"])
+    tags.append(config["reward_type"])
 
     run = wandb.init(
         project=f"{project}",
@@ -133,10 +133,11 @@ def curriculum_learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] =
 
     assert len(config["stages"]) == len(config["reward_thresholds"])
 
+    # learn for each stage until reward threshold is reached
     for stage, reward_threshold in zip(config["stages"], config["reward_thresholds"]):
         model.env = get_env(config, stage)
 
-        eval_env = gym.make(config["env_name"], render=False, control_type=config["control_type"],
+        eval_env = gym.make(config["env_name"], render=config["render"], control_type=config["control_type"],
                             obs_type=config["obs_type"],
                             reward_type=config["reward_type"],
                             show_goal_space=False, obstacle_layout=stage,
@@ -149,7 +150,7 @@ def curriculum_learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] =
                                      best_model_save_path=wandb.run.dir)
 
         model.learn(
-            total_timesteps=25_000,
+            total_timesteps=config["max_timesteps"],
             callback=[WandbCallback(
                 model_save_path=wandb.run.dir,
                 model_save_freq=20_000
