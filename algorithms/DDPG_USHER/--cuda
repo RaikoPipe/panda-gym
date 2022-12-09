@@ -1,0 +1,5 @@
+[mpiexec@Alienware-Aurora-R9] match_arg (utils/args/args.c:163): unrecognized argument u
+[mpiexec@Alienware-Aurora-R9] HYDU_parse_array (utils/args/args.c:178): argument matching returned error
+[mpiexec@Alienware-Aurora-R9] parse_args (ui/mpich/utils.c:1642): error parsing input array
+[mpiexec@Alienware-Aurora-R9] HYD_uii_mpx_get_parameters (ui/mpich/utils.c:1694): unable to parse user arguments
+[mpiexec@Alienware-Aurora-R9] main (ui/mpich/mpiexec.c:148): error parsing parameters

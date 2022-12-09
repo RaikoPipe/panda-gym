@@ -13,10 +13,10 @@ from algorithms.SAC_hybrid.prior_controller_neo import RRMC
 
 
 
-def evaluate(model, num_steps=1000):
+def evaluate(prior, model, num_steps=1000):
     """
     Evaluate a RL agent
-    :param model: (BaseRLModel object) the RL Agent
+    :param prior: (BaseRLModel object) the RL Agent
     :param num_steps: (int) number of timesteps to evaluate it
     :return: (float) Mean reward for the last 100 episodes
     """
@@ -26,7 +26,9 @@ def evaluate(model, num_steps=1000):
     obs, _ = env.reset()
     for i in range(num_steps):
         # _states are only useful when using LSTM policies
-        action = model.compute_action_neo(env.task.goal)
+        action = prior.compute_action_neo(env.task.goal)
+        prior.panda_rtb.q = prior.panda_rtb.qr
+        rl_action, _ = model.predict(obs)
 
         obs, reward, done, truncated, info, = env.step(action)
         sleep(0.05)
@@ -50,12 +52,16 @@ def evaluate(model, num_steps=1000):
     return mean_100ep_reward
 
 panda_gym.register_envs(100)
+# instantiate reachEvadeObstacle
+# env = gym.make(config["env_name"], render=True, control_type=config["control_type"], reward_type=config["reward_type"],
+#                show_goal_space=False, obstacle_layout=1,
+#                show_debug_labels=True, limiter=config["limiter"])
 
-env = gym.make(config["env_name"], render=True, control_type=config["control_type"], reward_type=config["reward_type"],
-               show_goal_space=False, obstacle_layout=1,
-               show_debug_labels=True, limiter=config["limiter"])
+# instantiate reach
+env = gym.make("PandaReach-v3", render=True, control_type="js")
 
 rrmc_neo = RRMC(env=env, collisions=[])
-#model = TD3.load(r"run_data/wandb/run-20221127_144854-1vxati3d/files/model.zip", env=env)
+model = TD3.load(r"run_data/wandb/run-20221209_154718-3sl520jt/files/model.zip", env=env)
 
-evaluate(rrmc_neo)
+evaluate(rrmc_neo, model)
+

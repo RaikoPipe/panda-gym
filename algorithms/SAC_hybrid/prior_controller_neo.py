@@ -2,7 +2,7 @@
 
 import spatialmath
 from spatialmath import SE3, SO3
-from spatialgeometry import Cuboid
+from spatialgeometry import Cuboid, Sphere
 import pdb
 import roboticstoolbox as rtb
 import numpy as np
@@ -18,6 +18,7 @@ class RRMC:
         self.env = env
         self.panda: Panda = env.robot
         # todo: idea: if we can get the robot from the env, why not also the stage and obstacles?
+        # todo. compare this to the panda-gym robot
         self.panda_rtb = rtb.models.Panda()
         move = spatialmath.SE3(-0.6,0,0)
         self.panda_rtb.base = move
@@ -32,7 +33,9 @@ class RRMC:
 
         s0 = Cuboid(np.array([0.02, 0.02, 0.02]), pose=spatialmath.SE3(0, 0.05, 0.15))
 
-        self.collisions = [s0]
+        self.target_object = Sphere(0.05, pose=spatialmath.SE3(0.0, 0.0, 0.0), color="green")
+
+        self.collisions = []
 
         # this might not be necessary
         self.env_rtb = Swift()
@@ -40,6 +43,7 @@ class RRMC:
 
         self.env_rtb.add(self.panda_rtb)
         self.env_rtb.add(s0)
+        self.env_rtb.add(self.target_object)
 
         self.env_rtb.step()
 
@@ -129,11 +133,15 @@ class RRMC:
         return action
 
     def compute_action_neo(self, target):
-        # get goal
+        # fixme: this function doesnt work (?)
+        # Transform the goal into an SE3 pose
         Tep = self.panda_rtb.fkine(self.panda.get_joint_angles(self.panda.joint_indices[:7]))
         Tep.A[:3, 3] = target
 
-        # The pose of the Panda's end-effector
+        # move target
+        self.target_object.T = Tep
+
+        # The se3 pose of the Panda's end-effector
         Te = self.panda.get_ee_position()
         Te = spatialmath.SE3(Te)
 
@@ -145,6 +153,7 @@ class RRMC:
 
         # Calulate the required end-effector spatial velocity for the robot
         # to approach the goal. Gain is set to 1.0
+        # todo: nothing, this function is generic
         v, arrived = rtb.p_servo(Te, Tep, 0.5, 0.01)
 
         # Gain term (lambda) for control minimisation
@@ -208,11 +217,14 @@ class RRMC:
 
         # Solve for the joint velocities dq
         qd = qp.solve_qp(Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver="gurobi")
-
+        # todo: what does the setter do?
         self.panda_rtb.qd[:self.n] = qd[:self.n]
+        # todo: 1. check if joint velocities are working in swift
+        #       2. compare output to rl-agent
         self.env_rtb.step()
         # Return the joint velocities
         return qd[:self.n]
+
 
 
 

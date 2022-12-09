@@ -29,7 +29,7 @@ class Panda(PyBulletRobot):
             sim: PyBullet,
             block_gripper: bool = False,
             base_position: Optional[np.ndarray] = None,
-            control_type: str = "ee",
+            control_type: str = "js",
             obs_type: str = "ee",
             limiter: str = "sim"
     ) -> None:

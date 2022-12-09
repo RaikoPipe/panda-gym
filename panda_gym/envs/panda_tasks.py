@@ -56,7 +56,7 @@ class PandaPushEnv(RobotTaskEnv):
             Defaults to "ee".
     """
 
-    def __init__(self, render: bool = False, reward_type: str = "sparse", control_type: str = "ee") -> None:
+    def __init__(self, render: bool = False, reward_type: str = "sparse", control_type: str = "js") -> None:
         sim = PyBullet(render=render)
         robot = Panda(sim, block_gripper=True, base_position=np.array([-0.6, 0.0, 0.0]), control_type=control_type)
         task = Push(sim, reward_type=reward_type)
@@ -74,7 +74,7 @@ class PandaReachEnv(RobotTaskEnv):
     """
 
     def __init__(self, render: bool = False, realtime: bool = False, reward_type: str = "sparse",
-                 control_type: str = "ee",
+                 control_type: str = "js",
                  goal_range=0.3, show_goal_space=False) -> None:
         sim = PyBullet(render=render, realtime=realtime)
         robot = Panda(sim, block_gripper=True, base_position=np.array([-0.6, 0.0, 0.0]), control_type=control_type)
@@ -95,7 +95,7 @@ class PandaReachEvadeObstaclesEnv(RobotTaskEnv):
 
     def __init__(self, render: bool = False, realtime: bool = False,
                  reward_type: str = "sparse", distance_threshold:float = 0.05,
-                 control_type: str = "ee", obs_type: str = "ee", show_goal_space=False, obstacle_layout: int = 1,
+                 control_type: str = "js", obs_type: str = "ee", show_goal_space=False, obstacle_layout: int = 1,
                  joint_obstacle_observation: str = "all", show_debug_labels=False, limiter="sim",
 
                  ) -> None:

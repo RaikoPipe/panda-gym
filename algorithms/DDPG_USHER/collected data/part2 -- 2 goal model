@@ -1,0 +1,54 @@
+Randomness = 0 
+policy (s,gr)  critic (s, gr, gpi)
+[2021-12-07 09:59:25.412044] epoch is: 0, eval success rate is: 0.100, average reward is: -45.000, average value is: -2.646
+[2021-12-07 10:00:38.582726] epoch is: 1, eval success rate is: 0.050, average reward is: -47.500, average value is: -4.883
+[2021-12-07 10:01:51.231286] epoch is: 2, eval success rate is: 0.117, average reward is: -44.167, average value is: -6.355
+[2021-12-07 10:03:08.088360] epoch is: 3, eval success rate is: 0.050, average reward is: -47.500, average value is: -8.572
+[2021-12-07 10:04:23.708980] epoch is: 4, eval success rate is: 0.050, average reward is: -47.450, average value is: -10.406
+[2021-12-07 10:05:38.886866] epoch is: 5, eval success rate is: 0.083, average reward is: -46.483, average value is: -11.872
+[2021-12-07 10:06:53.927124] epoch is: 6, eval success rate is: 0.117, average reward is: -44.167, average value is: -12.686
+[2021-12-07 10:08:09.043600] epoch is: 7, eval success rate is: 0.050, average reward is: -48.300, average value is: -15.132
+[2021-12-07 10:09:23.675986] epoch is: 8, eval success rate is: 0.133, average reward is: -43.867, average value is: -15.437
+[2021-12-07 10:10:38.794830] epoch is: 9, eval success rate is: 0.133, average reward is: -44.183, average value is: -16.460
+^[[2021-12-07 10:11:53.615912] epoch is: 10, eval success rate is: 0.200, average reward is: -41.933, average value is: -14.956
+[2021-12-07 10:13:05.915267] epoch is: 11, eval success rate is: 0.200, average reward is: -42.883, average value is: -16.517
+[2021-12-07 10:14:17.886429] epoch is: 12, eval success rate is: 0.217, average reward is: -41.250, average value is: -14.959
+[2021-12-07 10:15:29.799912] epoch is: 13, eval success rate is: 0.183, average reward is: -41.883, average value is: -16.916
+[2021-12-07 10:16:41.394232] epoch is: 14, eval success rate is: 0.183, average reward is: -43.517, average value is: -16.315
+[2021-12-07 10:17:53.236324] epoch is: 15, eval success rate is: 0.350, average reward is: -36.433, average value is: -13.328
+[2021-12-07 10:19:04.891220] epoch is: 16, eval success rate is: 0.400, average reward is: -35.150, average value is: -13.960
+[2021-12-07 10:20:16.586869] epoch is: 17, eval success rate is: 0.300, average reward is: -39.183, average value is: -12.701
+[2021-12-07 10:21:28.136878] epoch is: 18, eval success rate is: 0.350, average reward is: -37.533, average value is: -13.255
+[2021-12-07 10:22:39.686025] epoch is: 19, eval success rate is: 0.367, average reward is: -36.400, average value is: -13.046
+[2021-12-07 10:23:51.133121] epoch is: 20, eval success rate is: 0.583, average reward is: -31.233, average value is: -10.276
+[2021-12-07 10:25:02.584983] epoch is: 21, eval success rate is: 0.583, average reward is: -28.850, average value is: -10.599
+[2021-12-07 10:26:14.059809] epoch is: 22, eval success rate is: 0.683, average reward is: -27.533, average value is: -10.100
+[2021-12-07 10:27:25.369111] epoch is: 23, eval success rate is: 0.700, average reward is: -26.867, average value is: -8.005
+[2021-12-07 10:28:37.847117] epoch is: 24, eval success rate is: 0.683, average reward is: -27.583, average value is: -8.578
+[2021-12-07 10:29:51.994426] epoch is: 25, eval success rate is: 0.750, average reward is: -23.267, average value is: -5.952
+[2021-12-07 10:31:05.819785] epoch is: 26, eval success rate is: 0.817, average reward is: -22.233, average value is: -5.994
+[2021-12-07 10:32:19.839081] epoch is: 27, eval success rate is: 0.767, average reward is: -21.867, average value is: -4.570
+
+
+Randomness = 0 
+policy (s,gr)  critic (s, gr, gr)
+[2021-12-07 10:36:17.006089] epoch is: 0, eval success rate is: 0.083, average reward is: -45.683, average value is: -2.600
+[2021-12-07 10:37:29.301894] epoch is: 1, eval success rate is: 0.050, average reward is: -47.500, average value is: -4.666
+[2021-12-07 10:38:41.838795] epoch is: 2, eval success rate is: 0.117, average reward is: -44.167, average value is: -6.110
+[2021-12-07 10:39:54.408121] epoch is: 3, eval success rate is: 0.067, average reward is: -46.667, average value is: -8.577
+[2021-12-07 10:41:07.813581] epoch is: 4, eval success rate is: 0.067, average reward is: -46.667, average value is: -10.191
+[2021-12-07 10:42:23.405284] epoch is: 5, eval success rate is: 0.100, average reward is: -45.267, average value is: -10.867
+[2021-12-07 10:43:38.516735] epoch is: 6, eval success rate is: 0.283, average reward is: -37.567, average value is: -8.900
+[2021-12-07 10:44:52.006446] epoch is: 7, eval success rate is: 0.233, average reward is: -39.800, average value is: -9.844
+[2021-12-07 10:46:07.141627] epoch is: 8, eval success rate is: 0.450, average reward is: -31.767, average value is: -7.137
+[2021-12-07 10:47:22.165292] epoch is: 9, eval success rate is: 0.467, average reward is: -31.867, average value is: -7.163
+[2021-12-07 10:48:34.517609] epoch is: 10, eval success rate is: 0.533, average reward is: -27.917, average value is: -6.156
+[2021-12-07 10:49:49.206541] epoch is: 11, eval success rate is: 0.617, average reward is: -27.267, average value is: -5.237
+[2021-12-07 10:51:03.856589] epoch is: 12, eval success rate is: 0.700, average reward is: -21.867, average value is: -4.743
+[2021-12-07 10:52:18.842514] epoch is: 13, eval success rate is: 0.783, average reward is: -19.317, average value is: -3.318
+[2021-12-07 10:53:33.024862] epoch is: 14, eval success rate is: 0.767, average reward is: -22.267, average value is: -4.149
+[2021-12-07 10:54:47.787804] epoch is: 15, eval success rate is: 0.800, average reward is: -18.900, average value is: -3.527
+[2021-12-07 10:56:02.521369] epoch is: 16, eval success rate is: 0.817, average reward is: -18.033, average value is: -3.874
+[2021-12-07 10:57:17.163089] epoch is: 17, eval success rate is: 0.933, average reward is: -13.500, average value is: -2.087
+[2021-12-07 10:58:31.612221] epoch is: 18, eval success rate is: 0.900, average reward is: -14.683, average value is: -1.944
+[2021-12-07 10:59:46.364809] epoch is: 19, eval success rate is: 0.867, average reward is: -15.300, average value is: -2.134
