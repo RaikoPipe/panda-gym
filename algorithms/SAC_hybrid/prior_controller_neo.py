@@ -17,6 +17,8 @@ class RRMC:
     def __init__(self, env, collisions):
         self.env = env
         self.panda: Panda = env.robot
+        self.collision_detector = env.task.collision_detector
+        self.bodies = env.bodies
         # todo: idea: if we can get the robot from the env, why not also the stage and obstacles?
         # todo. compare this to the panda-gym robot
         self.panda_rtb = rtb.models.Panda()
@@ -192,7 +194,7 @@ class RRMC:
 
             # Form the velocity damper inequality constraint for each collision
             # object on the robot to the collision in the scene
-            c_Ain, c_bin = self.panda_rtb.link_collision_damper(
+            c_Ain, c_bin = self.panda_rtb.link_collision_damper_pybullet(
                 collision,
                 self.panda_rtb.q[:self.n],
                 start=self.panda_rtb.link_dict["panda_link1"],

@@ -58,6 +58,8 @@ panda_gym.register_envs(100)
 #                show_debug_labels=True, limiter=config["limiter"])
 
 # instantiate reach
+# todo: change this to panda reach obstacle
+# test the pyb_utils function
 env = gym.make("PandaReach-v3", render=True, control_type="js")
 
 rrmc_neo = RRMC(env=env, collisions=[])
