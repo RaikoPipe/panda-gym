@@ -70,3 +70,7 @@ model = TD3.load(r"run_data/wandb/run_obs_layout_1_best_08_11/files/model.zip", 
 
 evaluate(rrmc_neo, model)
 
+# todo:
+#   solve equation with less constrains
+#   double check input (target position)
+
