@@ -58,12 +58,15 @@ panda_gym.register_envs(100)
 #                show_debug_labels=True, limiter=config["limiter"])
 
 # instantiate reach
-# todo: change this to panda reach obstacle
 # test the pyb_utils function
-env = gym.make("PandaReach-v3", render=True, control_type="js")
+env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
+               obs_type=config["obs_type"], distance_threshold=config["distance_threshold"],
+               reward_type=config["reward_type"], limiter=config["limiter"],
+               show_goal_space=False, obstacle_layout=1,
+               show_debug_labels=False)
 
 rrmc_neo = RRMC(env=env, collisions=[])
-model = TD3.load(r"run_data/wandb/run-20221209_154718-3sl520jt/files/model.zip", env=env)
+model = TD3.load(r"run_data/wandb/run_obs_layout_1_best_08_11/files/model.zip", env=env)
 
 evaluate(rrmc_neo, model)
 

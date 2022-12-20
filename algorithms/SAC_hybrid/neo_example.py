@@ -23,8 +23,23 @@ panda.q = panda.qr
 # Number of joint in the panda which we are controlling
 n = 7
 
+# Make two obstacles with velocities
+s0 = sg.Sphere(radius=0.05, pose=sm.SE3(0.52, 0.4, 0.3))
+s0.v = [0, -0.2, 0, 0, 0, 0]
+
+s1 = sg.Sphere(radius=0.05, pose=sm.SE3(0.1, 0.35, 0.65))
+s1.v = [0, -0.2, 0, 0, 0, 0]
+
 collisions = [s0, s1]
 
+# Make a target
+target = sg.Sphere(radius=0.02, pose=sm.SE3(0.6, -0.2, 0.0))
+
+# Add the Panda and shapes to the simulator
+env.add(panda)
+env.add(s0)
+env.add(s1)
+env.add(target)
 
 # Set the desired end-effector pose to the location of target
 Tep = panda.fkine(panda.q)
@@ -40,7 +55,7 @@ def step():
     eTep = Te.inv() * Tep
 
     # Spatial error
-    e = np.sum(np.abs(np.r_[eTep.t, eTep.rpy() * np.pi / 180])) # np.r_ translates slice objects to concatenation along the first axis
+    e = np.sum(np.abs(np.r_[eTep.t, eTep.rpy() * np.pi / 180]))
 
     # Calulate the required end-effector spatial velocity for the robot
     # to approach the goal. Gain is set to 1.0
@@ -59,7 +74,7 @@ def step():
     Q[n:, n:] = (1 / e) * np.eye(6)
 
     # The equality contraints
-    Aeq = np.c_[panda.jacobe(panda.q), np.eye(6)] # np.c_ translate slice objects to concatenation along the second axis
+    Aeq = np.c_[panda.jacobe(panda.q), np.eye(6)]
     beq = v.reshape((6,))
 
     # The inequality constraints for joint limit avoidance
@@ -82,7 +97,7 @@ def step():
 
         # Form the velocity damper inequality contraint for each collision
         # object on the robot to the collision in the scene
-        c_Ain, c_bin = panda.link_collision_damper_pybullet(
+        c_Ain, c_bin = panda.link_collision_damper(
             collision,
             panda.q[:n],
             0.3,
@@ -109,7 +124,7 @@ def step():
     ub = np.r_[panda.qdlim[:n], 10 * np.ones(6)]
 
     # Solve for the joint velocities dq
-    qd = qp.solve_qp(Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver="gurobi")
+    qd = qp.solve_qp(Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub)
 
     # Apply the joint velocities to the Panda
     panda.qd[:n] = qd[:n]

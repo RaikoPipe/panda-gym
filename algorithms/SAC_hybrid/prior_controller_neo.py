@@ -18,7 +18,7 @@ class RRMC:
         self.env = env
         self.panda: Panda = env.robot
         self.collision_detector = env.task.collision_detector
-        self.bodies = env.bodies
+        self.collision_objects = [x for x in env.task.bodies if x not in ["robot", "dummy_target"]]
         # todo: idea: if we can get the robot from the env, why not also the stage and obstacles?
         # todo. compare this to the panda-gym robot
         self.panda_rtb = rtb.models.Panda()
@@ -38,16 +38,6 @@ class RRMC:
         self.target_object = Sphere(0.05, pose=spatialmath.SE3(0.0, 0.0, 0.0), color="green")
 
         self.collisions = []
-
-        # this might not be necessary
-        self.env_rtb = Swift()
-        self.env_rtb.launch()
-
-        self.env_rtb.add(self.panda_rtb)
-        self.env_rtb.add(s0)
-        self.env_rtb.add(self.target_object)
-
-        self.env_rtb.step()
 
 
 
@@ -135,7 +125,6 @@ class RRMC:
         return action
 
     def compute_action_neo(self, target):
-        # fixme: this function doesnt work (?)
         # Transform the goal into an SE3 pose
         Tep = self.panda_rtb.fkine(self.panda.get_joint_angles(self.panda.joint_indices[:7]))
         Tep.A[:3, 3] = target
@@ -190,13 +179,17 @@ class RRMC:
         Ain[:self.n, :self.n], bin[:self.n] = self.panda_rtb.joint_velocity_damper(ps, pi, self.n)
 
         # For each collision in the scene
-        for collision in self.collisions:
+        for collision in self.collision_objects:
 
             # Form the velocity damper inequality constraint for each collision
             # object on the robot to the collision in the scene
             c_Ain, c_bin = self.panda_rtb.link_collision_damper_pybullet(
                 collision,
-                self.panda_rtb.q[:self.n],
+                self.collision_detector,
+                self.panda.get_joint_angles(self.panda.joint_indices[:7]),
+                0.3,
+                0.05,
+                1.0,
                 start=self.panda_rtb.link_dict["panda_link1"],
                 end=self.panda_rtb.link_dict["panda_hand"],
             )
@@ -221,9 +214,7 @@ class RRMC:
         qd = qp.solve_qp(Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver="gurobi")
         # todo: what does the setter do?
         self.panda_rtb.qd[:self.n] = qd[:self.n]
-        # todo: 1. check if joint velocities are working in swift
-        #       2. compare output to rl-agent
-        self.env_rtb.step()
+
         # Return the joint velocities
         return qd[:self.n]
 
