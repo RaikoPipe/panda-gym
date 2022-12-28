@@ -9,7 +9,7 @@ from panda_gym.pybullet import PyBullet
 import roboticstoolbox as rtb
 
 from ruckig import InputParameter, Ruckig, Trajectory, Result
-
+import pathlib
 import ruckig
 
 
@@ -40,10 +40,12 @@ class Panda(PyBulletRobot):
         n_action = 3 if self.control_type == "ee" else 7  # control (x, y z) if "ee", else, control the 7 joints
         n_action += 0 if self.block_gripper else 1
         action_space = spaces.Box(-1.0, 1.0, shape=(n_action,), dtype=np.float32)
+        # todo: load urdf file from roboticstoolbox panda COPY VISUAL MESHES INTO URDF FOLDER
+        # path_to_rtb_urdf = "C:\\Users\\eclip\\Documents\\GitHub\\panda-gym\\panda_gym\\URDF\\robots\\panda.urdf"
         super().__init__(
             sim,
             body_name="panda",
-            file_name="franka_panda/panda.urdf",
+            file_name= "franka_panda/panda.urdf",
             base_position=base_position,
             action_space=action_space,
             joint_indices=np.array([0, 1, 2, 3, 4, 5, 6, 9, 10]),

@@ -30,7 +30,6 @@ class RRMC:
         # Tep.A[:3, 3] = target.T[:3, -1]
 
         self.n = 7 # number of joints
-        # todo: what if I get spatialgeometry objects that has the same properties as the pybullet objects?
         self.collisions = collisions
 
         s0 = Cuboid(np.array([0.02, 0.02, 0.02]), pose=spatialmath.SE3(0, 0.05, 0.15))
@@ -125,16 +124,16 @@ class RRMC:
         return action
 
     def compute_action_neo(self, target):
+        # todo: current alternatives:
+        #  1. run both swift and pybullet (easy, but computationally intensive and imprecise)
+        #   2. load urdf file from roboticstoolbox, then calculate for each primitive (find out how rtb loads pybullet objects)
+        #    3.  create own solution inspired by rtb neo (very hard and time intensive, but also cool if done)
         # Transform the goal into an SE3 pose
-        Tep = self.panda_rtb.fkine(self.panda.get_joint_angles(self.panda.joint_indices[:7]))
+        Tep = self.fkine()
         Tep.A[:3, 3] = target
 
-        # move target
-        self.target_object.T = Tep
-
         # The se3 pose of the Panda's end-effector
-        Te = self.panda.get_ee_position()
-        Te = spatialmath.SE3(Te)
+        Te = self.fkine()
 
         # Transform from the end-effector to desired pose
         eTep = Te.inv() * Tep
@@ -145,7 +144,7 @@ class RRMC:
         # Calulate the required end-effector spatial velocity for the robot
         # to approach the goal. Gain is set to 1.0
         # todo: nothing, this function is generic
-        v, arrived = rtb.p_servo(Te, Tep, 0.5, 0.01)
+        v, arrived = rtb.p_servo(Te, Tep, 1.0, 0.01)
 
         # Gain term (lambda) for control minimisation
         Y = 0.01
@@ -180,15 +179,14 @@ class RRMC:
 
         # For each collision in the scene
         for collision in self.collision_objects:
-
             # Form the velocity damper inequality constraint for each collision
             # object on the robot to the collision in the scene
             c_Ain, c_bin = self.panda_rtb.link_collision_damper_pybullet(
                 collision,
                 self.collision_detector,
                 self.panda.get_joint_angles(self.panda.joint_indices[:7]),
-                0.3,
-                0.05,
+                0.3, # influence distance in which the damper becomes active
+                0.05, # minimum distance in which the link is allowed to approach the object shape
                 1.0,
                 start=self.panda_rtb.link_dict["panda_link1"],
                 end=self.panda_rtb.link_dict["panda_hand"],
@@ -212,7 +210,6 @@ class RRMC:
 
         # Solve for the joint velocities dq
         qd = qp.solve_qp(Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver="gurobi")
-        # todo: what does the setter do?
         self.panda_rtb.qd[:self.n] = qd[:self.n]
 
         # Return the joint velocities
