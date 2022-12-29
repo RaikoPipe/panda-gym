@@ -11,7 +11,7 @@ import panda_gym
 from algorithms.SAC_hybrid.prior_controller_neo import RRMC
 
 
-def evaluate(prior, model, num_steps=1000):
+def evaluate(prior,  num_steps=10000):
     """
     Evaluate a RL agent
     :param prior: (BaseRLModel object) the RL Agent
@@ -23,16 +23,16 @@ def evaluate(prior, model, num_steps=1000):
     obs, _ = env.reset()
     for i in range(num_steps):
         # _states are only useful when using LSTM policies
-        action = prior.compute_action_neo([0.07996564, -0.13340622, 0.02173809])
-        rl_action, _ = model.predict(obs)
+        action = prior.compute_action_neo(env.task.goal)# [0.07996564, -0.13340622, 0.02173809])
+        #rl_action, _ = model.predict(obs)
 
         obs, reward, done, truncated, info, = env.step(action)
-        sleep(0.05)
+        sleep(0.01)
 
         # Stats
         episode_rewards[-1] += reward
         if done or truncated:
-            sleep(2)
+            sleep(0.5)
             if info["is_success"]:
                 print("Success!")
             elif info["is_truncated"]:
@@ -40,6 +40,8 @@ def evaluate(prior, model, num_steps=1000):
             else:
                 print("Timeout...")
             obs, _ = env.reset()
+            # unnecessary step (?) reset panda
+            prior.panda_rtb.q = prior.panda_rtb.qr
             episode_rewards.append(0.0)
     # Compute mean reward for the last 100 episodes
     mean_100ep_reward = np.mean(episode_rewards[-100:])
@@ -48,7 +50,7 @@ def evaluate(prior, model, num_steps=1000):
     return mean_100ep_reward
 
 
-panda_gym.register_envs(100)
+panda_gym.register_envs(200)
 # instantiate reachEvadeObstacle
 # env = gym.make(config["env_name"], render=True, control_type=config["control_type"], reward_type=config["reward_type"],
 #                show_goal_space=False, obstacle_layout=1,
@@ -59,14 +61,10 @@ panda_gym.register_envs(100)
 env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
                obs_type=config["obs_type"], distance_threshold=config["distance_threshold"],
                reward_type=config["reward_type"], limiter=config["limiter"],
-               show_goal_space=False, obstacle_layout="wall_parkour_1",
-               show_debug_labels=False)
+               show_goal_space=False, obstacle_layout="cube_5",
+               show_debug_labels=True)
 
 rrmc_neo = RRMC(env=env, collisions=[])
-model = TD3.load(r"run_data/wandb/run_obs_layout_1_best_08_11/files/model.zip", env=env)
+#model = TD3.load(r"run_data/wandb/run_obs_layout_1_best_08_11/files/model.zip", env=env)
 
-evaluate(rrmc_neo, model)
-
-# todo:
-#   solve equation with less constrains
-#   double check input (target position)
+evaluate(rrmc_neo) #, model)

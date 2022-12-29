@@ -59,6 +59,7 @@ class ReachEvadeObstacles(Task):
             "cube_3": self.create_stage_cube_3,
             "cube_4": self.create_stage_cube_4,
             "cube_5": self.create_stage_cube_5,
+            "debug_neo": self.create_stage_debug_neo,
             # "cube_6": self.create_stage_cube_6,
 
         }
@@ -73,7 +74,10 @@ class ReachEvadeObstacles(Task):
         self.obstacle_count = 0
 
         self.bodies = {"robot": self.robot.id}
-        exclude_links = ["panda_link8", "panda_grasptarget"]
+        # fixme: workarounds for NEO (panda_leftfinger, panda_rightfinger)
+        # fixme: workarounds for rl: Weird behaviour of collision checking panda_link8, check by marking position of
+        #  panda_link8 (where is it on the robot?)
+        exclude_links = ["panda_link8", "panda_grasptarget", "panda_leftfinger", "panda_rightfinger"] # env has no grasptarget
         self.collision_links = [i for i in self.robot.link_names if i not in exclude_links]
         self.collision_objects = []
         self.randomize = False  # Randomize obstacle placement
@@ -121,8 +125,8 @@ class ReachEvadeObstacles(Task):
             self.debug_obs_label_base_text = "Closest Obstacle Distance:"
             self.debug_action_difference_label_name = "action_diff"
             self.debug_action_difference_base_text = "Action Difference:"
-            self.debug_action_smallness_label_name = "action_smallness"
-            self.debug_action_smallness_base_text = "Action Smallness:"
+            self.debug_action_magnitude_label_name = "action_magnitude"
+            self.debug_action_magnitude_base_text = "Action Magnitude:"
 
             self.debug_reward_label_name = "reward"
             self.debug_reward_base_text = "Reward:"
@@ -290,6 +294,10 @@ class ReachEvadeObstacles(Task):
             np.array([-0.05, -0.08, 0.5]),
             size=self.cube_size_small)
 
+    def create_stage_debug_neo(self):
+        self.goal_range = 0.4
+        self.create_obstacle_sphere(radius=0.1, position=np.array([-0.1, -0.2, 0.25]))
+
     def create_obstacle_sphere(self, position=np.array([0.1, 0, 0.1]), radius=0.02, alpha=0.8):
         obstacle_name = "obstacle"
 
@@ -402,7 +410,7 @@ class ReachEvadeObstacles(Task):
     def is_truncated(self) -> np.ndarray:
         return np.array(self.is_collided, dtype=np.bool8)
 
-    def update_labels(self, manipulability, distance, obstacle_distances, action_difference, action_smallness, reward):
+    def update_labels(self, manipulability, distance, obstacle_distances, action_difference, action_magnitude, reward):
         with self.sim.no_rendering():
             self.sim.remove_all_debug_text()
             # self.sim.remove_debug_text(self.debug_dist_label_name)
@@ -417,8 +425,8 @@ class ReachEvadeObstacles(Task):
                                            f"{self.debug_obs_label_base_text} {round(min(obstacle_distances), 5)}")
                 self.sim.create_debug_text(self.debug_action_difference_label_name,
                                            f"{self.debug_action_difference_base_text} {round(action_difference, 5)}")
-                self.sim.create_debug_text(self.debug_action_smallness_label_name,
-                                           f"{self.debug_action_smallness_base_text} {round(action_smallness, 5)}")
+                self.sim.create_debug_text(self.debug_action_magnitude_label_name,
+                                           f"{self.debug_action_magnitude_base_text} {round(action_magnitude, 5)}")
                 self.sim.create_debug_text(self.debug_reward_label_name,
                                            f"{self.debug_reward_base_text} {round(reward, 5)}")
             except BaseException:
@@ -446,7 +454,7 @@ class ReachEvadeObstacles(Task):
         manip = self.robot.get_manipulability()
         obs_d = self.obs_d
         action_diff = self.get_reward_action_difference()
-        action_smallness = self.get_reward_small_actions()
+        action_magnitude = self.get_reward_small_actions()
 
         if self.reward_type == "sparse":
             reward = -np.array((d > self.distance_threshold) + (min(obs_d) <= 0) * 100, dtype=np.float32)
@@ -454,7 +462,7 @@ class ReachEvadeObstacles(Task):
             # calculate dense rewards
 
             reward = -np.array(action_diff*self.factor_punish_action_difference_magnitude +
-                               action_smallness*self.factor_punish_action_magnitude, dtype=np.float32)
+                               action_magnitude*self.factor_punish_action_magnitude, dtype=np.float32)
 
             collision = min(obs_d) <= 0
 
@@ -465,7 +473,7 @@ class ReachEvadeObstacles(Task):
                 reward += -np.array(d + exp(-min(obs_d)) * self.factor_punish_obstacle_proximity, dtype=np.float32)
 
         if self.sim.render_env:
-            self.update_labels(manip, d, obs_d, action_diff, action_smallness, reward)
+            self.update_labels(manip, d, obs_d, action_diff, action_magnitude, reward)
 
         return reward
 

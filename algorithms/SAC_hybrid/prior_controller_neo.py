@@ -124,10 +124,8 @@ class RRMC:
         return action
 
     def compute_action_neo(self, target):
-        # todo: current alternatives:
-        #  1. run both swift and pybullet (easy, but computationally intensive and imprecise)
-        #   2. load urdf file from roboticstoolbox, then calculate for each primitive (find out how rtb loads pybullet objects)
-        #    3.  create own solution inspired by rtb neo (very hard and time intensive, but also cool if done)
+        self.panda_rtb.q = self.panda.get_joint_angles(self.panda.joint_indices[:7])
+
         # Transform the goal into an SE3 pose
         Tep = self.fkine()
         Tep.A[:3, 3] = target
@@ -184,6 +182,7 @@ class RRMC:
             c_Ain, c_bin = self.panda_rtb.link_collision_damper_pybullet(
                 collision,
                 self.collision_detector,
+                self.panda,
                 self.panda.get_joint_angles(self.panda.joint_indices[:7]),
                 0.3, # influence distance in which the damper becomes active
                 0.05, # minimum distance in which the link is allowed to approach the object shape
@@ -210,7 +209,8 @@ class RRMC:
 
         # Solve for the joint velocities dq
         qd = qp.solve_qp(Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver="gurobi")
-        self.panda_rtb.qd[:self.n] = qd[:self.n]
+
+        # self.panda_rtb.qd[:self.n] = qd[:self.n]
 
         # Return the joint velocities
         return qd[:self.n]
