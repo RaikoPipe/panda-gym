@@ -6,10 +6,11 @@ import wandb
 
 import panda_gym
 import os
-from utils.learning import curriculum_learn
+from learning_methods.curriculum_learning import learn
+from learning_methods.imitation_learning import fill_replay_buffer
 from stable_baselines3.common.noise import NormalActionNoise, VectorizedActionNoise
 from stable_baselines3 import HerReplayBuffer
-from utils.learning import get_env
+from learning_methods.curriculum_learning import get_env, get_model
 from stable_baselines3 import TD3
 
 # hyperparameters from rl-baselines3-zoo tuned pybullet defaults
@@ -18,7 +19,7 @@ config = {
     "env_name": "PandaReachEvadeObstacles-v3",
     "algorithm": "TD3",
     "reward_type": "sparse",  # sparse; dense
-    "distance_threshold": 0.02,
+    "goal_distance_threshold": 0.02,
     "max_timesteps": 1e6,
     "seed": 23,
     "render": True,  # renders the pybullet env
@@ -26,15 +27,16 @@ config = {
     "control_type": "js",  # "ee": end effector displacement; "js": joint space
     "limiter": "sim",
     "show_goal_space": True,
-    "replay_buffer": HerReplayBuffer,  # HerReplayBuffer
+    "replay_buffer": None,  # HerReplayBuffer
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": True,
     "n_envs": 1,
-    "max_ep_steps": 100,
+    "max_ep_steps": 200,
     "eval_freq": 5_000,
-    "stages": ["wall_parkour_1"],
+    "stages": ["sphere_2_random"],
     "reward_thresholds": [-10],  # [-7, -10, -12, -17, -20]
     "joint_obstacle_observation": "closest",  # "all": closest distance to any obstacle of all joints is observed;
+    "prior_steps": 10_000
     # "closest": only closest joint distance is observed
 }
 
@@ -74,7 +76,7 @@ if __name__ == "__main__":
     # register envs to gymnasium
     panda_gym.register_envs(config["max_ep_steps"])
 
-    env = get_env(config, "box_3")
+    #env = get_env(config, "sphere_2_random")
 
     # for algorithm in "PPO":
     if config["algorithm"] in ("TD3", "DDPG"):
@@ -86,10 +88,9 @@ if __name__ == "__main__":
     #                  train_freq=config["n_envs"],
     #                  gradient_steps=config["gradient_steps"])
 
-    model = curriculum_learn(config=config, algorithm=config["algorithm"], )#initial_model=model)
 
-    model.env.close()
-    del model
+    model = learn(config=config, algorithm=config["algorithm"], )#initial_model=model)
+
 
     # mixer.init()
     # mixer.music.load("learning_complete.mp3")

@@ -16,7 +16,7 @@ from wandb_utils import wandb_logging
 
 import algorithms.SAC_hybrid.core as core
 from algorithms.SAC_hybrid.agent import SAC_Agent
-from algorithms.SAC_hybrid.prior_controller_neo import RRMC
+from algorithms.SAC_hybrid.prior_controller_neo import NEO
 
 
 
@@ -187,7 +187,7 @@ from algorithms.SAC_hybrid.prior_controller_neo import RRMC
 # --------------------------------------------------------- Setup -----------------------------------------------------------------------------#
 # ---------------------------------------------------------------------------------------------------------------------------------------------#
 NUM_AGENTS = 1  # Number of agents in ensemble
-def get_sac_agent(env):
+def get_sac_agent(env, max_ep_steps):
 
     TASK = "manipulation"
 
@@ -206,7 +206,6 @@ def get_sac_agent(env):
     # env parameters
     OBSTACLE_MODE = 1
     REWARD_TYPE="hybrid_control"
-    MAX_EP_STEPS = 500
 
     # method specific parameters
     METHOD = "BCF"  # Options: policy, BCF, residual, CORE-RL
@@ -234,7 +233,7 @@ def get_sac_agent(env):
 
     torch.set_num_threads(torch.get_num_threads())
 
-    prior = RRMC(env, [])
+    prior = NEO(env)
     sigma_prior = SIGMA_PRIOR
 
     torch.manual_seed(SEED)
@@ -257,7 +256,8 @@ def get_sac_agent(env):
                         target_KL_div=TARGET_KL_DIV,
                         sigma_prior=sigma_prior,
                         device=device,
-                        method=METHOD)
+                        method=METHOD,
+                      max_ep_steps=max_ep_steps)
 
     return agent, run_name
 

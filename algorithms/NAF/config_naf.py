@@ -55,7 +55,7 @@ from wandb_utils import wandb_logging
 #
 #
 # def timer(start, end):
-#     """ Helper to print training time """
+#     """ Helper to print learning_methods time """
 #     hours, rem = divmod(end - start, 3600)
 #     minutes, seconds = divmod(rem, 60)
 #     print("\nTraining Time:  {:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds))
@@ -164,7 +164,7 @@ def get_naf_agent(env):
 
     SEED = 0 # random seed
 
-    NUM_STEPS = int(1e6) #: Number of training steps
+    NUM_STEPS = int(1e6) #: Number of learning_methods steps
     EVAL_EVERY = 5000 #: Evaluate current policy every X steps
     NUM_EVAL_EPISODES = 10 #: Number of evaluation runs
     BATCH_SIZE = 128 #: Batch size sampled from replay buffer

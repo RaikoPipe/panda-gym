@@ -12,13 +12,13 @@ from panda_gym.envs.robots.panda import Panda
 from swift import Swift
 
 
-class RRMC:
+class NEO:
 
-    def __init__(self, env, collisions):
+    def __init__(self, env):
         self.env = env
-        self.panda: Panda = env.robot
-        self.collision_detector = env.task.collision_detector
-        self.collision_objects = [x for x in env.task.bodies if x not in ["robot", "dummy_target"]]
+        self.panda: Panda = self.env.robot
+        self.collision_detector = self.env.task.collision_detector
+        self.collision_objects = [x for x in self.env.task.bodies if x not in ["robot", "dummy_target"]]
         # todo: idea: if we can get the robot from the env, why not also the stage and obstacles?
         # todo. compare this to the panda-gym robot
         self.panda_rtb = rtb.models.Panda()
@@ -30,11 +30,6 @@ class RRMC:
         # Tep.A[:3, 3] = target.T[:3, -1]
 
         self.n = 7 # number of joints
-        self.collisions = collisions
-
-        s0 = Cuboid(np.array([0.02, 0.02, 0.02]), pose=spatialmath.SE3(0, 0.05, 0.15))
-
-        self.target_object = Sphere(0.05, pose=spatialmath.SE3(0.0, 0.0, 0.0), color="green")
 
         self.collisions = []
 
@@ -101,29 +96,29 @@ class RRMC:
         pose.A[:3, :3] = robot_pose.A[:3, :3]
         return pose
 
-    def compute_action(self, target, gain=1):
+    # def compute_action(self, target, gain=1):
+    #
+    #     # get goal
+    #     Tep = self.panda_rtb.fkine(self.panda.get_joint_angles(self.panda.joint_indices[:7]))
+    #     Tep.A[:3, 3] = target
+    #
+    #     try:
+    #         self.panda_rtb.q = self.panda.get_joint_angles(self.panda.joint_indices[:7])
+    #         ee_pos = self.panda.get_ee_position()
+    #         panda_rtb_pose = self.panda_rtb.fkine(self.panda_rtb.q)
+    #         panda_rtb_pose.A[:3, -1] = ee_pos
+    #
+    #         v = self.p_servo(panda_rtb_pose, self.target_pose(), gain=gain)
+    #         v[3:] *= 10
+    #         action = np.linalg.pinv(self.panda_rtb.jacobe(self.panda_rtb.q)) @ v
+    #
+    #     except np.linalg.LinAlgError:
+    #         action = np.zeros(self.env.action_space.shape[0])
+    #         print('Fail')
+    #
+    #     return action
 
-        # get goal
-        Tep = self.panda_rtb.fkine(self.panda.get_joint_angles(self.panda.joint_indices[:7]))
-        Tep.A[:3, 3] = target
-
-        try:
-            self.panda_rtb.q = self.panda.get_joint_angles(self.panda.joint_indices[:7])
-            ee_pos = self.panda.get_ee_position()
-            panda_rtb_pose = self.panda_rtb.fkine(self.panda_rtb.q)
-            panda_rtb_pose.A[:3, -1] = ee_pos
-
-            v = self.p_servo(panda_rtb_pose, self.target_pose(), gain=gain)
-            v[3:] *= 10
-            action = np.linalg.pinv(self.panda_rtb.jacobe(self.panda_rtb.q)) @ v
-
-        except np.linalg.LinAlgError:
-            action = np.zeros(self.env.action_space.shape[0])
-            print('Fail')
-
-        return action
-
-    def compute_action_neo(self, target):
+    def compute_action(self, target):
         self.panda_rtb.q = self.panda.get_joint_angles(self.panda.joint_indices[:7])
 
         # Transform the goal into an SE3 pose
@@ -213,6 +208,8 @@ class RRMC:
         # self.panda_rtb.qd[:self.n] = qd[:self.n]
 
         # Return the joint velocities
+        if qd is None:
+            return np.zeros(self.n)
         return qd[:self.n]
 
 

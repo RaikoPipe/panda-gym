@@ -53,7 +53,7 @@ def fuse_controllers(prior_mu, prior_sigma, policy_mu, policy_sigma):
 # see SAC_hybrid example: https://github.com/openai/spinningup/blob/master/spinup/algos/pytorch/sac/sac.py
 class SAC_Agent():
     def __init__(self, env_fn, prior, actor_critic=core.MLPActorCritic, ac_kwargs=dict(),
-                 steps_per_epoch=4000, gamma=0.99, epochs=100, max_ep_steps=100,
+                 steps_per_epoch=4000, gamma=0.99, epochs=100, max_ep_steps=200,
                  polyak=0.995, lr=1e-3, alpha=0.2, beta=0.3, batch_size=100, start_steps=10000,
                  update_after=1000, update_every=50, num_eval_episodes=10,
                 use_kl_loss=False, epsilon=1e-5, target_KL_div=0, factor_c = 0.3, lambda_max = 15.0,
@@ -311,7 +311,7 @@ class SAC_Agent():
         return metrics
 
     def add_to_replay_buffer(self, state, action, reward, new_state, done):
-        mu_prior2 = self.prior.compute_action()
+        mu_prior2 = self.prior.compute_action(self.env.task.goal)
 
         if self.method == "residual":
             self.replay_buffer.store(state, self.last_policy_action, reward, new_state, done, self.last_mu_prior, mu_prior2)
@@ -344,7 +344,7 @@ class SAC_Agent():
 
     def get_sample(self):
         action = self.env.action_space.sample()
-        mu_prior = self.prior.compute_action()
+        mu_prior = self.prior.compute_action(self.env.task.goal)
 
         self.last_mu_prior = mu_prior
 
@@ -360,7 +360,7 @@ class SAC_Agent():
 
         policy_action, mu_policy, std_policy = self.get_policy_action(state)
 
-        mu_prior = self.prior.compute_action()
+        mu_prior = self.prior.compute_action(self.env.task.goal)
 
         self.last_mu_prior = mu_prior
         self.last_policy_action = policy_action

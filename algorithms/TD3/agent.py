@@ -69,7 +69,7 @@ class TD3_Agent:
                 you wait between updates, the ratio of env steps to gradient steps
                 is locked to 1.
             act_noise (float): Stddev for Gaussian exploration noise added to
-                policy at training time. (At test time, no noise is added.)
+                policy at learning_methods time. (At test time, no noise is added.)
             target_noise (float): Stddev for smoothing noise added to target
                 policy.
             noise_clip (float): Limit for absolute value of target policy

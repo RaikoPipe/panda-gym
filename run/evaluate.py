@@ -3,7 +3,7 @@ from stable_baselines3 import TD3
 
 import gymnasium as gym
 import numpy as np
-from train_curr import config
+from train_preo import config
 from time import sleep
 
 import panda_gym
@@ -63,7 +63,7 @@ evaluate(model)
 #     obs, reward, done, truncated, info, = env.step(action)
 #     model.replay_buffer.add()
 
-# let's say we did an episode for each env and do some training steps
+# let's say we did an episode for each env and do some learning_methods steps
 # what would be the difference to doing it with subprocenv?
 
 

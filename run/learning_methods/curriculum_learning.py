@@ -10,35 +10,62 @@ from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.noise import NormalActionNoise, VectorizedActionNoise
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 from stable_baselines3.common.vec_env import SubprocVecEnv
+from run.learning_methods.imitation_learning import fill_replay_buffer
 
 import wandb
 from wandb.integration.sb3 import WandbCallback
 
 
-def get_env(config, stage):
-    if config["n_envs"] > 0:
+def get_env(config, stage, deactivate_render = False):
+    if config["n_envs"] > 1:
 
         env = make_vec_env(config["env_name"], n_envs=config["n_envs"],
-                           env_kwargs={"render": False, "control_type": config["control_type"],
+                           env_kwargs={"render": False,
+                                       "control_type": config["control_type"],
                                        "obs_type": config["obs_type"],
                                        "reward_type": config["reward_type"],
-                                       "distance_threshold":config["distance_threshold"],
+                                       "goal_distance_threshold":config["goal_distance_threshold"],
                                        "limiter": config["limiter"],
-                                       "show_goal_space": False, "obstacle_layout": stage,
-                                       "show_debug_labels": False}, vec_env_cls=SubprocVecEnv)
+                                       "show_goal_space": False,
+                                       "obstacle_layout": stage,
+                                       "show_debug_labels": False
+                                       },
+                           vec_env_cls=SubprocVecEnv)
     else:
         # todo: check if obsolete
-        env = gym.make(config["env_name"], render=False, control_type=config["control_type"],
-                       obs_type=config["obs_type"], distance_threshold=config["distance_threshold"],
-                       reward_type=config["reward_type"], limiter=config["limiter"],
-                       show_goal_space=False, obstacle_layout=stage,
-                       show_debug_labels=False)
+        # env = gym.make(config["env_name"],
+        #                render=config["render"] if not deactivate_render else False,
+        #                #n_envs=config["n_envs"],
+        #                control_type=config["control_type"],
+        #                obs_type=config["obs_type"],
+        #                goal_distance_threshold=config["goal_distance_threshold"],
+        #                reward_type=config["reward_type"],
+        #                limiter=config["limiter"],
+        #                show_goal_space=False,
+        #                obstacle_layout=stage,
+        #                show_debug_labels=False,)
+        env = make_vec_env(config["env_name"], n_envs=config["n_envs"],
+                           env_kwargs={"render": config["render"] if not deactivate_render else False,
+                                       "control_type": config["control_type"],
+                                       "obs_type": config["obs_type"],
+                                       "reward_type": config["reward_type"],
+                                       "goal_distance_threshold":config["goal_distance_threshold"],
+                                       "limiter": config["limiter"],
+                                       "show_goal_space": False,
+                                       "obstacle_layout": stage,
+                                       "show_debug_labels": False
+                                       })
 
     return env
 
-def get_model(algorithm, config, run):
-    env = get_env(config, config["stages"][0])
+def get_model(algorithm, config):
+
+    tags = get_tags(config)
+    run = init_wandb(config, tags)
+
+    env = get_env(config, config["stages"][0], deactivate_render=True)
     n_actions = env.action_space.shape[0]
+    env.close()
 
     if config.get("noise_std"):
         normal_action_noise = NormalActionNoise(mean=np.zeros(n_actions),
@@ -49,12 +76,12 @@ def get_model(algorithm, config, run):
         action_noise = None
 
     if algorithm in ("TD3", "DDPG"):
-        model = TD3(config["policy_type"], env=get_env(config, config["stages"][0]),
+        model = TD3(config["policy_type"], env=get_env(config, config["stages"][0], deactivate_render=True),
                     verbose=1, seed=config["seed"],
                     tensorboard_log=f"runs/{run.id}", device="cuda",
                     replay_buffer_class=config["replay_buffer"],
                     # hyperparameters
-                    train_freq=1 if config["n_envs"]> 1 else (1, "episode"), #config["n_envs"] if config["n_envs"] > 1 else (1, "episode"),
+                    train_freq=1 if config["n_envs"] > 1 else (1, "episode"), #config["n_envs"] if config["n_envs"] > 1 else (1, "episode"),
                     gradient_steps=config["gradient_steps"],
                     learning_starts=config["learning_starts"],
                     learning_rate=config["learning_rate"],
@@ -81,29 +108,24 @@ def get_model(algorithm, config, run):
                     policy_kwargs=config["policy_kwargs"]
                     )
 
-    return model
+    return model, run
 
-def curriculum_learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
-                     starting_stage: Optional[str] = None, algorithm: str = "TD3"):
-    env_name = config["env_name"]
-    project = f"curriculum_learn_{env_name}"
-
+def get_tags(config):
     # set wandb tags
     tags = []
     tags.extend(str(x) for x in config["stages"])
 
-    if initial_model:
-        tags.append("pre-trained")
+    if len(config["stages"]) > 1:
         tags.append("curriculum_learning")
-    elif len(config["stages"]) > 1:
-        tags.append("curriculum_learning")
-
     if config["n_envs"] > 1:
         tags.append("multi_env")
-
     tags.append(config["algorithm"])
     tags.append(config["reward_type"])
+    return tags
 
+def init_wandb(config, tags):
+    env_name = config["env_name"]
+    project = f"curriculum_learn_{env_name}"
     run = wandb.init(
         project=f"{project}",
         config=config,
@@ -113,9 +135,14 @@ def curriculum_learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] =
         # monitor_gym=True,  # auto-upload the videos of agents playing the game
         # save_code=True,  # optional
     )
+    return run
+
+def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
+          starting_stage: Optional[str] = None, algorithm: str = "TD3"):
 
     if not initial_model:
-        model = get_model(algorithm, config, run)
+
+        model, run = get_model(algorithm, config)
 
     else:
         model = initial_model
@@ -133,11 +160,16 @@ def curriculum_learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] =
 
     assert len(config["stages"]) == len(config["reward_thresholds"])
 
+
+    model.env.close()
     # learn for each stage until reward threshold is reached
     for stage, reward_threshold in zip(config["stages"], config["reward_thresholds"]):
         model.env = get_env(config, stage)
 
-        eval_env = gym.make(config["env_name"], render=config["render"], control_type=config["control_type"],
+        if config["prior_steps"]:
+            fill_replay_buffer(model)
+
+        eval_env = gym.make(config["env_name"], render=False, control_type=config["control_type"],
                             obs_type=config["obs_type"],
                             reward_type=config["reward_type"],
                             show_goal_space=False, obstacle_layout=stage,
@@ -161,5 +193,11 @@ def curriculum_learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] =
 
     run.finish()
     return model
+
+
+
+
+
+
 
 

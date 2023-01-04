@@ -3,15 +3,15 @@ from stable_baselines3 import TD3
 
 import gymnasium as gym
 import numpy as np
-from train_curr import config
+from train_preo import config
 from time import sleep
 
 import panda_gym
 
-from algorithms.SAC_hybrid.prior_controller_neo import RRMC
+from algorithms.SAC_hybrid.prior_controller_neo import NEO
 
 
-def evaluate(prior,  num_steps=20000):
+def evaluate(prior,  num_steps=10000):
     """
     Evaluate a RL agent
     :param prior: (BaseRLModel object) the RL Agent
@@ -24,7 +24,7 @@ def evaluate(prior,  num_steps=20000):
     done_events = []
     for i in range(num_steps):
         # _states are only useful when using LSTM policies
-        action = prior.compute_action_neo(env.task.goal)# [0.07996564, -0.13340622, 0.02173809])
+        action = prior.compute_action(env.task.goal)# [0.07996564, -0.13340622, 0.02173809])
         #rl_action, _ = model.predict(obs)
 
         obs, reward, done, truncated, info, = env.step(action)
@@ -33,7 +33,7 @@ def evaluate(prior,  num_steps=20000):
         # Stats
         episode_rewards[-1] += reward
         if done or truncated:
-            # sleep(0.5)
+            sleep(0.5)
             if info["is_success"]:
                 print("Success!")
                 done_events.append(1)
@@ -65,12 +65,12 @@ panda_gym.register_envs(200)
 # instantiate reach
 # test the pyb_utils function
 env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
-               obs_type=config["obs_type"], distance_threshold=config["distance_threshold"],
+               obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                reward_type=config["reward_type"], limiter=config["limiter"],
-               show_goal_space=False, obstacle_layout="cube_5",
+               show_goal_space=False, obstacle_layout="cube_3_random",
                show_debug_labels=True)
 
-rrmc_neo = RRMC(env=env, collisions=[])
+rrmc_neo = NEO(env=env)
 #model = TD3.load(r"run_data/wandb/run_obs_layout_1_best_08_11/files/model.zip", env=env)
 
 evaluate(rrmc_neo) #, model)

@@ -25,7 +25,7 @@ class NAF_Agent():
             action_size (int): dimension of each action
             Network (str): dqn network type
             layer_size (int): size of the hidden layer
-            BATCH_SIZE (int): size of the training batch
+            BATCH_SIZE (int): size of the learning_methods batch
             BUFFER_SIZE (int): size of the replay memory
             LR (float): learning rate
             TAU (float): tau for soft updating the network weights

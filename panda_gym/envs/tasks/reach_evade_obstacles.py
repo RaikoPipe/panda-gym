@@ -18,16 +18,16 @@ class ReachEvadeObstacles(Task):
             robot,
             get_ee_position,
             reward_type="sparse",
-            distance_threshold=0.05,
+            goal_distance_threshold=0.05,
             show_goal_space=False,
             joint_obstacle_observation="all",
             obstacle_layout=1,
             show_debug_labels=True,
-            factor_punish_distance=10.0,
-            factor_punish_collision=1.0,
-            factor_punish_action_magnitude=0.005,
-            factor_punish_action_difference_magnitude=0.0,
-            factor_punish_obstacle_proximity=0.0
+            factor_punish_distance=10.0, # def: 10.0
+            factor_punish_collision=1.0, # def: 1.0
+            factor_punish_action_magnitude=0.000, # def: 0.005
+            factor_punish_action_difference_magnitude=0.0, # def: ?
+            factor_punish_obstacle_proximity=0.0 # def: ?
 
 
     ) -> None:
@@ -56,10 +56,10 @@ class ReachEvadeObstacles(Task):
             # for curriculum learning
             "cube_1": self.create_stage_cube_1,
             "cube_2": self.create_stage_cube_2,
-            "cube_3": self.create_stage_cube_3,
-            "cube_4": self.create_stage_cube_4,
-            "cube_5": self.create_stage_cube_5,
+            "cube_2_random": self.create_stage_cube_2_random,
+            "cube_3_random": self.create_stage_cube_3_random,
             "debug_neo": self.create_stage_debug_neo,
+            "sphere_2_random": self.create_stage_sphere_2_random,
             # "cube_6": self.create_stage_cube_6,
 
         }
@@ -68,7 +68,7 @@ class ReachEvadeObstacles(Task):
         self.cube_size_mini = np.array([0.01, 0.01, 0.01])
 
         self.reward_type = reward_type
-        self.distance_threshold = distance_threshold
+        self.distance_threshold = goal_distance_threshold
         self.get_ee_position = get_ee_position
         self.goal_range = 0.3
         self.obstacle_count = 0
@@ -77,7 +77,7 @@ class ReachEvadeObstacles(Task):
         # fixme: workarounds for NEO (panda_leftfinger, panda_rightfinger)
         # fixme: workarounds for rl: Weird behaviour of collision checking panda_link8, check by marking position of
         #  panda_link8 (where is it on the robot?)
-        exclude_links = ["panda_link8", "panda_grasptarget", "panda_leftfinger", "panda_rightfinger"] # env has no grasptarget
+        exclude_links = ["panda_grasptarget", "panda_leftfinger", "panda_rightfinger"] # env has no grasptarget
         self.collision_links = [i for i in self.robot.link_names if i not in exclude_links]
         self.collision_objects = []
         self.randomize = False  # Randomize obstacle placement
@@ -157,7 +157,7 @@ class ReachEvadeObstacles(Task):
 
         self.bodies["dummy_target"] = self.sim.create_sphere(
             body_name="dummy_target",
-            radius=0.02,
+            radius=0.05, # dummy target is intentionally bigger to ensure safety distance to obstacle
             mass=0.0,
             position=np.zeros(3),
             rgba_color=np.array([0.1, 0.9, 0.1, 0.0]),
@@ -238,14 +238,6 @@ class ReachEvadeObstacles(Task):
             size=np.array([0.18, 0.001, 0.2]))
 
     def create_stage_cube_1(self):
-        """1 small cube in the corner of the goal space. Easy to ignore."""
-        self.goal_range = 0.4
-
-        self.create_obstacle_cuboid(
-            np.array([0.1, 0.16, 0.3]),
-            size=self.cube_size_small)
-
-    def create_stage_cube_2(self):
         """1 small cube near the ee. Harder to ignore."""
         self.goal_range = 0.4
 
@@ -253,7 +245,7 @@ class ReachEvadeObstacles(Task):
             np.array([0.05, 0.1, 0.15]),
             size=self.cube_size_small)
 
-    def create_stage_cube_3(self):
+    def create_stage_cube_2(self):
         """2 small cubes near the ee. Hard to ignore."""
         self.goal_range = 0.5
 
@@ -265,7 +257,7 @@ class ReachEvadeObstacles(Task):
             np.array([-0.05, -0.1, 0.25]),
             size=self.cube_size_small)
 
-    def create_stage_cube_4(self):
+    def create_stage_cube_2_random(self):
         """2 random small cubes. Annoying."""
         self.goal_range = 0.5
         self.randomize = True
@@ -278,7 +270,7 @@ class ReachEvadeObstacles(Task):
             np.array([-0.05, -0.08, 0.5]),
             size=self.cube_size_small)
 
-    def create_stage_cube_5(self):
+    def create_stage_cube_3_random(self):
         """3 random small cubes. Infuriating."""
         self.goal_range = 0.5
         self.randomize = True
@@ -293,6 +285,20 @@ class ReachEvadeObstacles(Task):
         self.create_obstacle_cuboid(
             np.array([-0.05, -0.08, 0.5]),
             size=self.cube_size_small)
+
+    def create_stage_sphere_2_random(self):
+        """2 randomly placed spheres"""
+        self.goal_range = 0.4
+        self.randomize = True
+
+        self.create_obstacle_sphere(
+            radius=0.05
+        )
+
+        self.create_obstacle_sphere(
+            radius=0.05
+        )
+
 
     def create_stage_debug_neo(self):
         self.goal_range = 0.4

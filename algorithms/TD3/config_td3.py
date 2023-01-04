@@ -88,7 +88,7 @@ def get_td3_agent(env):
 
     PROJECT_LOG = "TD3"
 
-    NUM_STEPS = int(1e6) #: Number of training steps
+    NUM_STEPS = int(1e6) #: Number of learning_methods steps
     EVAL_EVERY = 5000 #: Evaluate current policy every X steps
     NUM_EVAL_EPISODES = 10 #: Number of evaluation runs
     BATCH_SIZE = 128 #: Batch size sampled from replay buffer

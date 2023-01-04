@@ -16,9 +16,9 @@ import panda_gym
 
 from algorithms.SAC_hybrid import config_sac_hybrid
 from wandb_utils import wandb_logging
-from train_curr import config
+from train_preo import config
 
-from utils.learning import get_env
+from learning_methods.curriculum_learning import get_env
 
 code_dict = {1: "Reached Goal", -2: "Collision", -1: "Max Timesteps reached"}
 
@@ -208,13 +208,14 @@ if __name__ == "__main__":
     # set up env parameters
     OBSTACLE_MODE = 1
     REWARD_TYPE = ""
-    MAX_EP_STEPS = 500
+    MAX_EP_STEPS = 200
 
     env = get_env(config, stage=1)
     env.reset()
 
     # get agent
-    agent, run_name = config_sac_hybrid.get_sac_agent(env)
+    panda_gym.register_envs(config["max_ep_steps"])
+    agent, run_name = config_sac_hybrid.get_sac_agent(env, config["max_ep_steps"])
 
     save_dir = fr"{ROOT_DIR}/saved_models/{agent.alg_name}/{run_name}"
 

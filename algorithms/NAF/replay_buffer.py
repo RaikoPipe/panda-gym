@@ -13,7 +13,7 @@ class ReplayBuffer:
         Params
         ======
             buffer_size (int): maximum size of buffer
-            batch_size (int): size of each training batch
+            batch_size (int): size of each learning_methods batch
             seed (int): random seed
         """
         self.device = device
