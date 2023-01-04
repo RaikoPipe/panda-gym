@@ -19,8 +19,7 @@ class NEO:
         self.panda: Panda = self.env.robot
         self.collision_detector = self.env.task.collision_detector
         self.collision_objects = [x for x in self.env.task.bodies if x not in ["robot", "dummy_target"]]
-        # todo: idea: if we can get the robot from the env, why not also the stage and obstacles?
-        # todo. compare this to the panda-gym robot
+
         self.panda_rtb = rtb.models.Panda()
         move = spatialmath.SE3(-0.6,0,0)
         self.panda_rtb.base = move

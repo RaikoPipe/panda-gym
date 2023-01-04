@@ -23,6 +23,7 @@ class ReachEvadeObstacles(Task):
             joint_obstacle_observation="all",
             obstacle_layout=1,
             show_debug_labels=True,
+            fixed_target=None,
             factor_punish_distance=10.0, # def: 10.0
             factor_punish_collision=1.0, # def: 1.0
             factor_punish_action_magnitude=0.000, # def: 0.005
@@ -45,6 +46,9 @@ class ReachEvadeObstacles(Task):
         self.factor_punish_action_difference_magnitude = factor_punish_action_difference_magnitude
         self.factor_punish_obstacle_proximity = factor_punish_obstacle_proximity
 
+        # if target is fixed, it won't be randomly sampled on each episode
+        self.fixed_target = fixed_target
+
         create_obstacle_layout = {
             1: self.create_stage_1,
             2: self.create_stage_2,
@@ -58,7 +62,8 @@ class ReachEvadeObstacles(Task):
             "cube_2": self.create_stage_cube_2,
             "cube_2_random": self.create_stage_cube_2_random,
             "cube_3_random": self.create_stage_cube_3_random,
-            "debug_neo": self.create_stage_debug_neo,
+            "neo_test_1": self.create_stage_neo_test_1,
+            "neo_test_2": self.create_stage_neo_test_2,
             "sphere_2_random": self.create_stage_sphere_2_random,
             # "cube_6": self.create_stage_cube_6,
 
@@ -75,15 +80,13 @@ class ReachEvadeObstacles(Task):
 
         self.bodies = {"robot": self.robot.id}
         # fixme: workarounds for NEO (panda_leftfinger, panda_rightfinger)
-        # fixme: workarounds for rl: Weird behaviour of collision checking panda_link8, check by marking position of
-        #  panda_link8 (where is it on the robot?)
         exclude_links = ["panda_grasptarget", "panda_leftfinger", "panda_rightfinger"] # env has no grasptarget
         self.collision_links = [i for i in self.robot.link_names if i not in exclude_links]
         self.collision_objects = []
         self.randomize = False  # Randomize obstacle placement
 
         # extra observations
-        self.obs_d = np.zeros(len(self.collision_links))
+        self.distances_links_to_closest_obstacle = np.zeros(len(self.collision_links))
         self.is_collided = False
 
         # set scene
@@ -299,10 +302,18 @@ class ReachEvadeObstacles(Task):
             radius=0.05
         )
 
-
-    def create_stage_debug_neo(self):
+    def create_stage_neo_test_1(self):
         self.goal_range = 0.4
         self.create_obstacle_sphere(radius=0.1, position=np.array([-0.1, -0.2, 0.25]))
+
+    def create_stage_neo_test_2(self):
+        """edge case, where NEO fails..."""
+        self.goal_range = 0.4
+        self.fixed_target = np.array([-1.0,0.0,0.3])
+        self.goal = self.fixed_target
+        self.create_obstacle_sphere(radius=0.0001, position=np.array([-0.1, -0.2, -0.25]))
+
+
 
     def create_obstacle_sphere(self, position=np.array([0.1, 0, 0.1]), radius=0.02, alpha=0.8):
         obstacle_name = "obstacle"
@@ -349,29 +360,29 @@ class ReachEvadeObstacles(Task):
                                                                               max_distance=10.0)
 
             if self.joint_obstacle_observation == "all":
-                self.obs_d = np.array([min(i) for i in obs_per_link.values()])
+                self.distances_links_to_closest_obstacle = np.array([min(i) for i in obs_per_link.values()])
             elif self.joint_obstacle_observation == "closest":
-                self.obs_d = min(obs_per_link.values())
+                self.distances_links_to_closest_obstacle = min(obs_per_link.values())
 
-            self.is_collided = min(self.obs_d) <= 0
+            self.is_collided = min(self.distances_links_to_closest_obstacle) <= 0
 
-        return self.obs_d
+        return self.distances_links_to_closest_obstacle
 
     def get_achieved_goal(self) -> np.ndarray:
         ee_position = np.array(self.get_ee_position())
         return ee_position
 
     def reset(self) -> None:
-
-        self.goal = self._sample_goal()
-        if self.randomize:
-            # randomize obstacle position within goal space
-            for obstacle in self.obstacles.keys():
-                # get collision free obstacle position
-                collision = True
-                while collision:
-                    self.sim.set_base_pose(obstacle, self._sample_goal(), np.array([0.0, 0.0, 0.0, 1.0]))
-                    collision = self.get_collision("robot", obstacle)
+        if self.fixed_target is None:
+            self.goal = self._sample_goal()
+            if self.randomize:
+                # randomize obstacle position within goal space
+                for obstacle in self.obstacles.keys():
+                    # get collision free obstacle position
+                    collision = True
+                    while collision:
+                        self.sim.set_base_pose(obstacle, self._sample_goal(), np.array([0.0, 0.0, 0.0, 1.0]))
+                        collision = self.get_collision("robot", obstacle)
 
         collision = True
         # get collision free goal
@@ -458,7 +469,7 @@ class ReachEvadeObstacles(Task):
     def compute_reward(self, achieved_goal, desired_goal, info: Dict[str, Any]) -> np.ndarray:
         d = distance(achieved_goal, desired_goal)
         manip = self.robot.get_manipulability()
-        obs_d = self.obs_d
+        obs_d = self.distances_links_to_closest_obstacle
         action_diff = self.get_reward_action_difference()
         action_magnitude = self.get_reward_small_actions()
 
