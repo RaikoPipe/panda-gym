@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import spatialmath
+from roboticstoolbox.backends import swift
 from spatialmath import SE3, SO3
 from spatialgeometry import Cuboid, Sphere
 import pdb
@@ -15,24 +16,28 @@ from swift import Swift
 class NEO:
 
     def __init__(self, env):
+        # Launch the simulator Swift
+        self.swift_env = swift.Swift()
+        self.swift_env.launch()
+
         self.env = env
         self.panda: Panda = self.env.robot
         self.collision_detector = self.env.task.collision_detector
-        self.collision_objects = [x for x in self.env.task.bodies if x not in ["robot", "dummy_target"]]
+        self.collision_objects = env.task.dummy_obstacles
 
         self.panda_rtb = rtb.models.Panda()
-        move = spatialmath.SE3(-0.6,0,0)
+        move = spatialmath.SE3(-0.6, 0, 0)
         self.panda_rtb.base = move
         self.panda_rtb.q = self.panda.get_joint_angles(self.panda.joint_indices[:7])
 
         # Tep = panda.fkine(panda.q)
         # Tep.A[:3, 3] = target.T[:3, -1]
 
-        self.n = 7 # number of joints
+        self.n = 7  # number of joints
 
         self.collisions = []
 
-
+        self.swift_env.add(self.panda_rtb)
 
     def p_servo(self, wTe, wTep, gain=2):
         '''
@@ -119,6 +124,7 @@ class NEO:
 
     def compute_action(self, target):
         self.panda_rtb.q = self.panda.get_joint_angles(self.panda.joint_indices[:7])
+        # self.collision_detector.set_collision_geometries()
 
         # Transform the goal into an SE3 pose
         Tep = self.fkine()
@@ -170,16 +176,14 @@ class NEO:
         Ain[:self.n, :self.n], bin[:self.n] = self.panda_rtb.joint_velocity_damper(ps, pi, self.n)
 
         # For each collision in the scene
-        for collision in self.collision_objects:
+        for collision in self.collision_objects.values():
             # Form the velocity damper inequality constraint for each collision
             # object on the robot to the collision in the scene
-            c_Ain, c_bin = self.panda_rtb.link_collision_damper_pybullet(
+            c_Ain, c_bin = self.panda_rtb.link_collision_damper_2(
                 collision,
-                self.collision_detector,
-                self.panda,
                 self.panda.get_joint_angles(self.panda.joint_indices[:7]),
-                0.3, # influence distance in which the damper becomes active
-                0.01, # minimum distance in which the link is allowed to approach the object shape
+                0.3,  # influence distance in which the damper becomes active
+                0.05,  # minimum distance in which the link is allowed to approach the object shape
                 1.0,
                 start=self.panda_rtb.link_dict["panda_link1"],
                 end=self.panda_rtb.link_dict["panda_hand"],
@@ -204,14 +208,11 @@ class NEO:
         # Solve for the joint velocities dq
         qd = qp.solve_qp(Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver="gurobi")
 
-        # self.panda_rtb.qd[:self.n] = qd[:self.n]
+        self.panda_rtb.qd[:self.n] = qd[:self.n]
+
+        self.swift_env.step(render=True, dt=0.01)
 
         # Return the joint velocities
         if qd is None:
             return np.zeros(self.n)
         return qd[:self.n]
-
-
-
-
-

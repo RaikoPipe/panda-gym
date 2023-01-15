@@ -274,9 +274,9 @@ class RobotTaskEnv(gym.Env):
     ) -> Tuple[Dict[str, np.ndarray], Dict[str, Any]]:
         super().reset(seed=seed, options=options)
         self.task.np_random, seed = seeding.np_random(seed)
-        with self.sim.no_rendering():
-            self.robot.reset()
-            self.task.reset()
+        #with self.sim.no_rendering():
+        self.robot.reset()
+        self.task.reset()
         observation = self._get_obs()
         info = {"is_success": self.task.is_success(observation["achieved_goal"], self.task.get_goal())}
         return observation, info

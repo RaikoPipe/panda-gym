@@ -24,6 +24,7 @@ class ReachEvadeObstacles(Task):
             obstacle_layout=1,
             show_debug_labels=True,
             fixed_target=None,
+            # adjustement factors for dense rewards
             factor_punish_distance=10.0, # def: 10.0
             factor_punish_collision=1.0, # def: 1.0
             factor_punish_action_magnitude=0.000, # def: 0.005
@@ -34,9 +35,12 @@ class ReachEvadeObstacles(Task):
     ) -> None:
         super().__init__(sim)
         self.sim_id = self.sim.physics_client._client
+        self.dummy_sim_id = self.sim.dummy_collision_client._client
 
         self.robot: Panda = robot
         self.obstacles = {}
+        self.dummy_obstacles = {}
+        self.dummy_obstacle_id = {}
         self.joint_obstacle_observation = joint_obstacle_observation
 
         # dense reward configuration
@@ -313,31 +317,40 @@ class ReachEvadeObstacles(Task):
         self.goal = self.fixed_target
         self.create_obstacle_sphere(radius=0.0001, position=np.array([-0.1, -0.2, -0.25]))
 
-
-
     def create_obstacle_sphere(self, position=np.array([0.1, 0, 0.1]), radius=0.02, alpha=0.8):
         obstacle_name = "obstacle"
 
-        obstacle_id = self.sim.create_sphere(
-            body_name=f"{obstacle_name}_{len(self.obstacles)}",
-            radius=radius,
-            mass=0.0,
-            position=position,
-            rgba_color=np.array([0.5, 0, 0, alpha]),
-        )
-        self.obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = obstacle_id
+        ids = []
+        for physics_client in (self.sim.physics_client, self.sim.dummy_collision_client):
+            ids.append(self.sim.create_sphere(
+                body_name=f"{obstacle_name}_{len(self.obstacles)}",
+                radius=radius,
+                mass=0.0,
+                position=position,
+                rgba_color=np.array([0.5, 0, 0, alpha]),
+                physics_client=physics_client
+            ))
+        self.obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[0]
+        self.dummy_obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[1]
+        self.dummy_obstacle_id[ids[0]] = ids[1]
 
     def create_obstacle_cuboid(self, position=np.array([0.1, 0, 0.1]), size=np.array([0.01, 0.01, 0.01])):
         obstacle_name = "obstacle"
+        ids = []
+        for physics_client in (self.sim.physics_client, self.sim.dummy_collision_client):
+            ids.append(self.sim.create_box(
+                body_name=f"{obstacle_name}_{len(self.obstacles)}",
+                half_extents=size,
+                mass=0.0,
+                position=position,
+                rgba_color=np.array([0.5, 0.5, 0.5, 1]),
+                physics_client=physics_client
+            ))
 
-        obstacle_id = self.sim.create_box(
-            body_name=f"{obstacle_name}_{len(self.obstacles)}",
-            half_extents=size,
-            mass=0.0,
-            position=position,
-            rgba_color=np.array([0.5, 0.5, 0.5, 1]),
-        )
-        self.obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = obstacle_id
+        self.obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[0]
+        self.dummy_obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[1]
+        self.dummy_obstacle_id[ids[0]] = ids[1]
+
 
     def create_robot_debug_params(self):
         """Create debug params to set the robot joint positions from the GUI."""
@@ -380,9 +393,17 @@ class ReachEvadeObstacles(Task):
                 for obstacle in self.obstacles.keys():
                     # get collision free obstacle position
                     collision = True
+                    pos = None
+                    obstacle_id = self.obstacles[obstacle]
                     while collision:
-                        self.sim.set_base_pose(obstacle, self._sample_goal(), np.array([0.0, 0.0, 0.0, 1.0]))
+                        pos = self._sample_goal()
+                        self.sim.set_base_pose(obstacle, pos, np.array([0.0, 0.0, 0.0, 1.0]))
                         collision = self.get_collision("robot", obstacle)
+                    else:
+                        if pos is not None:
+                            self.sim.set_base_pose_dummy(self.dummy_obstacle_id[obstacle_id], pos, np.array([0.0, 0.0, 0.0, 1.0]),
+                                                   physics_client=self.sim.dummy_collision_client)
+
 
         collision = True
         # get collision free goal

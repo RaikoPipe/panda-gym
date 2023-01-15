@@ -67,10 +67,23 @@ panda_gym.register_envs(200)
 env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
                obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                reward_type=config["reward_type"], limiter=config["limiter"],
-               show_goal_space=False, obstacle_layout="neo_test_2",
+               show_goal_space=False, obstacle_layout="cube_3_random",
                show_debug_labels=True)
 
 rrmc_neo = NEO(env=env)
+
+# initialise pybullet collision
+start = rrmc_neo.panda_rtb.link_dict["panda_link1"],
+end = rrmc_neo.panda_rtb.link_dict["panda_hand"],
+end, start, _ = rrmc_neo.panda_rtb._get_limit_links(start=start[0], end=end[0])
+links, n, _ = rrmc_neo.panda_rtb.get_path(start=start, end=end)
+
+j = 0
+for link in links:
+        col = link.collision
+        for shape in col.data:
+            shape.init_pybullet()
+
 #model = TD3.load(r"run_data/wandb/run_obs_layout_1_best_08_11/files/model.zip", env=env)
 
 evaluate(rrmc_neo) #, model)

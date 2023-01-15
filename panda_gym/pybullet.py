@@ -24,7 +24,7 @@ class PyBullet:
 
     def __init__(self, render: bool = False, realtime=False, n_substeps: int = 20,
                  background_color: Optional[np.ndarray] = None) -> None:
-        background_color = background_color if background_color is not None else np.array([223.0, 54.0, 45.0])
+        background_color = background_color if background_color is not None else np.array([0.0, 134.0, 201.0])
         self.background_color = background_color.astype(np.float32) / 255
         options = "--background_color_red={} \
                     --background_color_green={} \
@@ -34,7 +34,10 @@ class PyBullet:
         self.connection_mode = p.GUI if render else p.DIRECT
         self.render_env = render
 
-        self.physics_client = bc.BulletClient(connection_mode=self.connection_mode, options=options)
+        # self.physics_client = bc.BulletClient(connection_mode=self.connection_mode, options=options)
+        # self.dummy_collision_client = bc.BulletClient(connection_mode=p.DIRECT)
+        self.physics_client = bc.BulletClient(connection_mode=p.DIRECT, options=options)
+        self.dummy_collision_client = bc.BulletClient(connection_mode=p.GUI)
         self.physics_client.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
         self.physics_client.configureDebugVisualizer(p.COV_ENABLE_MOUSE_PICKING, 1)
         # todo: test if this changes behaviour of the physics simulation
@@ -59,10 +62,12 @@ class PyBullet:
         """Step the simulation."""
         for _ in range(self.n_substeps):
             self.physics_client.stepSimulation()
+            #self.dummy_collision_client.stepSimulation()
 
     def close(self) -> None:
         """Close the simulation."""
         self.physics_client.disconnect()
+        self.dummy_collision_client.disconnect()
 
     def save_state(self) -> int:
         """Save the current simulation state.
@@ -297,7 +302,8 @@ class PyBullet:
         """
         return self.physics_client.getJointState(self._bodies_idx[body], joint)[1]
 
-    def set_base_pose(self, body: str, position: np.ndarray, orientation: np.ndarray) -> None:
+    def set_base_pose(self, body: str, position: np.ndarray, orientation: np.ndarray,
+                      physics_client=None) -> None:
         """Set the position of the body.
 
         Args:
@@ -305,10 +311,31 @@ class PyBullet:
             position (np.ndarray): The position, as (x, y, z).
             orientation (np.ndarray): The target orientation as quaternion (x, y, z, w).
         """
+        if physics_client is None:
+            physics_client = self.physics_client
+
         if len(orientation) == 3:
-            orientation = self.physics_client.getQuaternionFromEuler(orientation)
-        self.physics_client.resetBasePositionAndOrientation(
+            orientation = physics_client.getQuaternionFromEuler(orientation)
+        physics_client.resetBasePositionAndOrientation(
             bodyUniqueId=self._bodies_idx[body], posObj=position, ornObj=orientation
+        )
+
+    def set_base_pose_dummy(self, body_id: int, position: np.ndarray, orientation: np.ndarray,
+                      physics_client=None) -> None:
+        """Set the position of the body.
+
+        Args:
+            body (str): Body unique name.
+            position (np.ndarray): The position, as (x, y, z).
+            orientation (np.ndarray): The target orientation as quaternion (x, y, z, w).
+        """
+        if physics_client is None:
+            physics_client = self.physics_client
+
+        if len(orientation) == 3:
+            orientation = physics_client.getQuaternionFromEuler(orientation)
+        physics_client.resetBasePositionAndOrientation(
+            bodyUniqueId=body_id, posObj=position, ornObj=orientation
         )
 
     def set_joint_angles(self, body: str, joints: np.ndarray, angles: np.ndarray) -> None:
@@ -414,6 +441,7 @@ class PyBullet:
             lateral_friction: Optional[float] = None,
             spinning_friction: Optional[float] = None,
             texture: Optional[str] = None,
+            physics_client=None
     ) -> int:
         """Create a box.
 
@@ -431,6 +459,10 @@ class PyBullet:
                 value. Defaults to None.
             texture (str or None, optional): Texture file name. Defaults to None.
         """
+        if physics_client is None:
+            physics_client = self.physics_client
+
+
         rgba_color = rgba_color if rgba_color is not None else np.zeros(4)
         specular_color = specular_color if specular_color is not None else np.zeros(3)
         visual_kwargs = {
@@ -441,7 +473,7 @@ class PyBullet:
         collision_kwargs = {"halfExtents": half_extents}
         idx = self._create_geometry(
             body_name,
-            geom_type=self.physics_client.GEOM_BOX,
+            geom_type=physics_client.GEOM_BOX,
             mass=mass,
             position=position,
             ghost=ghost,
@@ -449,11 +481,12 @@ class PyBullet:
             spinning_friction=spinning_friction,
             visual_kwargs=visual_kwargs,
             collision_kwargs=collision_kwargs,
+            physics_client=physics_client
         )
         if texture is not None:
             texture_path = os.path.join(panda_gym.assets.get_data_path(), texture)
-            texture_uid = self.physics_client.loadTexture(texture_path)
-            self.physics_client.changeVisualShape(self._bodies_idx[body_name], -1, textureUniqueId=texture_uid)
+            texture_uid = physics_client.loadTexture(texture_path)
+            physics_client.changeVisualShape(self._bodies_idx[body_name], -1, textureUniqueId=texture_uid)
 
         return idx
 
@@ -469,6 +502,7 @@ class PyBullet:
             ghost: bool = False,
             lateral_friction: Optional[float] = None,
             spinning_friction: Optional[float] = None,
+            physics_client = None
     ) -> int:
         """Create a cylinder.
 
@@ -486,6 +520,9 @@ class PyBullet:
             spinning_friction (float or None, optional): Spinning friction. If None, use the default pybullet
                 value. Defaults to None.
         """
+        if physics_client is None:
+            physics_client = self.physics_client
+
         rgba_color = rgba_color if rgba_color is not None else np.zeros(4)
         specular_color = specular_color if specular_color is not None else np.zeros(3)
         visual_kwargs = {
@@ -497,7 +534,7 @@ class PyBullet:
         collision_kwargs = {"radius": radius, "height": height}
         idx = self._create_geometry(
             body_name,
-            geom_type=self.physics_client.GEOM_CYLINDER,
+            geom_type=physics_client.GEOM_CYLINDER,
             mass=mass,
             position=position,
             ghost=ghost,
@@ -520,6 +557,7 @@ class PyBullet:
             ghost: bool = False,
             lateral_friction: Optional[float] = None,
             spinning_friction: Optional[float] = None,
+            physics_client = None,
     ) -> int:
         """Create a sphere.
 
@@ -536,6 +574,10 @@ class PyBullet:
             spinning_friction (float or None, optional): Spinning friction. If None, use the default pybullet
                 value. Defaults to None.
         """
+
+        if physics_client is None:
+            physics_client = self.physics_client
+
         rgba_color = rgba_color if rgba_color is not None else np.zeros(4)
         specular_color = specular_color if specular_color is not None else np.zeros(3)
         visual_kwargs = {
@@ -546,7 +588,7 @@ class PyBullet:
         collision_kwargs = {"radius": radius}
         idx = self._create_geometry(
             body_name,
-            geom_type=self.physics_client.GEOM_SPHERE,
+            geom_type=physics_client.GEOM_SPHERE,
             mass=mass,
             position=position,
             ghost=ghost,
@@ -568,6 +610,7 @@ class PyBullet:
             spinning_friction: Optional[float] = None,
             visual_kwargs: Dict[str, Any] = {},
             collision_kwargs: Dict[str, Any] = {},
+            physics_client = None
     ) -> int:
         """Create a geometry.
 
@@ -584,18 +627,25 @@ class PyBullet:
             visual_kwargs (dict, optional): Visual kwargs. Defaults to {}.
             collision_kwargs (dict, optional): Collision kwargs. Defaults to {}.
         """
+
+        if physics_client is None:
+            physics_client = self.physics_client
+
         position = position if position is not None else np.zeros(3)
-        baseVisualShapeIndex = self.physics_client.createVisualShape(geom_type, **visual_kwargs)
+        baseVisualShapeIndex = physics_client.createVisualShape(geom_type, **visual_kwargs)
         if not ghost:
-            baseCollisionShapeIndex = self.physics_client.createCollisionShape(geom_type, **collision_kwargs)
+            baseCollisionShapeIndex = physics_client.createCollisionShape(geom_type, **collision_kwargs)
         else:
             baseCollisionShapeIndex = -1
-        idx = self._bodies_idx[body_name] = self.physics_client.createMultiBody(
+        idx = physics_client.createMultiBody(
             baseVisualShapeIndex=baseVisualShapeIndex,
             baseCollisionShapeIndex=baseCollisionShapeIndex,
             baseMass=mass,
             basePosition=position,
         )
+
+        if physics_client is self.physics_client:
+            self._bodies_idx[body_name] = idx
 
         if lateral_friction is not None:
             self.set_lateral_friction(body=body_name, link=-1, lateral_friction=lateral_friction)
@@ -604,12 +654,15 @@ class PyBullet:
 
         return idx
 
-    def create_plane(self, z_offset: float) -> int:
+    def create_plane(self, z_offset: float, physics_client= None) -> int:
         """Create a plane. (Actually, it is a thin box.)
 
         Args:
             z_offset (float): Offset of the plane.
         """
+        if physics_client is None:
+            physics_client = self.physics_client
+
         idx = self.create_box(
             body_name="plane",
             half_extents=np.array([3.0, 3.0, 0.01]),
@@ -617,6 +670,7 @@ class PyBullet:
             position=np.array([0.0, 0.0, z_offset - 0.01]),
             specular_color=np.zeros(3),
             rgba_color=np.array([0.15, 0.15, 0.15, 1.0]),
+            physics_client=physics_client
         )
 
         return idx
@@ -629,6 +683,7 @@ class PyBullet:
             x_offset: float = 0.0,
             lateral_friction: Optional[float] = None,
             spinning_friction: Optional[float] = None,
+            physics_client = None
     ) -> int:
         """Create a fixed table. Top is z=0, centered in y.
 
@@ -642,6 +697,9 @@ class PyBullet:
             spinning_friction (float or None, optional): Spinning friction. If None, use the default pybullet
                 value. Defaults to None.
         """
+        if physics_client is None:
+            physics_client = self.physics_client
+
         idx = self.create_box(
             body_name="table",
             half_extents=np.array([length, width, height]) / 2,
@@ -651,6 +709,7 @@ class PyBullet:
             rgba_color=np.array([0.95, 0.95, 0.95, 1]),
             lateral_friction=lateral_friction,
             spinning_friction=spinning_friction,
+            physics_client=physics_client
         )
 
         return idx
