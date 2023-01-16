@@ -40,7 +40,7 @@ class Panda(PyBulletRobot):
         n_action = 3 if self.control_type == "ee" else 7  # control (x, y z) if "ee", else, control the 7 joints
         n_action += 0 if self.block_gripper else 1
         action_space = spaces.Box(-1.0, 1.0, shape=(n_action,), dtype=np.float32)
-        # todo: load urdf file from roboticstoolbox panda COPY VISUAL MESHES INTO URDF FOLDER
+
         # path_to_rtb_urdf = "C:\\Users\\eclip\\Documents\\GitHub\\panda-gym\\panda_gym\\URDF\\robots\\panda.urdf"
         super().__init__(
             sim,
@@ -53,7 +53,7 @@ class Panda(PyBulletRobot):
         )
 
         self.fingers_indices = np.array([9, 10])
-        self.neutral_joint_values = np.array([0.00, 0.41, 0.00, -1.85, 0.00, 2.26, 0.79, 0.00, 0.00])
+        self.neutral_joint_values = np.array([1.0, 0.41, 0.00, -1.85, 0.00, 2.26, 0.79, 0.00, 0.00])
         self.ee_link = 11
         self.sim.set_lateral_friction(self.body_name, self.fingers_indices[0], lateral_friction=1.0)
         self.sim.set_lateral_friction(self.body_name, self.fingers_indices[1], lateral_friction=1.0)

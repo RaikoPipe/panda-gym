@@ -68,6 +68,7 @@ class ReachEvadeObstacles(Task):
             "cube_3_random": self.create_stage_cube_3_random,
             "neo_test_1": self.create_stage_neo_test_1,
             "neo_test_2": self.create_stage_neo_test_2,
+            "sphere_2": self.create_stage_sphere_2,
             "sphere_2_random": self.create_stage_sphere_2_random,
             # "cube_6": self.create_stage_cube_6,
 
@@ -293,6 +294,22 @@ class ReachEvadeObstacles(Task):
             np.array([-0.05, -0.08, 0.5]),
             size=self.cube_size_small)
 
+    def create_stage_sphere_2(self):
+        """2  spheres"""
+        self.goal_range = 0.4
+        self.fixed_target = np.array([-0.2, -0.4, 0.2])
+        self.goal = self.fixed_target
+
+        self.create_obstacle_sphere(
+            radius=0.05,
+            position=np.array([0.0,-0.2,0.1])
+        )
+
+        self.create_obstacle_sphere(
+            radius=0.05,
+        position= np.array([0.0, -0.2, 0.2])
+        )
+
     def create_stage_sphere_2_random(self):
         """2 randomly placed spheres"""
         self.goal_range = 0.4
@@ -377,7 +394,7 @@ class ReachEvadeObstacles(Task):
             elif self.joint_obstacle_observation == "closest":
                 self.distances_links_to_closest_obstacle = min(obs_per_link.values())
 
-            self.is_collided = min(self.distances_links_to_closest_obstacle) <= 0
+            self.is_collided = min(self.distances_links_to_closest_obstacle) <= 0.0
 
         return self.distances_links_to_closest_obstacle
 

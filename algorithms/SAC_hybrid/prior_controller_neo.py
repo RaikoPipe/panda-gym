@@ -3,7 +3,8 @@
 import spatialmath
 from roboticstoolbox.backends import swift
 from spatialmath import SE3, SO3
-from spatialgeometry import Cuboid, Sphere
+import spatialgeometry as sg
+import spatialmath as sm
 import pdb
 import roboticstoolbox as rtb
 import numpy as np
@@ -23,7 +24,7 @@ class NEO:
         self.env = env
         self.panda: Panda = self.env.robot
         self.collision_detector = self.env.task.collision_detector
-        self.collision_objects = env.task.dummy_obstacles
+        self.collision_objects = self.env.task.dummy_obstacles
 
         self.panda_rtb = rtb.models.Panda()
         move = spatialmath.SE3(-0.6, 0, 0)
@@ -38,6 +39,16 @@ class NEO:
         self.collisions = []
 
         self.swift_env.add(self.panda_rtb)
+
+        # Make two obstacles with velocities
+        #s0 = sg.Sphere(radius=0.05, pose=sm.SE3(0.05, -0.2, 0.1))
+        # s0.v = [0, -0.2, 0, 0, 0, 0]
+
+        #s1 = sg.Sphere(radius=0.05, pose=sm.SE3(0.05, -0.2, 0.2))
+        # s1.v = [0, -0.2, 0, 0, 0, 0]
+
+        # Make a target
+        target = sg.Sphere(radius=0.02, pose=sm.SE3(-0.2, -0.4, 0.2))
 
     def p_servo(self, wTe, wTep, gain=2):
         '''
