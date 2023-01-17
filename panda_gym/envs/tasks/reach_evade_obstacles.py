@@ -404,7 +404,7 @@ class ReachEvadeObstacles(Task):
             elif self.joint_obstacle_observation == "closest":
                 self.distances_links_to_closest_obstacle = min(obs_per_link.values())
 
-            self.is_collided = min(self.distances_links_to_closest_obstacle) <= 0.0
+            self.is_collided = min(self.distances_links_to_closest_obstacle) <= -99.0
 
         return self.distances_links_to_closest_obstacle
 
