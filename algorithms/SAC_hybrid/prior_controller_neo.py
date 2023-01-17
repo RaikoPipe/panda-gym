@@ -193,7 +193,7 @@ class NEO:
                 collision,
                 self.panda.get_joint_angles(self.panda.joint_indices[:7]),
                 0.3,  # influence distance in which the damper becomes active
-                0.01,  # minimum distance in which the link is allowed to approach the object shape
+                0.05,  # minimum distance in which the link is allowed to approach the object shape
                 1.0,
                 start=self.panda_rtb.link_dict["panda_link1"],
                 end=self.panda_rtb.link_dict["panda_hand"],
