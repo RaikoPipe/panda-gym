@@ -23,22 +23,22 @@ env.launch()
 panda = rtb.models.Panda()
 
 # Set joint angles to ready configuration
-panda.q = [0.00, 0.41, 0.00, -1.85, 0.00, 2.26, 0.79]
+panda.q = panda.qr
 
 # Number of joint in the panda which we are controlling
 n = 7
 
 # Make two obstacles with velocities
 s0 = sg.Sphere(radius=0.05, pose=sm.SE3(0.52, 0.4, 0.3))
-#s0.v = [0, -0.2, 0, 0, 0, 0]
+s0.v = [0, -0.2, 0, 0, 0, 0]
 
 s1 = sg.Sphere(radius=0.05, pose=sm.SE3(0.1, 0.35, 0.65))
-#s1.v = [0, -0.2, 0, 0, 0, 0]
+s1.v = [0, -0.2, 0, 0, 0, 0]
 
 collisions = [s0, s1]
 
 # Make a target
-target = sg.Sphere(radius=0.02, pose=sm.SE3(-0.2+0.6, -0.2, 0.2))
+target = sg.Sphere(radius=0.02, pose=sm.SE3(0.6, -0.2, 0.0))
 
 # Add the Panda and shapes to the simulator
 env.add(panda)
@@ -54,10 +54,9 @@ Tep.A[:3, 3] = target.T[:3, -1]
 
 def step():
     # The pose of the Panda's end-effector
-    Te = panda.fkine([0.00, 0.41, 0.00, -1.85, 0.00, 2.26, 0.79]) # panda.q)
+    Te = panda.fkine(panda.q)
 
     # Transform from the end-effector to desired pose
-    te_inv = Te.inv()
     eTep = Te.inv() * Tep
 
     # Spatial error
@@ -107,7 +106,7 @@ def step():
             collision,
             panda.q[:n],
             0.3,
-            0.01,
+            0.05,
             1.0,
             start=panda.link_dict["panda_link1"],
             end=panda.link_dict["panda_hand"],

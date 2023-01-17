@@ -596,6 +596,7 @@ class PyBullet:
             spinning_friction=spinning_friction,
             visual_kwargs=visual_kwargs,
             collision_kwargs=collision_kwargs,
+            physics_client=physics_client
         )
         return idx
 
