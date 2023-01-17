@@ -44,8 +44,7 @@ def evaluate(prior,  num_steps=10000):
                 print("Timeout...")
                 done_events.append(0)
             obs, _ = env.reset()
-            # unnecessary step (?) reset panda
-            prior.panda_rtb.q = prior.panda_rtb.qr
+
             episode_rewards.append(0.0)
     # Compute mean reward for the last 100 episodes
     mean_100ep_reward = np.mean(episode_rewards[-100:])

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
+from time import sleep
 
+import pybullet
 import spatialmath
 from roboticstoolbox.backends import swift
 from spatialmath import SE3, SO3
@@ -134,6 +136,7 @@ class NEO:
     #     return action
 
     def compute_action(self, target):
+        self.swift_env.step(render=True)
         self.panda_rtb.q = self.panda.get_joint_angles(self.panda.joint_indices[:7])
         # self.collision_detector.set_collision_geometries()
 
@@ -207,7 +210,8 @@ class NEO:
                 # Stack the inequality constraints
                 Ain = np.r_[Ain, c_Ain]
                 bin = np.r_[bin, c_bin]
-
+        sleep(0.03)
+        pybullet.removeAllUserDebugItems(physicsClientId=0)
         # Linear component of objective function: the manipulability Jacobian
         c = np.r_[-self.panda_rtb.jacobm(self.panda_rtb.q).reshape((self.n,)), np.zeros(6)]
 
@@ -220,8 +224,6 @@ class NEO:
         qd = qp.solve_qp(Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver="gurobi")
 
         self.panda_rtb.qd[:self.n] = qd[:self.n]
-
-        self.swift_env.step(render=True, dt=0.01)
 
         # Return the joint velocities
         if qd is None:
