@@ -63,6 +63,7 @@ class ReachEvadeObstacles(Task):
 
             # for curriculum learning
             "cube_1": self.create_stage_cube_1,
+            "cube_1_random": self.create_stage_cube_1_random,
             "cube_2": self.create_stage_cube_2,
             "cube_2_random": self.create_stage_cube_2_random,
             "cube_3_random": self.create_stage_cube_3_random,
@@ -264,6 +265,15 @@ class ReachEvadeObstacles(Task):
             np.array([-0.05, -0.1, 0.25]),
             size=self.cube_size_small)
 
+    def create_stage_cube_1_random(self):
+        """2 random small cubes. Annoying."""
+        self.goal_range = 0.4
+        self.randomize = True
+
+        self.create_obstacle_cuboid(
+            np.array([-0.05, -0.08, 0.5]),
+            size=self.cube_size_small)
+
     def create_stage_cube_2_random(self):
         """2 random small cubes. Annoying."""
         self.goal_range = 0.5
@@ -398,7 +408,7 @@ class ReachEvadeObstacles(Task):
                     while collision:
                         pos = self._sample_goal()
                         self.sim.set_base_pose(obstacle, pos, np.array([0.0, 0.0, 0.0, 1.0]))
-                        collision = self.get_collision("robot", obstacle)
+                        collision = self.get_collision("robot", obstacle, margin=0.05)
                     else:
                         if pos is not None:
                             self.sim.set_base_pose_dummy(self.dummy_obstacle_id[obstacle_id], pos, np.array([0.0, 0.0, 0.0, 1.0]),
@@ -413,6 +423,7 @@ class ReachEvadeObstacles(Task):
             self.sim.physics_client.performCollisionDetection()
             for obstacle in self.obstacles:
                 collision = self.get_collision("dummy_target", obstacle)
+
                 if collision:
                     self.goal = self._sample_goal()
                     break
@@ -425,9 +436,9 @@ class ReachEvadeObstacles(Task):
         self.robot.recent_action = None
         self.robot.previous_action = None
 
-    def get_collision(self, obstacle_1, obstacle_2):
+    def get_collision(self, obstacle_1, obstacle_2, margin=0.0):
         """Check if given bodies collide."""
-        margin = 0.0  # margin in which overlapping counts as a collision
+        # margin in which overlapping counts as a collision
         self.sim.physics_client.performCollisionDetection()
         closest_points = p.getClosestPoints(bodyA=self.bodies[obstacle_1], bodyB=self.bodies[obstacle_2],
                                             distance=10.0,
@@ -502,7 +513,7 @@ class ReachEvadeObstacles(Task):
             reward = -np.array(action_diff*self.factor_punish_action_difference_magnitude +
                                action_magnitude*self.factor_punish_action_magnitude, dtype=np.float32)
 
-            collision = min(obs_d) <= 0
+            collision = min(obs_d) <= 0.0
 
             d *= self.factor_punish_distance
             if collision:

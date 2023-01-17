@@ -141,7 +141,6 @@ class NEO:
 
         # Calulate the required end-effector spatial velocity for the robot
         # to approach the goal. Gain is set to 1.0
-        # todo: nothing, this function is generic
         v, arrived = rtb.p_servo(Te, Tep, 1.0, 0.01)
 
         # Gain term (lambda) for control minimisation
@@ -183,7 +182,7 @@ class NEO:
                 collision,
                 self.panda.get_joint_angles(self.panda.joint_indices[:7]),
                 0.3,  # influence distance in which the damper becomes active
-                0.05,  # minimum distance in which the link is allowed to approach the object shape
+                0.01,  # minimum distance in which the link is allowed to approach the object shape
                 1.0,
                 start=self.panda_rtb.link_dict["panda_link1"],
                 end=self.panda_rtb.link_dict["panda_hand"],
@@ -204,6 +203,7 @@ class NEO:
         # The lower and upper bounds on the joint velocity and slack variable
         lb = -np.r_[self.panda_rtb.qdlim[:self.n], 10 * np.ones(6)]
         ub = np.r_[self.panda_rtb.qdlim[:self.n], 10 * np.ones(6)]
+
 
         # Solve for the joint velocities dq
         qd = qp.solve_qp(Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver="gurobi")
