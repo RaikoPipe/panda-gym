@@ -7,7 +7,7 @@ import pybullet
 from panda_gym.envs.core import Task
 from panda_gym.envs.robots.panda import Panda
 from panda_gym.utils import distance
-from pyb_utils.collision import NamedCollisionObject, CollisionDetector
+from pyb_utils.collision import NamedCollisionObject, CollisionDetector, compute_distance
 import pybullet as p
 
 
@@ -85,7 +85,7 @@ class ReachEvadeObstacles(Task):
         self.obstacle_count = 0
 
         self.bodies = {"robot": self.robot.id}
-        # fixme: workarounds for NEO (panda_leftfinger, panda_rightfinger)
+
         exclude_links = ["panda_grasptarget", "panda_leftfinger", "panda_rightfinger"] # env has no grasptarget
         self.collision_links = [i for i in self.robot.link_names if i not in exclude_links]
         self.collision_objects = []
@@ -393,11 +393,32 @@ class ReachEvadeObstacles(Task):
             )
         return params
 
+    def get_obs_old(self) -> np.ndarray:
+        if self.obstacles:
+            q = self.robot.get_joint_angles(self.robot.joint_indices[:7])
+            obs_per_link = self.collision_detector.compute_distances_per_link(q, self.robot.joint_indices[:7],
+                                                                              max_distance=10.0)
+
+            if self.joint_obstacle_observation == "all":
+                self.distances_links_to_closest_obstacle = np.array([min(i) for i in obs_per_link.values()])
+            elif self.joint_obstacle_observation == "closest":
+                self.distances_links_to_closest_obstacle = min(obs_per_link.values())
+
+            self.is_collided = min(self.distances_links_to_closest_obstacle) <= 0.0
+
+        return self.distances_links_to_closest_obstacle
+
     def get_obs(self) -> np.ndarray:
         if self.obstacles:
             q = self.robot.get_joint_angles(self.robot.joint_indices[:7])
             obs_per_link = self.collision_detector.compute_distances_per_link(q, self.robot.joint_indices[:7],
                                                                               max_distance=10.0)
+            obs_per_link = {}
+            for obstacle in self.obstacles.values():
+                for link in self.robot.panda_rtb.links:
+                    link_obs = []
+                    for coll in link.collision:
+                        link_obs[coll.co] = compute_distance(coll.co, obstacle, 1, 0.3)[0]
 
             if self.joint_obstacle_observation == "all":
                 self.distances_links_to_closest_obstacle = np.array([min(i) for i in obs_per_link.values()])

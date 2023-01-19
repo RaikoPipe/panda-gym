@@ -1,6 +1,8 @@
 from typing import Optional
 
 import numpy as np
+import spatialmath
+from swift import Swift
 from gymnasium import spaces
 
 from panda_gym.envs.core import PyBulletRobot
@@ -52,6 +54,27 @@ class Panda(PyBulletRobot):
             joint_forces=np.array([87.0, 87.0, 87.0, 87.0, 12.0, 120.0, 120.0, 170.0, 170.0]),
         )
 
+
+        # init roboticstoolbox panda
+        self.swift_env = Swift()
+        self.swift_env.launch()
+        self.panda_rtb = rtb.models.Panda()
+        move = spatialmath.SE3(-0.6, 0, 0)
+        self.panda_rtb.base = move
+        self.panda_rtb.q = self.get_joint_angles(self.joint_indices[:7])
+        self.swift_env.add(self.panda_rtb)
+        # initialise pybullet collision
+        start = self.panda_rtb.link_dict["panda_link1"],
+        end = self.panda_rtb.link_dict["panda_hand"],
+        end, start, _ = self.panda_rtb._get_limit_links(start=start[0], end=end[0])
+        links, n, _ = self.panda_rtb.get_path(start=start, end=end)
+
+        j = 0
+        for link in self.panda_rtb.links:
+            col = link.collision
+            for shape in col.data:
+                shape.init_pybullet()
+
         self.fingers_indices = np.array([9, 10])
         self.neutral_joint_values = np.array([1.0, 0.41, 0.00, -1.85, 0.00, 2.26, 0.79, 0.00, 0.00])
         self.ee_link = 11
@@ -59,9 +82,6 @@ class Panda(PyBulletRobot):
         self.sim.set_lateral_friction(self.body_name, self.fingers_indices[1], lateral_friction=1.0)
         self.sim.set_spinning_friction(self.body_name, self.fingers_indices[0], spinning_friction=0.001)
         self.sim.set_spinning_friction(self.body_name, self.fingers_indices[1], spinning_friction=0.001)
-
-        # get panda in roboticstoolbox
-        self.rtb_panda = rtb.models.Panda()
 
         # limits
         self.joint_position_limits_min = np.array([-166, -101, -166, -176, -166, -1, -166])

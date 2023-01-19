@@ -20,18 +20,13 @@ class NEO:
 
     def __init__(self, env):
         # Launch the simulator Swift
-        self.swift_env = swift.Swift()
-        self.swift_env.launch()
+        # self.panda_rtb = None
+        # self.collision_objects = None
+        # self.swift_env = swift.Swift()
+        # self.swift_env.launch()
 
         self.env = env
-        self.panda: Panda = self.env.robot
-        self.collision_detector = self.env.task.collision_detector
-        self.collision_objects = self.env.task.dummy_obstacles
-
-        self.panda_rtb = rtb.models.Panda()
-        move = spatialmath.SE3(-0.6, 0, 0)
-        self.panda_rtb.base = move
-        self.panda_rtb.q = self.panda.get_joint_angles(self.panda.joint_indices[:7])
+        self.panda = None
 
         # Tep = panda.fkine(panda.q)
         # Tep.A[:3, 3] = target.T[:3, -1]
@@ -40,17 +35,26 @@ class NEO:
 
         self.collisions = []
 
-        self.swift_env.add(self.panda_rtb)
 
         # Make two obstacles with velocities
-        #s0 = sg.Sphere(radius=0.05, pose=sm.SE3(0.05, -0.2, 0.1))
+        # s0 = sg.Sphere(radius=0.05, pose=sm.SE3(0.05, -0.2, 0.1))
         # s0.v = [0, -0.2, 0, 0, 0, 0]
 
-        #s1 = sg.Sphere(radius=0.05, pose=sm.SE3(0.05, -0.2, 0.2))
+        # s1 = sg.Sphere(radius=0.05, pose=sm.SE3(0.05, -0.2, 0.2))
         # s1.v = [0, -0.2, 0, 0, 0, 0]
 
         # Make a target
-        target = sg.Sphere(radius=0.02, pose=sm.SE3(-0.2, -0.4, 0.2))
+        #target = sg.Sphere(radius=0.02, pose=sm.SE3(-0.2, -0.4, 0.2))
+
+    def init_pandas(self):
+        self.panda = self.env.robot
+
+        self.collision_objects = self.env.task.dummy_obstacles
+
+        self.panda_rtb = self.env.robot.panda_rtb
+        move = spatialmath.SE3(-0.6, 0, 0)
+        self.panda_rtb.base = move
+        self.panda_rtb.q = self.panda.get_joint_angles(self.panda.joint_indices[:7])
 
     def p_servo(self, wTe, wTep, gain=2):
         '''
@@ -136,8 +140,8 @@ class NEO:
     #     return action
 
     def compute_action(self, target):
-        self.swift_env.step(render=True)
         self.panda_rtb.q = self.panda.get_joint_angles(self.panda.joint_indices[:7])
+        self.swift_env.step(render=True)
         # self.collision_detector.set_collision_geometries()
 
         # Transform the goal into an SE3 pose
@@ -218,7 +222,6 @@ class NEO:
         # The lower and upper bounds on the joint velocity and slack variable
         lb = -np.r_[self.panda_rtb.qdlim[:self.n], 10 * np.ones(6)]
         ub = np.r_[self.panda_rtb.qdlim[:self.n], 10 * np.ones(6)]
-
 
         # Solve for the joint velocities dq
         qd = qp.solve_qp(Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver="gurobi")
