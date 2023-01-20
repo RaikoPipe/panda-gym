@@ -414,11 +414,16 @@ class ReachEvadeObstacles(Task):
             obs_per_link = self.collision_detector.compute_distances_per_link(q, self.robot.joint_indices[:7],
                                                                               max_distance=10.0)
             obs_per_link = {}
-            for obstacle in self.obstacles.values():
-                for link in self.robot.panda_rtb.links:
-                    link_obs = []
+
+            for link in self.robot.panda_rtb.links:
+                link_obs = []
+                for obstacle in self.dummy_obstacles.values():
+
                     for coll in link.collision:
-                        link_obs[coll.co] = compute_distance(coll.co, obstacle, 1, 0.3)[0]
+                        distance = compute_distance(coll.co, obstacle, 1, 5.0)[0]
+                        if distance is not None:
+                            link_obs.append(distance)
+                obs_per_link[link] = link_obs
 
             if self.joint_obstacle_observation == "all":
                 self.distances_links_to_closest_obstacle = np.array([min(i) for i in obs_per_link.values()])

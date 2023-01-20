@@ -20,10 +20,11 @@ class NEO:
 
     def __init__(self, env):
         # Launch the simulator Swift
-        # self.panda_rtb = None
-        # self.collision_objects = None
-        # self.swift_env = swift.Swift()
-        # self.swift_env.launch()
+        self.panda_rtb = None
+        self.collision_objects = None
+        self.swift_env = swift.Swift()
+        self.swift_env.add(self.panda_rtb)
+        self.swift_env.launch()
 
         self.env = env
         self.panda = None
@@ -45,16 +46,6 @@ class NEO:
 
         # Make a target
         #target = sg.Sphere(radius=0.02, pose=sm.SE3(-0.2, -0.4, 0.2))
-
-    def init_pandas(self):
-        self.panda = self.env.robot
-
-        self.collision_objects = self.env.task.dummy_obstacles
-
-        self.panda_rtb = self.env.robot.panda_rtb
-        move = spatialmath.SE3(-0.6, 0, 0)
-        self.panda_rtb.base = move
-        self.panda_rtb.q = self.panda.get_joint_angles(self.panda.joint_indices[:7])
 
     def p_servo(self, wTe, wTep, gain=2):
         '''
@@ -139,7 +130,7 @@ class NEO:
     #
     #     return action
 
-    def compute_action(self, target):
+    def compute_action(self, target, collision_detector):
         self.panda_rtb.q = self.panda.get_joint_angles(self.panda.joint_indices[:7])
         self.swift_env.step(render=True)
         # self.collision_detector.set_collision_geometries()
@@ -196,7 +187,7 @@ class NEO:
         for collision in self.collision_objects.values():
             # Form the velocity damper inequality constraint for each collision
             # object on the robot to the collision in the scene
-            c_Ain, c_bin = self.panda_rtb.link_collision_damper_2(
+            c_Ain, c_bin = self.panda_rtb.link_collision_damper_pybullet(
                 collision,
                 self.panda.get_joint_angles(self.panda.joint_indices[:7]),
                 0.3,  # influence distance in which the damper becomes active

@@ -1,6 +1,7 @@
 from typing import Optional
 
 import numpy as np
+import pybullet
 import spatialmath
 from swift import Swift
 from gymnasium import spaces
@@ -13,6 +14,7 @@ import roboticstoolbox as rtb
 from ruckig import InputParameter, Ruckig, Trajectory, Result
 import pathlib
 import ruckig
+import qpsolvers as qp
 
 
 class Panda(PyBulletRobot):
@@ -47,33 +49,12 @@ class Panda(PyBulletRobot):
         super().__init__(
             sim,
             body_name="panda",
-            file_name= "franka_panda_custom/panda.urdf",
+            file_name="franka_panda_custom/panda.urdf",
             base_position=base_position,
             action_space=action_space,
             joint_indices=np.array([0, 1, 2, 3, 4, 5, 6, 9, 10]),
             joint_forces=np.array([87.0, 87.0, 87.0, 87.0, 12.0, 120.0, 120.0, 170.0, 170.0]),
         )
-
-
-        # init roboticstoolbox panda
-        self.swift_env = Swift()
-        self.swift_env.launch()
-        self.panda_rtb = rtb.models.Panda()
-        move = spatialmath.SE3(-0.6, 0, 0)
-        self.panda_rtb.base = move
-        self.panda_rtb.q = self.get_joint_angles(self.joint_indices[:7])
-        self.swift_env.add(self.panda_rtb)
-        # initialise pybullet collision
-        start = self.panda_rtb.link_dict["panda_link1"],
-        end = self.panda_rtb.link_dict["panda_hand"],
-        end, start, _ = self.panda_rtb._get_limit_links(start=start[0], end=end[0])
-        links, n, _ = self.panda_rtb.get_path(start=start, end=end)
-
-        j = 0
-        for link in self.panda_rtb.links:
-            col = link.collision
-            for shape in col.data:
-                shape.init_pybullet()
 
         self.fingers_indices = np.array([9, 10])
         self.neutral_joint_values = np.array([1.0, 0.41, 0.00, -1.85, 0.00, 2.26, 0.79, 0.00, 0.00])
@@ -102,6 +83,22 @@ class Panda(PyBulletRobot):
         self.current_joint_angles = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         self.previous_joint_velocities = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         self.current_joint_acceleration = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+
+        # init roboticstoolbox panda
+        self.swift_env = Swift()
+        self.swift_env.launch()
+        self.panda_rtb = rtb.models.Panda()
+        move = spatialmath.SE3(-0.6, 0, 0)
+        self.panda_rtb.base = move
+
+        self.swift_env.add(self.panda_rtb)
+        # initialise pybullet collision
+        start = self.panda_rtb.link_dict["panda_link1"],
+        end = self.panda_rtb.link_dict["panda_hand"],
+        end, start, _ = self.panda_rtb._get_limit_links(start=start[0], end=end[0])
+        links, n, _ = self.panda_rtb.get_path(start=start, end=end)
+        self.panda_rtb.q = self.neutral_joint_values[:7]
+        self.init_swift_robot()
 
     def set_action(self, action: np.ndarray) -> None:
 
@@ -132,6 +129,21 @@ class Panda(PyBulletRobot):
         target_angles = np.concatenate((target_arm_angles, [target_fingers_width / 2, target_fingers_width / 2]))
 
         self.control_joints(target_angles=target_angles)
+        self.update_swift_robot()
+
+    def update_swift_robot(self):
+        self.swift_env.step(dt=0)
+        for link in self.panda_rtb.links:
+            col = link.collision
+            for shape in col.data:
+                shape._update_pyb()
+
+    def init_swift_robot(self):
+        self.swift_env.step(dt=0)
+        for link in self.panda_rtb.links:
+            col = link.collision
+            for shape in col.data:
+                shape.init_pybullet()
 
     def ee_displacement_to_target_arm_angles(self, ee_displacement: np.ndarray) -> np.ndarray:
         """Compute the target arm angles from the end-effector displacement.
@@ -258,4 +270,100 @@ class Panda(PyBulletRobot):
     def get_manipulability(self) -> float:
         """Returns the manipulability as the yoshikawa index"""
         q = [self.get_joint_angle(i) for i in self.joint_indices[:7]]
-        return self.rtb_panda.manipulability(q, axes="trans")
+        return self.panda_rtb.manipulability(q, axes="trans")
+
+    def compute_action_neo(self, target, collision_objects, collision_detector):
+        self.panda_rtb.q = self.get_joint_angles(self.joint_indices[:7])
+        # self.swift_env.step(render=True)
+        # self.collision_detector.set_collision_geometries()
+
+        n = self.panda_rtb.n
+
+        # Transform the goal into an SE3 pose
+        Tep = self.panda_rtb.fkine(self.get_joint_angles(self.joint_indices[:7]))
+        Tep.A[:3, 3] = target
+
+        # The se3 pose of the Panda's end-effector
+        Te = self.panda_rtb.fkine(self.get_joint_angles(self.joint_indices[:7]))
+
+        # Transform from the end-effector to desired pose
+        eTep = Te.inv() * Tep
+
+        # Spatial error
+        e = np.sum(np.abs(np.r_[eTep.t, eTep.rpy() * np.pi / 180]))
+
+        # Calulate the required end-effector spatial velocity for the robot
+        # to approach the goal. Gain is set to 1.0
+        v, arrived = rtb.p_servo(Te, Tep, 1.0, 0.01)
+
+        # Gain term (lambda) for control minimisation
+        Y = 0.01
+
+        # Quadratic component of objective function
+        Q = np.eye(self.panda_rtb.n + 6)
+
+        # Joint velocity component of Q
+        Q[:n, :n] *= Y
+
+        # Slack component of Q
+        Q[n:, n:] = (1 / e) * np.eye(6)
+
+        # The equality contraints
+        Aeq = np.c_[self.panda_rtb.jacobe(self.panda_rtb.q), np.eye(6)]
+        beq = v.reshape((6,))
+
+        # The inequality constraints for joint limit avoidance
+        Ain = np.zeros((n + 6, n + 6))
+        bin = np.zeros(n + 6)
+
+        # The minimum angle (in radians) in which the joint is allowed to approach
+        # to its limit
+        ps = 0.05
+
+        # The influence angle (in radians) in which the velocity damper
+        # becomes active
+        pi = 0.9
+
+        # Form the joint limit velocity damper
+        Ain[:n, :n], bin[:n] = self.panda_rtb.joint_velocity_damper(ps, pi, n)
+
+        # For each collision in the scene
+        for collision in collision_objects.values():
+            # Form the velocity damper inequality constraint for each collision
+            # object on the robot to the collision in the scene
+            c_Ain, c_bin = self.panda_rtb.link_collision_damper_pybullet(
+                collision,
+                collision_detector,
+                self.get_joint_angles(self.joint_indices[:7]),
+                0.3,  # influence distance in which the damper becomes active
+                0.05,  # minimum distance in which the link is allowed to approach the object shape
+                1.0,
+                start=self.panda_rtb.link_dict["panda_link1"],
+                end=self.panda_rtb.link_dict["panda_hand"],
+            )
+
+            # If there are any parts of the robot within the influence distance
+            # to the collision in the scene
+            if c_Ain is not None and c_bin is not None:
+                c_Ain = np.c_[c_Ain, np.zeros((c_Ain.shape[0], 6))]
+
+                # Stack the inequality constraints
+                Ain = np.r_[Ain, c_Ain]
+                bin = np.r_[bin, c_bin]
+
+        # Linear component of objective function: the manipulability Jacobian
+        c = np.r_[-self.panda_rtb.jacobm(self.panda_rtb.q).reshape((n,)), np.zeros(6)]
+
+        # The lower and upper bounds on the joint velocity and slack variable
+        lb = -np.r_[self.panda_rtb.qdlim[:n], 10 * np.ones(6)]
+        ub = np.r_[self.panda_rtb.qdlim[:n], 10 * np.ones(6)]
+
+        # Solve for the joint velocities dq
+        qd = qp.solve_qp(Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver="gurobi")
+
+        self.panda_rtb.qd[:] = qd[:n]
+
+        # Return the joint velocities
+        if qd is None:
+            return np.zeros(n)
+        return qd[:n]
