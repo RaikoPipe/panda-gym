@@ -20,14 +20,20 @@ class NEO:
 
     def __init__(self, env):
         # Launch the simulator Swift
-        self.panda_rtb = None
-        self.collision_objects = None
+        self.panda_rtb = rtb.models.Panda()
+        move = spatialmath.SE3(-0.6, 0, 0)
+        self.panda_rtb.base = move
         self.swift_env = swift.Swift()
-        self.swift_env.add(self.panda_rtb)
         self.swift_env.launch()
 
+        self.swift_env.add(self.panda_rtb)
+
+
+
         self.env = env
-        self.panda = None
+        self.collision_detector = self.env.task.collision_detector
+        self.obstacles = self.env.task.obstacles
+        self.panda = self.env.robot
 
         # Tep = panda.fkine(panda.q)
         # Tep.A[:3, 3] = target.T[:3, -1]
@@ -184,11 +190,12 @@ class NEO:
         Ain[:self.n, :self.n], bin[:self.n] = self.panda_rtb.joint_velocity_damper(ps, pi, self.n)
 
         # For each collision in the scene
-        for collision in self.collision_objects.values():
+        for collision in self.obstacles.keys():
             # Form the velocity damper inequality constraint for each collision
             # object on the robot to the collision in the scene
             c_Ain, c_bin = self.panda_rtb.link_collision_damper_pybullet(
                 collision,
+                collision_detector,
                 self.panda.get_joint_angles(self.panda.joint_indices[:7]),
                 0.3,  # influence distance in which the damper becomes active
                 0.05,  # minimum distance in which the link is allowed to approach the object shape
@@ -205,8 +212,7 @@ class NEO:
                 # Stack the inequality constraints
                 Ain = np.r_[Ain, c_Ain]
                 bin = np.r_[bin, c_bin]
-        sleep(0.03)
-        pybullet.removeAllUserDebugItems(physicsClientId=0)
+
         # Linear component of objective function: the manipulability Jacobian
         c = np.r_[-self.panda_rtb.jacobm(self.panda_rtb.q).reshape((self.n,)), np.zeros(6)]
 
