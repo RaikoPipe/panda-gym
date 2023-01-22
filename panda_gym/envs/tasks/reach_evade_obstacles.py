@@ -39,8 +39,8 @@ class ReachEvadeObstacles(Task):
 
         self.robot: Panda = robot
         self.obstacles = {}
-        # self.dummy_obstacles = {}
-        # self.dummy_obstacle_id = {}
+        self.dummy_obstacles = {}
+        self.dummy_obstacle_id = {}
         self.joint_obstacle_observation = joint_obstacle_observation
 
         # dense reward configuration
@@ -347,31 +347,36 @@ class ReachEvadeObstacles(Task):
     def create_obstacle_sphere(self, position=np.array([0.1, 0, 0.1]), radius=0.02, alpha=0.8):
         obstacle_name = "obstacle"
 
-        id = self.sim.create_sphere(
-            body_name=f"{obstacle_name}_{len(self.obstacles)}",
-            radius=radius,
-            mass=0.0,
-            position=position,
-            rgba_color=np.array([0.5, 0, 0, alpha])
-        )
-        self.obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = id
-        # self.dummy_obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[1]
-        # self.dummy_obstacle_id[ids[0]] = ids[1]
+        ids = []
+        for physics_client in (self.sim.physics_client, self.sim.dummy_collision_client):
+            ids.append(self.sim.create_sphere(
+                body_name=f"{obstacle_name}_{len(self.obstacles)}",
+                radius=radius,
+                mass=0.0,
+                position=position,
+                rgba_color=np.array([0.5, 0, 0, alpha]),
+                physics_client=physics_client
+            ))
+        self.obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[0]
+        self.dummy_obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[1]
+        self.dummy_obstacle_id[ids[0]] = ids[1]
 
     def create_obstacle_cuboid(self, position=np.array([0.1, 0, 0.1]), size=np.array([0.01, 0.01, 0.01])):
         obstacle_name = "obstacle"
+        ids = []
+        for physics_client in (self.sim.physics_client, self.sim.dummy_collision_client):
+            ids.append(self.sim.create_box(
+                body_name=f"{obstacle_name}_{len(self.obstacles)}",
+                half_extents=size,
+                mass=0.0,
+                position=position,
+                rgba_color=np.array([0.5, 0.5, 0.5, 1]),
+                physics_client=physics_client
+            ))
 
-        id = self.sim.create_box(
-            body_name=f"{obstacle_name}_{len(self.obstacles)}",
-            half_extents=size,
-            mass=0.0,
-            position=position,
-            rgba_color=np.array([0.5, 0.5, 0.5, 1])
-        )
-
-        self.obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = id
-        #self.dummy_obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[1]
-        #self.dummy_obstacle_id[ids[0]] = ids[1]
+        self.obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[0]
+        self.dummy_obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[1]
+        self.dummy_obstacle_id[ids[0]] = ids[1]
 
 
     def create_robot_debug_params(self):
@@ -388,37 +393,11 @@ class ReachEvadeObstacles(Task):
             )
         return params
 
-    def get_obs(self) -> np.ndarray:
-        if self.obstacles:
-            q = self.robot.get_joint_angles(self.robot.joint_indices[:7])
-            obs_per_link = self.collision_detector.compute_distances_per_link(q, self.robot.joint_indices[:7],
-                                                                              max_distance=10.0)
-
-            if self.joint_obstacle_observation == "all":
-                self.distances_links_to_closest_obstacle = np.array([min(i) for i in obs_per_link.values()])
-            elif self.joint_obstacle_observation == "closest":
-                self.distances_links_to_closest_obstacle = min(obs_per_link.values())
-
-            self.is_collided = min(self.distances_links_to_closest_obstacle) <= 0.0
-
-        return self.distances_links_to_closest_obstacle
-
     # def get_obs(self) -> np.ndarray:
     #     if self.obstacles:
     #         q = self.robot.get_joint_angles(self.robot.joint_indices[:7])
     #         obs_per_link = self.collision_detector.compute_distances_per_link(q, self.robot.joint_indices[:7],
     #                                                                           max_distance=10.0)
-    #         obs_per_link = {}
-    #
-    #         for link in self.robot.panda_rtb.links:
-    #             link_obs = []
-    #             for obstacle in self.dummy_obstacles.values():
-    #
-    #                 for coll in link.collision:
-    #                     distance = compute_distance(coll.co, obstacle, 1, 5.0)[0]
-    #                     if distance is not None:
-    #                         link_obs.append(distance)
-    #             obs_per_link[link] = link_obs
     #
     #         if self.joint_obstacle_observation == "all":
     #             self.distances_links_to_closest_obstacle = np.array([min(i) for i in obs_per_link.values()])
@@ -428,6 +407,32 @@ class ReachEvadeObstacles(Task):
     #         self.is_collided = min(self.distances_links_to_closest_obstacle) <= 0.0
     #
     #     return self.distances_links_to_closest_obstacle
+
+    def get_obs(self) -> np.ndarray:
+        if self.obstacles:
+            q = self.robot.get_joint_angles(self.robot.joint_indices[:7])
+            # obs_per_link = self.collision_detector.compute_distances_per_link(q, self.robot.joint_indices[:7],
+            #                                                                   max_distance=10.0)
+            obs_per_link = {}
+            links = self.robot.get_rtb_links()
+            for link in links:
+                link_obs = []
+                for obstacle in self.dummy_obstacles.values():
+
+                    for coll in link.collision:
+                        distance = compute_distance(coll.co, obstacle, 1, 5.0)[0]
+                        if distance is not None:
+                            link_obs.append(distance)
+                obs_per_link[link] = link_obs
+
+            if self.joint_obstacle_observation == "all":
+                self.distances_links_to_closest_obstacle = np.array([min(i) for i in obs_per_link.values()])
+            elif self.joint_obstacle_observation == "closest":
+                self.distances_links_to_closest_obstacle = min(obs_per_link.values())
+
+            self.is_collided = min(self.distances_links_to_closest_obstacle) <= 0.0
+
+        return self.distances_links_to_closest_obstacle
 
     def get_achieved_goal(self) -> np.ndarray:
         ee_position = np.array(self.get_ee_position())
@@ -447,10 +452,10 @@ class ReachEvadeObstacles(Task):
                         pos = self._sample_goal()
                         self.sim.set_base_pose(obstacle, pos, np.array([0.0, 0.0, 0.0, 1.0]))
                         collision = self.get_collision("robot", obstacle, margin=0.05)
-                    # else:
-                    #     if pos is not None:
-                    #         self.sim.set_base_pose_dummy(self.dummy_obstacle_id[obstacle_id], pos, np.array([0.0, 0.0, 0.0, 1.0]),
-                    #                                physics_client=self.sim.dummy_collision_client)
+                    else:
+                        if pos is not None:
+                            self.sim.set_base_pose_dummy(self.dummy_obstacle_id[obstacle_id], pos, np.array([0.0, 0.0, 0.0, 1.0]),
+                                                   physics_client=self.sim.dummy_collision_client)
 
 
         collision = True

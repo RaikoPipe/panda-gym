@@ -32,7 +32,7 @@ class NEO:
 
         self.env = env
         self.collision_detector = self.env.task.collision_detector
-        self.obstacles = self.env.task.obstacles
+        self.obstacles = self.env.task.dummy_obstacles
         self.panda = self.env.robot
 
         # Tep = panda.fkine(panda.q)
@@ -136,9 +136,9 @@ class NEO:
     #
     #     return action
 
-    def compute_action(self, target, collision_detector):
+    def compute_action(self, target):
         self.panda_rtb.q = self.panda.get_joint_angles(self.panda.joint_indices[:7])
-        self.swift_env.step(render=True)
+        # self.swift_env.step(render=True)
         # self.collision_detector.set_collision_geometries()
 
         # Transform the goal into an SE3 pose
@@ -190,12 +190,11 @@ class NEO:
         Ain[:self.n, :self.n], bin[:self.n] = self.panda_rtb.joint_velocity_damper(ps, pi, self.n)
 
         # For each collision in the scene
-        for collision in self.obstacles.keys():
+        for collision in self.obstacles.values():
             # Form the velocity damper inequality constraint for each collision
             # object on the robot to the collision in the scene
-            c_Ain, c_bin = self.panda_rtb.link_collision_damper_pybullet(
+            c_Ain, c_bin = self.panda_rtb.link_collision_damper_2(
                 collision,
-                collision_detector,
                 self.panda.get_joint_angles(self.panda.joint_indices[:7]),
                 0.3,  # influence distance in which the damper becomes active
                 0.05,  # minimum distance in which the link is allowed to approach the object shape
@@ -223,9 +222,11 @@ class NEO:
         # Solve for the joint velocities dq
         qd = qp.solve_qp(Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver="gurobi")
 
-        self.panda_rtb.qd[:self.n] = qd[:self.n]
+
 
         # Return the joint velocities
         if qd is None:
+
             return np.zeros(self.n)
+        self.panda_rtb.qd[:self.n] = qd[:self.n]
         return qd[:self.n]
