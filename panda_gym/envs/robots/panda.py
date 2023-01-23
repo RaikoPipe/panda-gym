@@ -322,11 +322,11 @@ class Panda(PyBulletRobot):
         n = self.panda_rtb.n
 
         # Transform the goal into an SE3 pose
-        Tep = self.panda_rtb.fkine(self.get_joint_angles(self.joint_indices[:7]))
+        Tep = self.panda_rtb.fkine(self.panda_rtb.q)
         Tep.A[:3, 3] = target
 
         # The se3 pose of the Panda's end-effector
-        Te = self.panda_rtb.fkine(self.get_joint_angles(self.joint_indices[:7]))
+        Te = self.panda_rtb.fkine(self.panda_rtb.q)
 
         # Transform from the end-effector to desired pose
         eTep = Te.inv() * Tep
@@ -336,7 +336,7 @@ class Panda(PyBulletRobot):
 
         # Calulate the required end-effector spatial velocity for the robot
         # to approach the goal. Gain is set to 1.0
-        v, arrived = rtb.p_servo(Te, Tep, 1.0, 0.01)
+        v, arrived = rtb.p_servo(Te, Tep, 0.5, 0.01)
 
         # Gain term (lambda) for control minimisation
         Y = 0.01
@@ -403,7 +403,7 @@ class Panda(PyBulletRobot):
         # Solve for the joint velocities dq
         qd = qp.solve_qp(Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver="gurobi")
 
-        self.panda_rtb.qd[:] = qd[:n]
+        #self.panda_rtb.qd[:] = qd[:n]
 
         # Return the joint velocities
         if qd is None:
