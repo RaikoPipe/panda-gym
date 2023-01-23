@@ -100,7 +100,7 @@ class PandaReachEvadeObstaclesEnv(RobotTaskEnv):
 
                  ) -> None:
         sim = PyBullet(render=render, realtime=realtime)
-        robot = Panda(sim, block_gripper=True, base_position=np.array([-0.6, 0.0, 0.0]), control_type=control_type,
+        robot = Panda(sim, block_gripper=True, base_position=np.array([0.0, 0.0, 0.0]), control_type=control_type,
                       obs_type=obs_type,
                       limiter=limiter)
         task = ReachEvadeObstacles(sim, robot, reward_type=reward_type,

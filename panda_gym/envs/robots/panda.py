@@ -89,8 +89,8 @@ class Panda(PyBulletRobot):
         # self.swift_env = Swift()
         # self.swift_env.launch()
         self.panda_rtb = rtb.models.Panda()
-        move = spatialmath.SE3(-0.6, 0, 0)
-        self.panda_rtb.base = move
+        # move = spatialmath.SE3(-0.6, 0, 0)
+        # self.panda_rtb.base = move
         self.link_collision_location_info = {}
         #
         # self.swift_env.add(self.panda_rtb)
@@ -322,11 +322,11 @@ class Panda(PyBulletRobot):
         n = self.panda_rtb.n
 
         # Transform the goal into an SE3 pose
-        Tep = self.panda_rtb.fkine(self.panda_rtb.q)
+        Tep = self.panda_rtb.fkine(self.get_joint_angles(self.joint_indices[:7]))
         Tep.A[:3, 3] = target
 
         # The se3 pose of the Panda's end-effector
-        Te = self.panda_rtb.fkine(self.panda_rtb.q)
+        Te = self.panda_rtb.fkine(self.get_joint_angles(self.joint_indices[:7]))
 
         # Transform from the end-effector to desired pose
         eTep = Te.inv() * Tep
@@ -403,7 +403,7 @@ class Panda(PyBulletRobot):
         # Solve for the joint velocities dq
         qd = qp.solve_qp(Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver="gurobi")
 
-        #self.panda_rtb.qd[:] = qd[:n]
+        self.panda_rtb.qd[:] = qd[:n]
 
         # Return the joint velocities
         if qd is None:

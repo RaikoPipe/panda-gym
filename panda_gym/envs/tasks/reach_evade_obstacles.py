@@ -25,11 +25,12 @@ class ReachEvadeObstacles(Task):
             show_debug_labels=True,
             fixed_target=None,
             # adjustement factors for dense rewards
-            factor_punish_distance=10.0,  # def: 10.0
-            factor_punish_collision=1.0,  # def: 1.0
-            factor_punish_action_magnitude=0.000,  # def: 0.005
-            factor_punish_action_difference_magnitude=0.0,  # def: ?
-            factor_punish_obstacle_proximity=0.0  # def: ?
+            factor_punish_distance=10.0, # def: 10.0
+            factor_punish_collision=1.0, # def: 1.0
+            factor_punish_action_magnitude=0.000, # def: 0.005
+            factor_punish_action_difference_magnitude=0.0, # def: ?
+            factor_punish_obstacle_proximity=0.0 # def: ?
+
 
     ) -> None:
         super().__init__(sim)
@@ -75,7 +76,6 @@ class ReachEvadeObstacles(Task):
         }
         # self.robot_params = self.create_robot_debug_params()
         self.cube_size_small = np.array([0.02, 0.02, 0.02])
-        self.cube_size_large = np.array([0.04, 0.04, 0.04])
         self.cube_size_mini = np.array([0.01, 0.01, 0.01])
 
         self.reward_type = reward_type
@@ -86,7 +86,7 @@ class ReachEvadeObstacles(Task):
 
         self.bodies = {"robot": self.robot.id}
 
-        exclude_links = ["panda_grasptarget", "panda_leftfinger", "panda_rightfinger"]  # env has no grasptarget
+        exclude_links = ["panda_grasptarget", "panda_leftfinger", "panda_rightfinger"] # env has no grasptarget
         self.collision_links = [i for i in self.robot.link_names if i not in exclude_links]
         self.collision_objects = []
         self.randomize = False  # Randomize obstacle placement
@@ -148,6 +148,9 @@ class ReachEvadeObstacles(Task):
             # self.sim.create_debug_text(self.debug_action_smallness_label_name,
             #                            f"{self.debug_action_smallness_base_text} 0")
 
+
+
+
     def _create_scene(self):
 
         self.sim.create_plane(z_offset=-0.4)
@@ -163,7 +166,7 @@ class ReachEvadeObstacles(Task):
 
         self.bodies["dummy_target"] = self.sim.create_sphere(
             body_name="dummy_target",
-            radius=0.05,  # dummy target is intentionally bigger to ensure safety distance to obstacle
+            radius=0.05, # dummy target is intentionally bigger to ensure safety distance to obstacle
             mass=0.0,
             position=np.zeros(3),
             rgba_color=np.array([0.1, 0.9, 0.1, 0.0]),
@@ -309,12 +312,12 @@ class ReachEvadeObstacles(Task):
 
         self.create_obstacle_sphere(
             radius=0.05,
-            position=np.array([0.0, -0.2, 0.1])
+            position=np.array([0.0,-0.2,0.1])
         )
 
         self.create_obstacle_sphere(
             radius=0.05,
-            position=np.array([0.0, -0.2, 0.2])
+        position= np.array([0.0, -0.2, 0.2])
         )
 
     def create_stage_sphere_2_random(self):
@@ -331,30 +334,19 @@ class ReachEvadeObstacles(Task):
         )
 
     def create_stage_neo_test_1(self):
-        self.fixed_target = np.array([0.17455782, -0.19988458, 0.30913323])
         self.goal_range = 0.4
-        self.randomize = False
+        self.create_obstacle_sphere(radius=0.1, position=np.array([-0.1, -0.2, 0.25]))
 
-        self.create_obstacle_cuboid(
-            np.array([-0.03662414, - 0.12311165, 0.32447543]),
-            size=self.cube_size_small)
-
-        self.create_obstacle_cuboid(
-            np.array([-0.1392295, 0.26931742, 0.47040958]),
-            size=self.cube_size_small)
-
-        self.create_obstacle_cuboid(
-            np.array([0.01113043, - 0.04042116, 0.33172773]),
-            size=self.cube_size_small)
     def create_stage_neo_test_2(self):
         """edge case, where NEO fails..."""
         self.goal_range = 0.4
-        self.fixed_target = np.array([-1.0, 0.0, 0.3])
+        self.fixed_target = np.array([-1.0,0.0,0.3])
         self.goal = self.fixed_target
         self.create_obstacle_sphere(radius=0.0001, position=np.array([-0.1, -0.2, -0.25]))
 
     def create_obstacle_sphere(self, position=np.array([0.1, 0, 0.1]), radius=0.02, alpha=0.8):
         obstacle_name = "obstacle"
+        #position[0] += 0.6
 
         ids = []
         for physics_client in (self.sim.physics_client, self.sim.dummy_collision_client):
@@ -372,6 +364,7 @@ class ReachEvadeObstacles(Task):
 
     def create_obstacle_cuboid(self, position=np.array([0.1, 0, 0.1]), size=np.array([0.01, 0.01, 0.01])):
         obstacle_name = "obstacle"
+        #position[0] += 0.6
         ids = []
         for physics_client in (self.sim.physics_client, self.sim.dummy_collision_client):
             ids.append(self.sim.create_box(
@@ -386,6 +379,7 @@ class ReachEvadeObstacles(Task):
         self.obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[0]
         self.dummy_obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[1]
         self.dummy_obstacle_id[ids[0]] = ids[1]
+
 
     def create_robot_debug_params(self):
         """Create debug params to set the robot joint positions from the GUI."""
@@ -447,45 +441,41 @@ class ReachEvadeObstacles(Task):
         return ee_position
 
     def reset(self) -> None:
+        if self.fixed_target is None:
+            self.goal = self._sample_goal()
+            if self.randomize:
+                # randomize obstacle position within goal space
+                for obstacle in self.obstacles.keys():
+                    # get collision free obstacle position
+                    collision = True
+                    pos = None
+                    obstacle_id = self.obstacles[obstacle]
+                    while collision:
+                        pos = self._sample_goal()
+                        self.sim.set_base_pose(obstacle, pos, np.array([0.0, 0.0, 0.0, 1.0]))
+                        collision = self.get_collision("robot", obstacle, margin=0.05)
+                    else:
+                        if pos is not None:
+                            self.sim.set_base_pose_dummy(self.dummy_obstacle_id[obstacle_id], pos, np.array([0.0, 0.0, 0.0, 1.0]),
+                                                   physics_client=self.sim.dummy_collision_client)
 
-        if self.randomize:
-            # randomize obstacle position within goal space
-            for obstacle in self.obstacles.keys():
-                # get collision free obstacle position
-                collision = True
-                pos = None
-                obstacle_id = self.obstacles[obstacle]
-                while collision:
-                    pos = self._sample_goal()
-                    self.sim.set_base_pose(obstacle, pos, np.array([0.0, 0.0, 0.0, 1.0]))
-                    collision = self.get_collision("robot", obstacle, margin=0.05)
-                else:
-                    if pos is not None:
-                        self.sim.set_base_pose_dummy(self.dummy_obstacle_id[obstacle_id], pos,
-                                                     np.array([0.0, 0.0, 0.0, 1.0]),
-                                                     physics_client=self.sim.dummy_collision_client)
-                        print(pos)
 
         collision = True
         # get collision free goal
-        if self.fixed_target is None:
-            self.goal = self._sample_goal()
-            while collision and self.obstacles:
+        while collision and self.obstacles:
 
-                self.sim.set_base_pose("dummy_target", self.goal, np.array([0.0, 0.0, 0.0, 1.0]))
-                self.sim.physics_client.performCollisionDetection()
-                for obstacle in self.obstacles:
-                    collision = self.get_collision("dummy_target", obstacle)
+            self.sim.set_base_pose("dummy_target", self.goal, np.array([0.0, 0.0, 0.0, 1.0]))
+            self.sim.physics_client.performCollisionDetection()
+            for obstacle in self.obstacles:
+                collision = self.get_collision("dummy_target", obstacle)
 
-                    if collision:
-                        self.goal = self._sample_goal()
-                        break
-            print(self.goal)
-            self.sim.set_base_pose("target", self.goal, np.array([0.0, 0.0, 0.0, 1.0]))
-            self.sim.set_base_pose("dummy_target", np.array([0.0, 0.0, -5.0]),
-                                   np.array([0.0, 0.0, 0.0, 1.0]))  # move dummy away
-        else:
-            self.goal = self.fixed_target
+                if collision:
+                    self.goal = self._sample_goal()
+                    break
+
+        self.sim.set_base_pose("target", self.goal, np.array([0.0, 0.0, 0.0, 1.0]))
+        self.sim.set_base_pose("dummy_target", np.array([0.0, 0.0, -5.0]),
+                               np.array([0.0, 0.0, 0.0, 1.0]))  # move dummy away
 
         # reset robot actions
         self.robot.recent_action = None
@@ -505,6 +495,7 @@ class ReachEvadeObstacles(Task):
     def _sample_goal(self) -> np.ndarray:
         """Randomize goal."""
         goal = self.np_random.uniform(self.goal_range_low, self.goal_range_high)
+        goal[0] += 0.6
         return goal
 
     def is_success(self, achieved_goal: np.ndarray, desired_goal: np.ndarray) -> np.ndarray:
@@ -565,8 +556,8 @@ class ReachEvadeObstacles(Task):
         else:
             # calculate dense rewards
 
-            reward = -np.array(action_diff * self.factor_punish_action_difference_magnitude +
-                               action_magnitude * self.factor_punish_action_magnitude, dtype=np.float32)
+            reward = -np.array(action_diff*self.factor_punish_action_difference_magnitude +
+                               action_magnitude*self.factor_punish_action_magnitude, dtype=np.float32)
 
             collision = min(obs_d) <= 0.0
 

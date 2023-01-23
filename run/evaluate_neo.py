@@ -26,6 +26,7 @@ def evaluate(env, num_steps=10000):
     for i in range(num_steps):
         # _states are only useful when using LSTM policies
         action = env.robot.compute_action_neo(env.task.goal, env.task.dummy_obstacles, env.task.collision_detector)# [0.07996564, -0.13340622, 0.02173809])
+        #pybullet.removeAllUserDebugItems(physicsClientId=1)
         #rl_action, _ = model.predict(obs)
 
         obs, reward, done, truncated, info, = env.step(action)
@@ -45,6 +46,8 @@ def evaluate(env, num_steps=10000):
                 print("Timeout...")
                 done_events.append(0)
             obs, _ = env.reset()
+
+            sleep(0.01)
 
 
             episode_rewards.append(0.0)
@@ -72,7 +75,7 @@ panda_gym.register_envs(200)
 env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
                obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                reward_type=config["reward_type"], limiter=config["limiter"],
-               show_goal_space=False, obstacle_layout="cube_3_random",
+               show_goal_space=False, obstacle_layout="sphere_2_random",
                show_debug_labels=True)
 
 #rrmc_neo = NEO(env)

@@ -34,15 +34,12 @@ class PyBullet:
         self.connection_mode = p.GUI if render else p.DIRECT
         self.render_env = render
 
-        self.physics_client = bc.BulletClient(connection_mode=self.connection_mode, options=options)
-        self.dummy_collision_client = bc.BulletClient(connection_mode=p.DIRECT)
-        # self.physics_client = bc.BulletClient(connection_mode=p.DIRECT, options=options)
-        # self.dummy_collision_client = bc.BulletClient(connection_mode=p.GUI)
+        # self.physics_client = bc.BulletClient(connection_mode=self.connection_mode, options=options)
+        # self.dummy_collision_client = bc.BulletClient(connection_mode=p.DIRECT)
+        self.physics_client = bc.BulletClient(connection_mode=p.DIRECT, options=options)
+        self.dummy_collision_client = bc.BulletClient(connection_mode=p.GUI)
         self.physics_client.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
         self.physics_client.configureDebugVisualizer(p.COV_ENABLE_MOUSE_PICKING, 1)
-        # todo: test if this changes behaviour of the physics simulation
-        if render and realtime:
-            p.setRealTimeSimulation(1, self.physics_client._client)
 
         self.n_substeps = n_substeps
         self.timestep = 1.0 / 500
