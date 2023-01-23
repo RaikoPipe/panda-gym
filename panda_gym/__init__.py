@@ -21,6 +21,13 @@ def register_envs(max_ep_steps):
             )
 
             register(
+                id="PandaReachChecker{}{}-v3".format(control_suffix, reward_suffix),
+                entry_point="panda_gym.envs:PandaReachCheckerEnv",
+                kwargs=kwargs,
+                max_episode_steps=50,  # default: 50
+            )
+
+            register(
                 id="PandaReachEvadeObstacles{}{}-v3".format(control_suffix, reward_suffix),
                 entry_point="panda_gym.envs:PandaReachEvadeObstaclesEnv",
                 kwargs=kwargs,

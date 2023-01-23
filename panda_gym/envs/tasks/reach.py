@@ -16,6 +16,7 @@ class Reach(Task):
         show_goal_space=False
     ) -> None:
         super().__init__(sim)
+        self.fixed_target = None
         self.reward_type = reward_type
         self.distance_threshold = distance_threshold
         self.get_ee_position = get_ee_position
@@ -62,8 +63,16 @@ class Reach(Task):
         return ee_position
 
     def reset(self) -> None:
-        self.goal = self._sample_goal()
+        if self.fixed_target is None:
+            self.goal = self._sample_goal()
+        else:
+            self.fixed_target[0] -= 0.6
+            self.goal = self.fixed_target
+
         self.sim.set_base_pose("target", self.goal, np.array([0.0, 0.0, 0.0, 1.0]))
+
+    def set_fixed_target(self, target):
+        self.fixed_target = target.copy()
 
     def _sample_goal(self) -> np.ndarray:
         """Randomize goal."""

@@ -36,7 +36,8 @@ class Panda(PyBulletRobot):
             base_position: Optional[np.ndarray] = None,
             control_type: str = "js",
             obs_type: str = "ee",
-            limiter: str = "sim"
+            limiter: str = "sim",
+            use_robotics_toolbox = True
     ) -> None:
         base_position = base_position if base_position is not None else np.zeros(3)
         self.block_gripper = block_gripper
@@ -58,7 +59,7 @@ class Panda(PyBulletRobot):
         )
 
         self.fingers_indices = np.array([9, 10])
-        self.neutral_joint_values = np.array([1.0, 0.41, 0.00, -1.85, 0.00, 2.26, 0.79, 0.00, 0.00])
+        self.neutral_joint_values = np.array([0, -0.3, 0, -2.2, 0, 2.0, np.pi / 4, 0.00, 0.00])
         self.ee_link = 11
         self.sim.set_lateral_friction(self.body_name, self.fingers_indices[0], lateral_friction=1.0)
         self.sim.set_lateral_friction(self.body_name, self.fingers_indices[1], lateral_friction=1.0)
@@ -85,23 +86,27 @@ class Panda(PyBulletRobot):
         self.previous_joint_velocities = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         self.current_joint_acceleration = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
-        # init roboticstoolbox panda
-        # self.swift_env = Swift()
-        # self.swift_env.launch()
-        self.panda_rtb = rtb.models.Panda()
-        # move = spatialmath.SE3(-0.6, 0, 0)
-        # self.panda_rtb.base = move
-        self.link_collision_location_info = {}
-        #
-        # self.swift_env.add(self.panda_rtb)
-        # # initialise pybullet collision
-        # start = self.panda_rtb.link_dict["panda_link1"],
-        # end = self.panda_rtb.link_dict["panda_hand"],
-        # end, start, _ = self.panda_rtb._get_limit_links(start=start[0], end=end[0])
-        # links, n, _ = self.panda_rtb.get_path(start=start, end=end)
-        # self.panda_rtb.q = self.neutral_joint_values[:7]
-        self.init_swift_robot()
-        self.update_dummy_robot_link_positions()
+        self.rtb = use_robotics_toolbox
+
+        if self.rtb:
+            # init roboticstoolbox panda
+            # self.swift_env = Swift()
+            # self.swift_env.launch()
+            self.panda_rtb = rtb.models.Panda()
+            self.optimal_pose = None
+            # move = spatialmath.SE3(-0.6, 0, 0)
+            # self.panda_rtb.base = move
+            self.link_collision_location_info = {}
+            #
+            # self.swift_env.add(self.panda_rtb)
+            # # initialise pybullet collision
+            # start = self.panda_rtb.link_dict["panda_link1"],
+            # end = self.panda_rtb.link_dict["panda_hand"],
+            # end, start, _ = self.panda_rtb._get_limit_links(start=start[0], end=end[0])
+            # links, n, _ = self.panda_rtb.get_path(start=start, end=end)
+            # self.panda_rtb.q = self.neutral_joint_values[:7]
+            self.init_swift_robot()
+            self.update_dummy_robot_link_positions()
 
     def set_action(self, action: np.ndarray) -> None:
 
@@ -132,7 +137,9 @@ class Panda(PyBulletRobot):
         target_angles = np.concatenate((target_arm_angles, [target_fingers_width / 2, target_fingers_width / 2]))
 
         self.control_joints(target_angles=target_angles)
-        self.update_dummy_robot_link_positions()
+
+        if self.rtb:
+            self.update_dummy_robot_link_positions()
         # self.update_swift_robot()
 
     # def update_swift_robot(self):
@@ -289,7 +296,9 @@ class Panda(PyBulletRobot):
 
     def reset(self) -> None:
         self.set_joint_neutral()
-        self.update_dummy_robot_link_positions()
+        if self.rtb:
+            self.update_dummy_robot_link_positions()
+            self.optimal_pose = None
 
     def set_joint_neutral(self) -> None:
         """Set the robot to its neutral pose."""
@@ -322,11 +331,19 @@ class Panda(PyBulletRobot):
         n = self.panda_rtb.n
 
         # Transform the goal into an SE3 pose
-        Tep = self.panda_rtb.fkine(self.get_joint_angles(self.joint_indices[:7]))
-        Tep.A[:3, 3] = target
+        if self.optimal_pose is not None:
+            Tep = self.panda_rtb.fkine(self.optimal_pose)
+            Tep.A[:3, 3] = target
+        else:
+            Tep = self.panda_rtb.fkine(self.panda_rtb.q)
+            Tep.A[:3, 3] = target
+
+        #sol = self.panda_rtb.ik_lm_chan(Tep)
+        #Tep = self.panda_rtb.fkine(sol.q)
+
 
         # The se3 pose of the Panda's end-effector
-        Te = self.panda_rtb.fkine(self.get_joint_angles(self.joint_indices[:7]))
+        Te = self.panda_rtb.fkine(self.panda_rtb.q)
 
         # Transform from the end-effector to desired pose
         eTep = Te.inv() * Tep
@@ -336,7 +353,7 @@ class Panda(PyBulletRobot):
 
         # Calulate the required end-effector spatial velocity for the robot
         # to approach the goal. Gain is set to 1.0
-        v, arrived = rtb.p_servo(Te, Tep, 0.5, 0.01)
+        v, arrived = rtb.p_servo(Te, Tep, 0.5, 0.05)
 
         # Gain term (lambda) for control minimisation
         Y = 0.01
@@ -377,7 +394,7 @@ class Panda(PyBulletRobot):
                 collision,
                 self.panda_rtb.q[:n],
                 0.3,  # influence distance in which the damper becomes active
-                0.05,  # minimum distance in which the link is allowed to approach the object shape
+                0.01,  # minimum distance in which the link is allowed to approach the object shape
                 1.0,
                 start=self.panda_rtb.link_dict["panda_link1"],
                 end=self.panda_rtb.link_dict["panda_hand"],

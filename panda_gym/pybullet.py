@@ -23,7 +23,7 @@ class PyBullet:
     """
 
     def __init__(self, render: bool = False, realtime=False, n_substeps: int = 20,
-                 background_color: Optional[np.ndarray] = None) -> None:
+                 background_color: Optional[np.ndarray] = None, dummy_client=True) -> None:
         background_color = background_color if background_color is not None else np.array([0.0, 134.0, 201.0])
         self.background_color = background_color.astype(np.float32) / 255
         options = "--background_color_red={} \
@@ -34,10 +34,11 @@ class PyBullet:
         self.connection_mode = p.GUI if render else p.DIRECT
         self.render_env = render
 
-        # self.physics_client = bc.BulletClient(connection_mode=self.connection_mode, options=options)
-        # self.dummy_collision_client = bc.BulletClient(connection_mode=p.DIRECT)
-        self.physics_client = bc.BulletClient(connection_mode=p.DIRECT, options=options)
-        self.dummy_collision_client = bc.BulletClient(connection_mode=p.GUI)
+        self.physics_client = bc.BulletClient(connection_mode=self.connection_mode, options=options)
+        if dummy_client:
+            self.dummy_collision_client = bc.BulletClient(connection_mode=p.DIRECT)
+        # self.physics_client = bc.BulletClient(connection_mode=p.DIRECT, options=options)
+        # self.dummy_collision_client = bc.BulletClient(connection_mode=p.GUI)
         self.physics_client.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
         self.physics_client.configureDebugVisualizer(p.COV_ENABLE_MOUSE_PICKING, 1)
 
@@ -751,7 +752,7 @@ class PyBullet:
         self._string_idx.pop(text_name)
 
     def remove_all_debug_text(self):
-        #self.physics_client.removeAllUserDebugItems(physicsClientId=self.physics_client._client)
+        self.physics_client.removeAllUserDebugItems(physicsClientId=self.physics_client._client)
         self._string_idx.clear()
 
     def set_debug_object_color(

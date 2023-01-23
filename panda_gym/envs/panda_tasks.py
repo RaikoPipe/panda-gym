@@ -83,6 +83,27 @@ class PandaReachEnv(RobotTaskEnv):
         super().__init__(robot, task)
 
 
+class PandaReachCheckerEnv(RobotTaskEnv):
+    """Reach task wih Panda robot.
+
+    Args:
+        render (bool, optional): Activate rendering. Defaults to False.
+        reward_type (str, optional): "sparse" or "dense". Defaults to "sparse".
+        control_type (str, optional): "ee" to control end-effector position or "joints" to control joint values.
+            Defaults to "ee".
+    """
+
+    def __init__(self, render: bool = False, realtime: bool = False, reward_type: str = "sparse",
+                 control_type: str = "js",
+                 goal_range=0.3, show_goal_space=False) -> None:
+        sim = PyBullet(render=False, realtime=realtime)
+        robot = Panda(sim, block_gripper=True, base_position=np.array([-0.6, 0.0, 0.0]), control_type=control_type,
+                      use_robotics_toolbox=False)
+        task = Reach(sim, reward_type=reward_type, get_ee_position=robot.get_ee_position, goal_range=goal_range,
+                     show_goal_space=show_goal_space)
+        super().__init__(robot, task)
+
+
 class PandaReachEvadeObstaclesEnv(RobotTaskEnv):
     """Reach task wih Panda robot.
 
@@ -94,7 +115,7 @@ class PandaReachEvadeObstaclesEnv(RobotTaskEnv):
     """
 
     def __init__(self, render: bool = False, realtime: bool = False,
-                 reward_type: str = "sparse", goal_distance_threshold:float = 0.05,
+                 reward_type: str = "sparse", goal_distance_threshold: float = 0.05,
                  control_type: str = "js", obs_type: str = "ee", show_goal_space=False, obstacle_layout: int = 1,
                  joint_obstacle_observation: str = "all", show_debug_labels=False, fixed_target=None, limiter="sim",
 

@@ -1,3 +1,4 @@
+import pathlib
 from math import exp
 from typing import Any, Dict
 
@@ -9,6 +10,8 @@ from panda_gym.envs.robots.panda import Panda
 from panda_gym.utils import distance
 from pyb_utils.collision import NamedCollisionObject, CollisionDetector, compute_distance
 import pybullet as p
+import gymnasium as gym
+from stable_baselines3 import TD3
 
 
 class ReachEvadeObstacles(Task):
@@ -25,12 +28,11 @@ class ReachEvadeObstacles(Task):
             show_debug_labels=True,
             fixed_target=None,
             # adjustement factors for dense rewards
-            factor_punish_distance=10.0, # def: 10.0
-            factor_punish_collision=1.0, # def: 1.0
-            factor_punish_action_magnitude=0.000, # def: 0.005
-            factor_punish_action_difference_magnitude=0.0, # def: ?
-            factor_punish_obstacle_proximity=0.0 # def: ?
-
+            factor_punish_distance=10.0,  # def: 10.0
+            factor_punish_collision=1.0,  # def: 1.0
+            factor_punish_action_magnitude=0.000,  # def: 0.005
+            factor_punish_action_difference_magnitude=0.0,  # def: ?
+            factor_punish_obstacle_proximity=0.0  # def: ?
 
     ) -> None:
         super().__init__(sim)
@@ -84,9 +86,17 @@ class ReachEvadeObstacles(Task):
         self.goal_range = 0.3
         self.obstacle_count = 0
 
+        # # init pose generator env
+        self.reach_checker_env = gym.make("PandaReachChecker", control_type = "js", render=True)
+
+        # # load pose checker model
+        path = pathlib.Path(__file__).parent.resolve()
+        self.pose_generator_model = TD3.load(fr"{path}/pose_generator_model.zip",
+                                             env=self.reach_checker_env)
+
         self.bodies = {"robot": self.robot.id}
 
-        exclude_links = ["panda_grasptarget", "panda_leftfinger", "panda_rightfinger"] # env has no grasptarget
+        exclude_links = ["panda_grasptarget", "panda_leftfinger", "panda_rightfinger"]  # env has no grasptarget
         self.collision_links = [i for i in self.robot.link_names if i not in exclude_links]
         self.collision_objects = []
         self.randomize = False  # Randomize obstacle placement
@@ -148,9 +158,6 @@ class ReachEvadeObstacles(Task):
             # self.sim.create_debug_text(self.debug_action_smallness_label_name,
             #                            f"{self.debug_action_smallness_base_text} 0")
 
-
-
-
     def _create_scene(self):
 
         self.sim.create_plane(z_offset=-0.4)
@@ -166,7 +173,7 @@ class ReachEvadeObstacles(Task):
 
         self.bodies["dummy_target"] = self.sim.create_sphere(
             body_name="dummy_target",
-            radius=0.05, # dummy target is intentionally bigger to ensure safety distance to obstacle
+            radius=0.05,  # dummy target is intentionally bigger to ensure safety distance to obstacle
             mass=0.0,
             position=np.zeros(3),
             rgba_color=np.array([0.1, 0.9, 0.1, 0.0]),
@@ -306,18 +313,18 @@ class ReachEvadeObstacles(Task):
 
     def create_stage_sphere_2(self):
         """2  spheres"""
-        self.goal_range = 0.4
+        self.goal_range = 0.3
         self.fixed_target = np.array([-0.2, -0.4, 0.2])
         self.goal = self.fixed_target
 
         self.create_obstacle_sphere(
             radius=0.05,
-            position=np.array([0.0,-0.2,0.1])
+            position=np.array([0.0, -0.2, 0.1])
         )
 
         self.create_obstacle_sphere(
             radius=0.05,
-        position= np.array([0.0, -0.2, 0.2])
+            position=np.array([0.0, -0.2, 0.2])
         )
 
     def create_stage_sphere_2_random(self):
@@ -340,13 +347,13 @@ class ReachEvadeObstacles(Task):
     def create_stage_neo_test_2(self):
         """edge case, where NEO fails..."""
         self.goal_range = 0.4
-        self.fixed_target = np.array([-1.0,0.0,0.3])
+        self.fixed_target = np.array([-1.0, 0.0, 0.3])
         self.goal = self.fixed_target
         self.create_obstacle_sphere(radius=0.0001, position=np.array([-0.1, -0.2, -0.25]))
 
     def create_obstacle_sphere(self, position=np.array([0.1, 0, 0.1]), radius=0.02, alpha=0.8):
         obstacle_name = "obstacle"
-        #position[0] += 0.6
+        # position[0] += 0.6
 
         ids = []
         for physics_client in (self.sim.physics_client, self.sim.dummy_collision_client):
@@ -364,7 +371,7 @@ class ReachEvadeObstacles(Task):
 
     def create_obstacle_cuboid(self, position=np.array([0.1, 0, 0.1]), size=np.array([0.01, 0.01, 0.01])):
         obstacle_name = "obstacle"
-        #position[0] += 0.6
+        # position[0] += 0.6
         ids = []
         for physics_client in (self.sim.physics_client, self.sim.dummy_collision_client):
             ids.append(self.sim.create_box(
@@ -379,7 +386,6 @@ class ReachEvadeObstacles(Task):
         self.obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[0]
         self.dummy_obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[1]
         self.dummy_obstacle_id[ids[0]] = ids[1]
-
 
     def create_robot_debug_params(self):
         """Create debug params to set the robot joint positions from the GUI."""
@@ -441,6 +447,7 @@ class ReachEvadeObstacles(Task):
         return ee_position
 
     def reset(self) -> None:
+        # sample new (collision free) obstacles
         if self.fixed_target is None:
             self.goal = self._sample_goal()
             if self.randomize:
@@ -456,9 +463,9 @@ class ReachEvadeObstacles(Task):
                         collision = self.get_collision("robot", obstacle, margin=0.05)
                     else:
                         if pos is not None:
-                            self.sim.set_base_pose_dummy(self.dummy_obstacle_id[obstacle_id], pos, np.array([0.0, 0.0, 0.0, 1.0]),
-                                                   physics_client=self.sim.dummy_collision_client)
-
+                            self.sim.set_base_pose_dummy(self.dummy_obstacle_id[obstacle_id], pos,
+                                                         np.array([0.0, 0.0, 0.0, 1.0]),
+                                                         physics_client=self.sim.dummy_collision_client)
 
         collision = True
         # get collision free goal
@@ -476,6 +483,27 @@ class ReachEvadeObstacles(Task):
         self.sim.set_base_pose("target", self.goal, np.array([0.0, 0.0, 0.0, 1.0]))
         self.sim.set_base_pose("dummy_target", np.array([0.0, 0.0, -5.0]),
                                np.array([0.0, 0.0, 0.0, 1.0]))  # move dummy away
+
+        # use rl policy to generate joint angles (and save final pose)
+        arrived = False
+        self.reach_checker_env.task.set_fixed_target(self.goal)
+        obs, _ = self.reach_checker_env.reset()
+
+        for i in range(50):
+            action, _ = self.pose_generator_model.predict(obs)
+            obs, reward, done, truncated, info, = self.reach_checker_env.step(action)
+            if done and info["is_success"]:
+                arrived = True
+                break
+            elif done:
+                break
+
+        if arrived:
+            optimal_angles = self.reach_checker_env.robot.get_joint_angles(self.robot.joint_indices[:7])
+            optimal_angles[6] = 0.0
+            self.robot.optimal_pose = optimal_angles
+        else:
+            self.robot.optimal_pose = None
 
         # reset robot actions
         self.robot.recent_action = None
@@ -524,6 +552,7 @@ class ReachEvadeObstacles(Task):
                                            f"{self.debug_action_magnitude_base_text} {round(action_magnitude, 5)}")
                 self.sim.create_debug_text(self.debug_reward_label_name,
                                            f"{self.debug_reward_base_text} {round(reward, 5)}")
+                pass
             except BaseException:
                 pass
 
@@ -556,8 +585,8 @@ class ReachEvadeObstacles(Task):
         else:
             # calculate dense rewards
 
-            reward = -np.array(action_diff*self.factor_punish_action_difference_magnitude +
-                               action_magnitude*self.factor_punish_action_magnitude, dtype=np.float32)
+            reward = -np.array(action_diff * self.factor_punish_action_difference_magnitude +
+                               action_magnitude * self.factor_punish_action_magnitude, dtype=np.float32)
 
             collision = min(obs_d) <= 0.0
 
