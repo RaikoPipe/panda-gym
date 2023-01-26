@@ -5,15 +5,16 @@ import numpy as np
 from panda_gym.envs.core import Task
 from panda_gym.utils import distance
 
+
 class Reach(Task):
     def __init__(
-        self,
-        sim,
-        get_ee_position,
-        reward_type="sparse",
-        distance_threshold=0.05,
-        goal_range=0.3,
-        show_goal_space=False
+            self,
+            sim,
+            get_ee_position,
+            reward_type="sparse",
+            distance_threshold=0.05,
+            goal_range=0.3,
+            show_goal_space=False
     ) -> None:
         super().__init__(sim)
         self.fixed_target = None
@@ -26,8 +27,6 @@ class Reach(Task):
         with self.sim.no_rendering():
             self._create_scene(show_goal_space)
             self.sim.place_visualizer(target_position=np.zeros(3), distance=0.9, yaw=45, pitch=-30)
-
-
 
     def _create_scene(self, show_goal_space) -> None:
         self.sim.create_plane(z_offset=-0.4)
@@ -53,7 +52,6 @@ class Reach(Task):
 
     def is_truncated(self) -> np.ndarray:
         return np.array(False)
-
 
     def get_obs(self) -> np.ndarray:
         return np.array([])  # no task-specific observation

@@ -27,7 +27,7 @@ class ReachEvadeObstacles(Task):
             obstacle_layout=1,
             show_debug_labels=True,
             fixed_target=None,
-            # adjustement factors for dense rewards
+            # adjustment factors for dense rewards
             factor_punish_distance=10.0,  # def: 10.0
             factor_punish_collision=1.0,  # def: 1.0
             factor_punish_action_magnitude=0.000,  # def: 0.005
@@ -371,7 +371,7 @@ class ReachEvadeObstacles(Task):
 
     def create_obstacle_cuboid(self, position=np.array([0.1, 0, 0.1]), size=np.array([0.01, 0.01, 0.01])):
         obstacle_name = "obstacle"
-        # position[0] += 0.6
+        position[0] += 0.6
         ids = []
         for physics_client in (self.sim.physics_client, self.sim.dummy_collision_client):
             ids.append(self.sim.create_box(

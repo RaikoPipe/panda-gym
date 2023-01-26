@@ -16,7 +16,7 @@ import wandb
 from wandb.integration.sb3 import WandbCallback
 
 
-def get_env(config, stage, deactivate_render = False):
+def get_env(config, stage, deactivate_render=False):
     if config["n_envs"] > 1:
 
         env = make_vec_env(config["env_name"], n_envs=config["n_envs"],
@@ -24,7 +24,7 @@ def get_env(config, stage, deactivate_render = False):
                                        "control_type": config["control_type"],
                                        "obs_type": config["obs_type"],
                                        "reward_type": config["reward_type"],
-                                       "goal_distance_threshold":config["goal_distance_threshold"],
+                                       "goal_distance_threshold": config["goal_distance_threshold"],
                                        "limiter": config["limiter"],
                                        "show_goal_space": False,
                                        "obstacle_layout": stage,
@@ -49,7 +49,7 @@ def get_env(config, stage, deactivate_render = False):
                                        "control_type": config["control_type"],
                                        "obs_type": config["obs_type"],
                                        "reward_type": config["reward_type"],
-                                       "goal_distance_threshold":config["goal_distance_threshold"],
+                                       "goal_distance_threshold": config["goal_distance_threshold"],
                                        "limiter": config["limiter"],
                                        "show_goal_space": False,
                                        "obstacle_layout": stage,
@@ -58,8 +58,8 @@ def get_env(config, stage, deactivate_render = False):
 
     return env
 
-def get_model(algorithm, config):
 
+def get_model(algorithm, config):
     tags = get_tags(config)
     run = init_wandb(config, tags)
 
@@ -81,7 +81,8 @@ def get_model(algorithm, config):
                     tensorboard_log=f"runs/{run.id}", device="cuda",
                     replay_buffer_class=config["replay_buffer"],
                     # hyperparameters
-                    train_freq=1 if config["n_envs"] > 1 else (1, "episode"), #config["n_envs"] if config["n_envs"] > 1 else (1, "episode"),
+                    train_freq=1 if config["n_envs"] > 1 else (1, "episode"),
+                    # config["n_envs"] if config["n_envs"] > 1 else (1, "episode"),
                     gradient_steps=config["gradient_steps"],
                     learning_starts=config["learning_starts"],
                     learning_rate=config["learning_rate"],
@@ -110,6 +111,7 @@ def get_model(algorithm, config):
 
     return model, run
 
+
 def get_tags(config):
     # set wandb tags
     tags = []
@@ -122,6 +124,7 @@ def get_tags(config):
     tags.append(config["algorithm"])
     tags.append(config["reward_type"])
     return tags
+
 
 def init_wandb(config, tags):
     env_name = config["env_name"]
@@ -137,9 +140,9 @@ def init_wandb(config, tags):
     )
     return run
 
+
 def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
           starting_stage: Optional[str] = None, algorithm: str = "TD3"):
-
     if not initial_model:
 
         model, run = get_model(algorithm, config)
@@ -160,14 +163,17 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
 
     assert len(config["stages"]) == len(config["reward_thresholds"])
 
-
     model.env.close()
     # learn for each stage until reward threshold is reached
     for stage, reward_threshold in zip(config["stages"], config["reward_thresholds"]):
-        model.env = get_env(config, stage)
+        model.set_env(get_env(config, stage))
 
-        if config["prior_steps"]:
-            fill_replay_buffer(model)
+        # if config["learning_starts"]:
+        #     model.learn(total_timesteps=config["learning_starts"])
+        #     model.learning_starts = 0
+        #
+        # if config["prior_steps"]:
+        #     model.replay_buffer = fill_replay_buffer(model, config["prior_steps"])
 
         eval_env = gym.make(config["env_name"], render=False, control_type=config["control_type"],
                             obs_type=config["obs_type"],
@@ -187,17 +193,10 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
                 model_save_path=wandb.run.dir,
                 model_save_freq=20_000
             ), eval_callback],
+            progress_bar=True
         )
 
         eval_env.close()
 
     run.finish()
     return model
-
-
-
-
-
-
-
-

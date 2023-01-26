@@ -285,6 +285,7 @@ class Panda(PyBulletRobot):
             position = np.array([self.get_joint_angle(joint=i) for i in range(7)])
             velocity = np.array([self.get_joint_velocity(joint=i) for i in range(7)])
 
+
         # fingers opening
         if not self.block_gripper:
             fingers_width = self.get_fingers_width()
@@ -323,7 +324,7 @@ class Panda(PyBulletRobot):
         q = [self.get_joint_angle(i) for i in self.joint_indices[:7]]
         return self.panda_rtb.manipulability(q, axes="trans")
 
-    def compute_action_neo(self, target, collision_objects, collision_detector):
+    def compute_action_neo(self, target, collision_objects):
         self.panda_rtb.q = self.get_joint_angles(self.joint_indices[:7])
         # self.swift_env.step(render=True)
         # self.collision_detector.set_collision_geometries()
@@ -353,7 +354,7 @@ class Panda(PyBulletRobot):
 
         # Calulate the required end-effector spatial velocity for the robot
         # to approach the goal. Gain is set to 1.0
-        v, arrived = rtb.p_servo(Te, Tep, 0.5, 0.05)
+        v, arrived = rtb.p_servo(Te, Tep, 1.0, 0.05)
 
         # Gain term (lambda) for control minimisation
         Y = 0.01
@@ -394,7 +395,7 @@ class Panda(PyBulletRobot):
                 collision,
                 self.panda_rtb.q[:n],
                 0.3,  # influence distance in which the damper becomes active
-                0.01,  # minimum distance in which the link is allowed to approach the object shape
+                0.05,  # minimum distance in which the link is allowed to approach the object shape
                 1.0,
                 start=self.panda_rtb.link_dict["panda_link1"],
                 end=self.panda_rtb.link_dict["panda_hand"],
@@ -420,7 +421,7 @@ class Panda(PyBulletRobot):
         # Solve for the joint velocities dq
         qd = qp.solve_qp(Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver="gurobi")
 
-        self.panda_rtb.qd[:] = qd[:n]
+        #self.panda_rtb.qd[:] = qd[:n]
 
         # Return the joint velocities
         if qd is None:

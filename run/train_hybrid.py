@@ -3,36 +3,47 @@ import pybullet
 import wandb
 from stable_baselines3 import TD3
 
-
 import gymnasium as gym
 import numpy as np
+from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
+
 from train_preo import config
 from time import sleep
 
 import panda_gym
+from train_preo import config, hyperparameters_td3
+
+from learning_methods.curriculum_learning import get_model, get_env
 
 from algorithms.SAC_hybrid.prior_controller_neo import NEO
 
 
-def evaluate(env, num_steps=10000):
+def train_hybrid(env, model: OffPolicyAlgorithm, num_steps=10000):
     """
     Evaluate a RL agent
     :param num_steps: (int) number of timesteps to evaluate it
     :return: (float) Mean reward for the last 100 episodes
     """
-
+    env = env.envs[0]
     episode_rewards = [0.0]
     obs, _ = env.reset()
     done_events = []
     for i in range(num_steps):
-        # _states are only useful when using LSTM policies
-        action = env.robot.compute_action_neo(env.task.goal, env.task.dummy_obstacles)# [0.07996564, -0.13340622, 0.02173809])
-        #pybullet.removeAllUserDebugItems(physicsClientId=1)
-        #rl_action, _ = model.predict(obs)
+        # get policy and prior action
+        prior_action = env.robot.compute_action_neo(env.task.goal, env.task.dummy_obstacles)
+        policy_action = model.predict(obs)
 
-        obs, reward, done, truncated, info, = env.step(action)
-        #sleep(0.01)
+        if prior_action is not None:
+            action = prior_action + policy_action[0]
+        else:
+            action = policy_action
 
+        next_obs, reward, done, truncated, info, = env.step(action)
+        # sleep(0.01)
+
+        model.replay_buffer.add(obs, next_obs, action, reward, done, [info])
+
+        obs = next_obs
         # Stats
         episode_rewards[-1] += reward
         if done or truncated:
@@ -48,15 +59,12 @@ def evaluate(env, num_steps=10000):
                 done_events.append(0)
             obs, _ = env.reset()
 
-            sleep(0.01)
-
-
             episode_rewards.append(0.0)
-        #pybullet.removeAllUserDebugItems(physicsClientId=1)
+        # pybullet.removeAllUserDebugItems(physicsClientId=1)
     # Compute mean reward for the last 100 episodes
     mean_100ep_reward = np.mean(episode_rewards[-100:])
     print("Mean reward:", mean_100ep_reward, "Num episodes:", len(episode_rewards))
-    print(f"Success Rate: {done_events.count(1)/len(done_events)}")
+    print(f"Success Rate: {done_events.count(1) / len(done_events)}")
     print(f"Collision Rate: {done_events.count(-1) / len(done_events)}")
 
     return mean_100ep_reward
@@ -71,17 +79,20 @@ panda_gym.register_envs(200)
 # instantiate reach
 # test the pyb_utils function
 
+env = get_env(config, stage="cube_1")
 
+config.update(hyperparameters_td3)
 
-env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
-               obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
-               reward_type=config["reward_type"], limiter=config["limiter"],
-               show_goal_space=False, obstacle_layout="sphere_2_random",
-               show_debug_labels=True)
+model, _ = get_model("TD3", config)
 
+# env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
+#                obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
+#                reward_type=config["reward_type"], limiter=config["limiter"],
+#                show_goal_space=False, obstacle_layout="sphere_2_random",
+#                show_debug_labels=True)
 
-#rrmc_neo = NEO(env)
+# rrmc_neo = NEO(env)
 
-#model = TD3.load(r"run_data/wandb/run_obs_layout_1_best_08_11/files/model.zip", env=env)
+# model = TD3.load(r"run_data/wandb/run_obs_layout_1_best_08_11/files/model.zip", env=env)
 
-evaluate(env) #, model)
+train_hybrid(env, model)  # , model)

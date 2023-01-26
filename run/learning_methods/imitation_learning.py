@@ -2,6 +2,7 @@ import numpy as np
 from time import sleep
 from stable_baselines3 import TD3
 from algorithms.SAC_hybrid.prior_controller_neo import NEO
+from copy import copy
 
 
 def fill_replay_buffer(model: TD3, num_steps=10000):
@@ -12,19 +13,22 @@ def fill_replay_buffer(model: TD3, num_steps=10000):
     :return: model with filled replay buffer
     """
     env = model.env.envs[0]
-    prior = NEO(env)
+
     episode_rewards = [0.0]
-    last_obs, _ = env.reset()
+    obs, _ = env.reset()
+
+    replay_buffer = model.replay_buffer
 
     done_events = []
     for i in range(num_steps):
-        action = prior.compute_action(env.task.goal)
+        action = env.robot.compute_action_neo(env.task.goal, env.task.dummy_obstacles)
 
-        obs, reward, done, truncated, info, = env.step(action)
-        model.replay_buffer.add(last_obs, obs, action, reward, done, [info])
+        next_obs, reward, done, truncated, info, = env.step(action)
+        replay_buffer.add(next_obs, obs, action, reward, done, [info])
 
-        last_obs = obs
+        model.train(gradient_steps=-1)
 
+        obs = next_obs
 
         # Stats
         episode_rewards[-1] += reward
@@ -40,12 +44,12 @@ def fill_replay_buffer(model: TD3, num_steps=10000):
                 done_events.append(0)
             obs, _ = env.reset()
             # unnecessary step (?) reset panda
-            prior.panda_rtb.q = prior.panda_rtb.qr
+
             episode_rewards.append(0.0)
     # Compute mean reward for the last 100 episodes
     mean_100ep_reward = np.mean(episode_rewards[-100:])
     print("Mean reward:", mean_100ep_reward, "Num episodes:", len(episode_rewards))
-    print(f"Success Rate: {done_events.count(1)/len(done_events)}")
+    print(f"Success Rate: {done_events.count(1) / len(done_events)}")
     print(f"Collision Rate: {done_events.count(-1) / len(done_events)}")
 
-    return model
+    return replay_buffer

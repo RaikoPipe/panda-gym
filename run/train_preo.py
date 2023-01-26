@@ -21,29 +21,29 @@ config = {
     "reward_type": "sparse",  # sparse; dense
     "goal_distance_threshold": 0.02,
     "max_timesteps": 1e6,
-    "seed": 23,
+    "seed": 10,
     "render": True,  # renders the pybullet env
     "obs_type": "ee",
     "control_type": "js",  # "ee": end effector displacement; "js": joint space
     "limiter": "sim",
     "show_goal_space": True,
-    "replay_buffer": None,  # HerReplayBuffer
+    "replay_buffer": HerReplayBuffer,  # HerReplayBuffer
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": True,
     "n_envs": 1,
     "max_ep_steps": 200,
     "eval_freq": 5_000,
-    "stages": ["sphere_2_random"],
+    "stages": ["cube_1"],
     "reward_thresholds": [-10],  # [-7, -10, -12, -17, -20]
     "joint_obstacle_observation": "closest",  # "all": closest distance to any obstacle of all joints is observed;
-    "prior_steps": 10_000
+    "learning_starts": 0,
+    "prior_steps": 30_000
     # "closest": only closest joint distance is observed
 }
 
 # hyperparameters are from rl-baselines3 zoo and https://arxiv.org/pdf/2106.13687.pdf
 
-hyperparameters_td3 = {
-    "learning_starts": 0,  # 10000,
+hyperparameters_td3 = {  # 10000,
     "learning_rate": 0.001,
     "gamma": 0.98,
     "tau": 0.005,
@@ -54,7 +54,6 @@ hyperparameters_td3 = {
 }
 
 hyperparameters_sac = {
-    "learning_starts": 10000,
     "learning_rate": 0.00073,
     "gamma": 0.98,
     "tau": 0.02,
