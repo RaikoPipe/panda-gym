@@ -117,8 +117,7 @@ class PandaReachEvadeObstaclesEnv(RobotTaskEnv):
     def __init__(self, render: bool = False, realtime: bool = False,
                  reward_type: str = "sparse", goal_distance_threshold: float = 0.05,
                  control_type: str = "js", obs_type: str = "ee", show_goal_space=False, obstacle_layout: int = 1,
-                 joint_obstacle_observation: str = "all", show_debug_labels=False, fixed_target=None, limiter="sim",
-
+                 joint_obstacle_observation: str = "all", show_debug_labels=False, fixed_target=None, limiter="sim"
                  ) -> None:
         sim = PyBullet(render=render, realtime=realtime)
         robot = Panda(sim, block_gripper=True, base_position=np.array([0.0, 0.0, 0.0]), control_type=control_type,

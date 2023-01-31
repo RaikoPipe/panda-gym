@@ -23,7 +23,7 @@ class PyBullet:
     """
 
     def __init__(self, render: bool = False, realtime=False, n_substeps: int = 20,
-                 background_color: Optional[np.ndarray] = None, dummy_client=True) -> None:
+                 background_color: Optional[np.ndarray] = None, dummy_client=True,) -> None:
         background_color = background_color if background_color is not None else np.array([0.0, 134.0, 201.0])
         self.background_color = background_color.astype(np.float32) / 255
         options = "--background_color_red={} \
@@ -65,7 +65,7 @@ class PyBullet:
     def close(self) -> None:
         """Close the simulation."""
         self.physics_client.disconnect()
-        #self.dummy_collision_client.disconnect()
+        self.dummy_collision_client.disconnect()
 
     def save_state(self) -> int:
         """Save the current simulation state.

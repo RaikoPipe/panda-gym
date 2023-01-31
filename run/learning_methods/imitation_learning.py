@@ -26,7 +26,7 @@ def fill_replay_buffer(model: TD3, num_steps=10000):
         next_obs, reward, done, truncated, info, = env.step(action)
         replay_buffer.add(next_obs, obs, action, reward, done, [info])
 
-        model.train(gradient_steps=-1)
+        #model.train(gradient_steps=-1)
 
         obs = next_obs
 

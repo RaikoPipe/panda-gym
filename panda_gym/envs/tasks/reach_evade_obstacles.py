@@ -419,19 +419,19 @@ class ReachEvadeObstacles(Task):
     def get_obs(self) -> np.ndarray:
         if self.obstacles:
             q = self.robot.get_joint_angles(self.robot.joint_indices[:7])
-            # obs_per_link = self.collision_detector.compute_distances_per_link(q, self.robot.joint_indices[:7],
-            #                                                                   max_distance=10.0)
-            obs_per_link = {}
-            links = self.robot.get_rtb_links()
-            for link in links:
-                link_obs = []
-                for obstacle in self.dummy_obstacles.values():
-
-                    for coll in link.collision:
-                        distance = compute_distance(coll.co, obstacle, 1, 5.0)[0]
-                        if distance is not None:
-                            link_obs.append(distance)
-                obs_per_link[link] = link_obs
+            obs_per_link = self.collision_detector.compute_distances_per_link(q, self.robot.joint_indices[:7],
+                                                                               max_distance=10.0)
+            # obs_per_link = {}
+            # links = self.robot.get_rtb_links()
+            # for link in links:
+            #     link_obs = []
+            #     for obstacle in self.dummy_obstacles.values():
+            #
+            #         for coll in link.collision:
+            #             coll_distance = compute_distance(coll.co, obstacle, 1, 5.0)[0]
+            #             if coll_distance is not None:
+            #                 link_obs.append(coll_distance)
+            #     obs_per_link[link] = link_obs
 
             if self.joint_obstacle_observation == "all":
                 self.distances_links_to_closest_obstacle = np.array([min(i) for i in obs_per_link.values()])
@@ -512,7 +512,7 @@ class ReachEvadeObstacles(Task):
     def get_collision(self, obstacle_1, obstacle_2, margin=0.0):
         """Check if given bodies collide."""
         # margin in which overlapping counts as a collision
-        self.sim.physics_client.performCollisionDetection()
+        # self.sim.physics_client.performCollisionDetection()
         closest_points = p.getClosestPoints(bodyA=self.bodies[obstacle_1], bodyB=self.bodies[obstacle_2],
                                             distance=10.0,
                                             physicsClientId=self.sim_id)

@@ -27,7 +27,8 @@ def evaluate(env, num_steps=10000):
     for i in range(num_steps):
         # _states are only useful when using LSTM policies
         action = env.robot.compute_action_neo(env.task.goal, env.task.dummy_obstacles)# [0.07996564, -0.13340622, 0.02173809])
-        #pybullet.removeAllUserDebugItems(physicsClientId=1)
+        # action = env.robot.compute_action_neo_pybullet(env.task.goal, env.task.obstacles, env.task.collision_detector)
+        # pybullet.removeAllUserDebugItems(physicsClientId=0)
         #rl_action, _ = model.predict(obs)
 
         obs, reward, done, truncated, info, = env.step(action)
@@ -42,6 +43,7 @@ def evaluate(env, num_steps=10000):
                 done_events.append(1)
             elif info["is_truncated"]:
                 print("Collision...")
+                sleep(5)
                 done_events.append(-1)
             else:
                 print("Timeout...")

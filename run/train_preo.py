@@ -20,9 +20,9 @@ config = {
     "algorithm": "TD3",
     "reward_type": "sparse",  # sparse; dense
     "goal_distance_threshold": 0.02,
-    "max_timesteps": 1e6,
+    "max_timesteps": 160_000,
     "seed": 10,
-    "render": True,  # renders the pybullet env
+    "render": False,  # renders the pybullet env
     "obs_type": "ee",
     "control_type": "js",  # "ee": end effector displacement; "js": joint space
     "limiter": "sim",
@@ -31,13 +31,13 @@ config = {
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": True,
     "n_envs": 1,
-    "max_ep_steps": 200,
+    "max_ep_steps": 50,
     "eval_freq": 5_000,
     "stages": ["cube_1"],
     "reward_thresholds": [-10],  # [-7, -10, -12, -17, -20]
     "joint_obstacle_observation": "closest",  # "all": closest distance to any obstacle of all joints is observed;
-    "learning_starts": 0,
-    "prior_steps": 30_000
+    "learning_starts": 10_000,
+    "prior_steps": 0
     # "closest": only closest joint distance is observed
 }
 

@@ -15,7 +15,6 @@ from run.learning_methods.imitation_learning import fill_replay_buffer
 import wandb
 from wandb.integration.sb3 import WandbCallback
 
-
 def get_env(config, stage, deactivate_render=False):
     if config["n_envs"] > 1:
 
@@ -65,7 +64,7 @@ def get_model(algorithm, config):
 
     env = get_env(config, config["stages"][0], deactivate_render=True)
     n_actions = env.action_space.shape[0]
-    env.close()
+    #env.close()
 
     if config.get("noise_std"):
         normal_action_noise = NormalActionNoise(mean=np.zeros(n_actions),
@@ -123,18 +122,23 @@ def get_tags(config):
         tags.append("multi_env")
     tags.append(config["algorithm"])
     tags.append(config["reward_type"])
+
+    if config["prior_steps"] > 0:
+        tags.append("prior")
+
     return tags
 
 
 def init_wandb(config, tags):
     env_name = config["env_name"]
-    project = f"curriculum_learn_{env_name}"
+    project = f"{env_name}"
     run = wandb.init(
         project=f"{project}",
         config=config,
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
         dir="run_data",
-        tags=tags
+        tags=tags,
+        group=config["stages"][-1] # last stage is job goal
         # monitor_gym=True,  # auto-upload the videos of agents playing the game
         # save_code=True,  # optional
     )
@@ -163,19 +167,19 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
 
     assert len(config["stages"]) == len(config["reward_thresholds"])
 
-    model.env.close()
+    #model.env.close()
     # learn for each stage until reward threshold is reached
     for stage, reward_threshold in zip(config["stages"], config["reward_thresholds"]):
         model.set_env(get_env(config, stage))
 
-        # if config["learning_starts"]:
-        #     model.learn(total_timesteps=config["learning_starts"])
-        #     model.learning_starts = 0
-        #
-        # if config["prior_steps"]:
-        #     model.replay_buffer = fill_replay_buffer(model, config["prior_steps"])
+        if config["learning_starts"]:
+            model.learn(total_timesteps=config["learning_starts"])
+            model.learning_starts = 0
 
-        eval_env = gym.make(config["env_name"], render=False, control_type=config["control_type"],
+        if config["prior_steps"]:
+            model.replay_buffer = fill_replay_buffer(model, config["prior_steps"])
+
+        eval_env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
                             obs_type=config["obs_type"],
                             reward_type=config["reward_type"],
                             show_goal_space=False, obstacle_layout=stage,
