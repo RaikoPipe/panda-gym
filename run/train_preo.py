@@ -35,11 +35,11 @@ config = {
     "n_envs": 1,
     "max_ep_steps": 50,
     "eval_freq": 5_000,
-    "stages": ["cube_1"],
+    "stages": ["cube_3_random"],
     "reward_thresholds": [-10],  # [-7, -10, -12, -17, -20]
     "joint_obstacle_observation": "closest",  # "all": closest distance to any obstacle of all joints is observed;
     "learning_starts": 10_000,
-    "prior_steps": 10_000
+    "prior_steps": 0
     # "closest": only closest joint distance is observed
 }
 
@@ -77,6 +77,9 @@ if __name__ == "__main__":
     # register envs to gymnasium
     panda_gym.register_envs(config["max_ep_steps"])
 
+    #env = get_env(config, "sphere_2_random")
+
+    # for algorithm in "PPO":
     if config["algorithm"] in ("TD3", "DDPG"):
         config.update(hyperparameters_td3)
     elif config["algorithm"] in  ("SAC", "TQC"):

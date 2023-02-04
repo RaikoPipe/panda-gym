@@ -1,3 +1,13 @@
+import pybullet
+
+import sys
+import gymnasium
+sys.modules["gym"] = gymnasium
+
+import wandb
+from stable_baselines3 import TD3
+
+
 import gymnasium as gym
 import numpy as np
 from train_preo import config
@@ -38,7 +48,7 @@ def evaluate(env, num_steps=10000):
                 done_events.append(1)
             elif info["is_truncated"]:
                 print("Collision...")
-                sleep(5)
+                #sleep(5)
                 done_events.append(-1)
             else:
                 print("Timeout...")
@@ -73,7 +83,7 @@ panda_gym.register_envs(50)
 env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
                obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                reward_type=config["reward_type"], limiter=config["limiter"],
-               show_goal_space=False, obstacle_layout="cube_1",
+               show_goal_space=False, obstacle_layout="cube_3_random",
                show_debug_labels=True)
 
 

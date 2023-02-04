@@ -35,6 +35,7 @@ class PyBullet:
         self.render_env = render
 
         self.physics_client = bc.BulletClient(connection_mode=self.connection_mode, options=options)
+        self.dummy_collision_client = None
         if dummy_client:
             self.dummy_collision_client = bc.BulletClient(connection_mode=p.DIRECT)
         # self.physics_client = bc.BulletClient(connection_mode=p.DIRECT, options=options)
@@ -65,7 +66,8 @@ class PyBullet:
     def close(self) -> None:
         """Close the simulation."""
         self.physics_client.disconnect()
-        self.dummy_collision_client.disconnect()
+        if self.dummy_collision_client is not None:
+            self.dummy_collision_client.disconnect()
 
     def save_state(self) -> int:
         """Save the current simulation state.

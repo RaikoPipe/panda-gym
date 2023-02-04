@@ -1,6 +1,5 @@
 from typing import Optional, Union
 
-import gymnasium
 import gymnasium as gym
 import numpy as np
 
@@ -69,8 +68,11 @@ def get_model(algorithm, config):
     tags = get_tags(config)
     run = init_wandb(config, tags)
 
-    env = get_env(config, config["stages"][0], deactivate_render=True)
-    n_actions = env.action_space.shape[0]
+    #env = get_env(config, config["stages"][0], deactivate_render=True)
+    #n_actions = env.action_space.shape[0]
+    # env.close()
+    # env = get_env(config, config["stages"][0], deactivate_render=True)
+    n_actions = 7 if config["control_type"] == "js" else 3
     # env.close()
 
     if config.get("noise_std"):
@@ -80,7 +82,7 @@ def get_model(algorithm, config):
         action_noise = vectorized_action_noise if config["n_env"] > 1 else normal_action_noise
     else:
         action_noise = None
-
+    # todo: test train frequency
     if algorithm in ("TD3", "DDPG"):
         model = TD3(config["policy_type"], env=get_env(config, config["stages"][0], deactivate_render=True),
                     verbose=1, seed=config["seed"],
@@ -203,7 +205,7 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
         if config["prior_steps"]:
             model.replay_buffer = fill_replay_buffer(model, config["prior_steps"])
 
-        eval_env = gym.make(config["env_name"], render=False, control_type=config["control_type"],
+        eval_env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
                             obs_type=config["obs_type"],
                             reward_type=config["reward_type"],
                             show_goal_space=False, obstacle_layout=stage,

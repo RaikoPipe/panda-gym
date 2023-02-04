@@ -1,13 +1,21 @@
 import wandb
-from stable_baselines3 import TD3
 
-import gymnasium as gym
+import sys
+import gymnasium
+sys.modules["gym"] = gymnasium
+
+from stable_baselines3 import TD3
+from sb3_contrib import TQC
+
 import numpy as np
 from train_preo import config
 from time import sleep
 
+import gym
+
 import panda_gym
 
+from learning_methods.curriculum_learning import get_env
 
 
 
@@ -20,39 +28,50 @@ def evaluate(model, num_steps=500):
     """
     episode_rewards = [0.0]
     obs, _ = env.reset()
+    done_events = []
     for i in range(num_steps):
         # _states are only useful when using LSTM policies
         action, _states = model.predict(obs)
 
         obs, reward, done, truncated, info, = env.step(action)
-        sleep(0.05) # for human eval
+        #sleep(0.05) # for human eval
 
         # Stats
         episode_rewards[-1] += reward
 
         if done or truncated:
-            sleep(2)
+            #sleep(2)
             if info["is_success"]:
                 print("Success!")
+                done_events.append(1)
             elif info["is_truncated"]:
                 print("Collision...")
+                done_events.append(-1)
             else:
                 print("Timeout...")
+                done_events.append(0)
             obs, _ = env.reset()
             episode_rewards.append(0.0)
     # Compute mean reward for the last 100 episodes
     mean_100ep_reward = np.mean(episode_rewards[-100:])
+
     print("Mean reward:", mean_100ep_reward, "Num episodes:", len(episode_rewards))
+    print(f"Success Rate: {done_events.count(1)/len(done_events)}")
+    print(f"Collision Rate: {done_events.count(-1) / len(done_events)}")
 
     return mean_100ep_reward
 
-panda_gym.register_envs(50)
+panda_gym.register_envs(100)
 
-env = gym.make(config["env_name"], render=True, control_type=config["control_type"], reward_type=config["reward_type"],
-               show_goal_space=False, obstacle_layout="wall_parkour_1", obs_type=config["obs_type"],
-               show_debug_labels=True, limiter=config["limiter"], distance_threshold=config["distance_threshold"])
+#env = get_env(config, "cube_3_random")
 
-model = TD3.load(r"run_data/wandb/run_panda_reach_evade_obstacle_wall_parkour_1_best_run/files/model.zip", env=env)
+env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
+               obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
+               reward_type=config["reward_type"], limiter=config["limiter"],
+               show_goal_space=False, obstacle_layout="cube_3_random",
+               show_debug_labels=True)
+
+model = TQC.load(r"run_data/wandb/run-20230204_153453-3k62p9ul/files/best_model.zip", env=env)
 
 evaluate(model)
 # run-20221128_154210-38h9a7q2 olive pond

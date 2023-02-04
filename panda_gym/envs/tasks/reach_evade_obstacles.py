@@ -5,12 +5,18 @@ from typing import Any, Dict
 import numpy as np
 import pybullet
 
+import gymnasium as gym
+
 from panda_gym.envs.core import Task
 from panda_gym.envs.robots.panda import Panda
 from panda_gym.utils import distance
 from pyb_utils.collision import NamedCollisionObject, CollisionDetector, compute_distance
 import pybullet as p
-import gymnasium as gym
+import sys
+import gymnasium
+
+sys.modules["gym"] = gymnasium
+
 from stable_baselines3 import TD3
 
 
@@ -87,12 +93,12 @@ class ReachEvadeObstacles(Task):
         self.obstacle_count = 0
 
         # # init pose generator env
-        self.reach_checker_env = gym.make("PandaReachChecker", control_type = "js", render=True)
+        # self.reach_checker_env = gym.make("PandaReachChecker", control_type = "js", render=False)
 
         # # load pose checker model
-        path = pathlib.Path(__file__).parent.resolve()
-        self.pose_generator_model = TD3.load(fr"{path}/pose_generator_model.zip",
-                                             env=self.reach_checker_env)
+        # path = pathlib.Path(__file__).parent.resolve()
+        # self.pose_generator_model = TD3.load(fr"{path}/pose_generator_model.zip",
+        #                                      env=self.reach_checker_env)
 
         self.bodies = {"robot": self.robot.id}
 
@@ -484,26 +490,26 @@ class ReachEvadeObstacles(Task):
         self.sim.set_base_pose("dummy_target", np.array([0.0, 0.0, -5.0]),
                                np.array([0.0, 0.0, 0.0, 1.0]))  # move dummy away
 
-        # use rl policy to generate joint angles (and save final pose)
-        arrived = False
-        self.reach_checker_env.task.set_fixed_target(self.goal)
-        obs, _ = self.reach_checker_env.reset()
-
-        for i in range(50):
-            action, _ = self.pose_generator_model.predict(obs)
-            obs, reward, done, truncated, info, = self.reach_checker_env.step(action)
-            if done and info["is_success"]:
-                arrived = True
-                break
-            elif done:
-                break
-
-        if arrived:
-            optimal_angles = self.reach_checker_env.robot.get_joint_angles(self.robot.joint_indices[:7])
-            optimal_angles[6] = 0.0
-            self.robot.optimal_pose = optimal_angles
-        else:
-            self.robot.optimal_pose = None
+        # use rl policy to generate joint angles (to get final pose)
+        # arrived = False
+        # self.reach_checker_env.task.set_fixed_target(self.goal)
+        # obs, _ = self.reach_checker_env.reset()
+        #
+        # for i in range(50):
+        #     action, _ = self.pose_generator_model.predict(obs)
+        #     obs, reward, done, truncated, info, = self.reach_checker_env.step(action)
+        #     if done and info["is_success"]:
+        #         arrived = True
+        #         break
+        #     elif done:
+        #         break
+        #
+        # if arrived:
+        #     optimal_angles = self.reach_checker_env.robot.get_joint_angles(self.robot.joint_indices[:7])
+        #     optimal_angles[6] = 0.0
+        #     self.robot.optimal_pose = optimal_angles
+        # else:
+        #     self.robot.optimal_pose = None
 
         # reset robot actions
         self.robot.recent_action = None

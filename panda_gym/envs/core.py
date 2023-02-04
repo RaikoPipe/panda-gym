@@ -34,7 +34,8 @@ class PyBulletRobot(ABC):
     ) -> None:
         self.sim = sim
         self.sim_id = self.sim.physics_client._client
-        self.sim_dummy_id = self.sim.dummy_collision_client._client
+        if self.sim.dummy_collision_client:
+            self.sim_dummy_id = self.sim.dummy_collision_client._client
 
         self.body_name = body_name
         with self.sim.no_rendering():

@@ -11,6 +11,7 @@ from panda_gym.pybullet import PyBullet
 import pybullet as p
 
 import roboticstoolbox as rtb
+from spatialmath import SE3
 
 from ruckig import InputParameter, Ruckig, Trajectory, Result
 import pathlib
@@ -37,7 +38,7 @@ class Panda(PyBulletRobot):
             control_type: str = "js",
             obs_type: str = "ee",
             limiter: str = "sim",
-            use_robotics_toolbox = True
+            use_robotics_toolbox=True
     ) -> None:
         base_position = base_position if base_position is not None else np.zeros(3)
         self.block_gripper = block_gripper
@@ -111,9 +112,13 @@ class Panda(PyBulletRobot):
     def set_action(self, action: np.ndarray, clip=True) -> None:
 
         action = action.copy()  # ensure action don't change
-        # todo: check if action can be scaled down if too large
-        if clip:
-            action = np.clip(action, self.action_space.low, self.action_space.high)
+        # todo: apply min max scaling
+        if any([x < -1 or x > 1 for x in action]):
+            # if any action is smaller than -1 or bigger than -1, scale down
+            max_value = max(abs(action))
+            action = np.array([x/max_value for x in action])
+        # if clip:
+        #     action = np.clip(action, self.action_space.low, self.action_space.high)
 
         # save action
         self.previous_action = self.recent_action
@@ -327,10 +332,15 @@ class Panda(PyBulletRobot):
         # Transform the goal into an SE3 pose
         if self.optimal_pose is not None:
             Tep = self.panda_rtb.fkine(self.optimal_pose)
-            Tep.A[:3, 3] = target
         else:
-            Tep = self.panda_rtb.fkine(self.panda_rtb.q)
-            Tep.A[:3, 3] = target
+            # TODO: Figure out to how to get more natural poses
+            if target[1] < 0:
+                Tep = SE3().Rx(135, unit="deg")
+            else:
+                Tep = SE3().Rx(-135, unit="deg")
+            #Tep = self.panda_rtb.fkine(self.panda_rtb.q)
+        #Tep = SE3.OA([0, 1, 0], [0, 0, -1])
+        Tep.A[:3, 3] = target
 
         #sol = self.panda_rtb.ik_lm_chan(Tep)
         #Tep = self.panda_rtb.fkine(sol.q)
@@ -414,7 +424,7 @@ class Panda(PyBulletRobot):
         # Solve for the joint velocities dq
         qd = qp.solve_qp(Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver="gurobi")
 
-        #self.panda_rtb.qd[:] = qd[:n]
+        # self.panda_rtb.qd[:] = qd[:n]
 
         # Return the joint velocities
         if qd is None:
