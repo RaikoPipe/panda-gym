@@ -108,11 +108,12 @@ class Panda(PyBulletRobot):
             self.init_swift_robot()
             self.update_dummy_robot_link_positions()
 
-    def set_action(self, action: np.ndarray) -> None:
+    def set_action(self, action: np.ndarray, clip=True) -> None:
 
         action = action.copy()  # ensure action don't change
         # todo: check if action can be scaled down if too large
-        action = np.clip(action, self.action_space.low, self.action_space.high)
+        if clip:
+            action = np.clip(action, self.action_space.low, self.action_space.high)
 
         # save action
         self.previous_action = self.recent_action
@@ -141,15 +142,6 @@ class Panda(PyBulletRobot):
 
         if self.rtb:
             self.update_dummy_robot_link_positions()
-        # self.update_swift_robot()
-
-    # def update_swift_robot(self):
-    #     self.swift_env.step(dt=0)
-    #     for link in self.panda_rtb.links:
-    #         col = link.collision
-    #         for shape in col.data:
-    #             shape._update_pyb()
-    #
 
     def update_dummy_robot_link(self, link_id, rtb_link):
         ls = p.getLinkState(bodyUniqueId=self.id, linkIndex=link_id)
@@ -355,7 +347,7 @@ class Panda(PyBulletRobot):
 
         # Calulate the required end-effector spatial velocity for the robot
         # to approach the goal. Gain is set to 1.0
-        v, arrived = rtb.p_servo(Te, Tep, 1.0, 0.05)
+        v, arrived = rtb.p_servo(Te, Tep, 2.5, 0.05)
 
         # Gain term (lambda) for control minimisation
         Y = 0.01
@@ -379,7 +371,7 @@ class Panda(PyBulletRobot):
 
         # The minimum angle (in radians) in which the joint is allowed to approach
         # to its limit
-        ps = 0.05
+        ps = 0.01
 
         # The influence angle (in radians) in which the velocity damper
         # becomes active
@@ -473,7 +465,7 @@ class Panda(PyBulletRobot):
         # Slack component of Q
         Q[n:, n:] = (1 / e) * np.eye(6)
 
-        # The equality contraints
+        # The equality constraints
         Aeq = np.c_[self.panda_rtb.jacobe(self.panda_rtb.q), np.eye(6)]
         beq = v.reshape((6,))
 

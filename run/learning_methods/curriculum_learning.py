@@ -4,7 +4,13 @@ import gymnasium
 import gymnasium as gym
 import numpy as np
 
+import sys
+import gymnasium
+
+sys.modules["gym"] = gymnasium
+
 from stable_baselines3 import SAC, TD3, PPO, DDPG, DQN
+from sb3_contrib import TQC
 from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnRewardThreshold
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.noise import NormalActionNoise, VectorizedActionNoise
@@ -14,6 +20,7 @@ from run.learning_methods.imitation_learning import fill_replay_buffer
 
 import wandb
 from wandb.integration.sb3 import WandbCallback
+
 
 def get_env(config, stage, deactivate_render=False):
     if config["n_envs"] > 1:
@@ -64,7 +71,7 @@ def get_model(algorithm, config):
 
     env = get_env(config, config["stages"][0], deactivate_render=True)
     n_actions = env.action_space.shape[0]
-    #env.close()
+    # env.close()
 
     if config.get("noise_std"):
         normal_action_noise = NormalActionNoise(mean=np.zeros(n_actions),
@@ -91,7 +98,24 @@ def get_model(algorithm, config):
                     action_noise=action_noise
                     )
     elif algorithm == "SAC":
-        model = SAC(config["policy_type"], env=get_env(config, config["stages"][0]),
+        model = SAC(config["policy_type"], env=get_env(config, config["stages"][0], deactivate_render=True),
+                    verbose=1, seed=config["seed"],
+                    tensorboard_log=f"runs/{run.id}", device="cuda",
+                    replay_buffer_class=config["replay_buffer"],
+
+                    # hyperparameters
+                    learning_starts=config["learning_starts"],
+                    learning_rate=config["learning_rate"],
+                    gamma=config["gamma"],
+                    tau=config["tau"],
+                    buffer_size=config["buffer_size"],
+                    gradient_steps=config["gradient_steps"],
+                    train_freq=config["train_freq"],
+                    use_sde=config["use_sde"],
+                    policy_kwargs=config["policy_kwargs"]
+                    )
+    elif algorithm == "TQC":
+        model = TQC(config["policy_type"], env=get_env(config, config["stages"][0], deactivate_render=True),
                     verbose=1, seed=config["seed"],
                     tensorboard_log=f"runs/{run.id}", device="cuda",
                     replay_buffer_class=config["replay_buffer"],
@@ -138,7 +162,7 @@ def init_wandb(config, tags):
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
         dir="run_data",
         tags=tags,
-        group=config["stages"][-1] # last stage is job goal
+        group=config["stages"][-1]  # last stage is job goal
         # monitor_gym=True,  # auto-upload the videos of agents playing the game
         # save_code=True,  # optional
     )
@@ -167,7 +191,7 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
 
     assert len(config["stages"]) == len(config["reward_thresholds"])
 
-    #model.env.close()
+    # model.env.close()
     # learn for each stage until reward threshold is reached
     for stage, reward_threshold in zip(config["stages"], config["reward_thresholds"]):
         model.set_env(get_env(config, stage))
@@ -179,7 +203,7 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
         if config["prior_steps"]:
             model.replay_buffer = fill_replay_buffer(model, config["prior_steps"])
 
-        eval_env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
+        eval_env = gym.make(config["env_name"], render=False, control_type=config["control_type"],
                             obs_type=config["obs_type"],
                             reward_type=config["reward_type"],
                             show_goal_space=False, obstacle_layout=stage,

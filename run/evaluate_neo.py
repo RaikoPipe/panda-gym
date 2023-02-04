@@ -1,9 +1,3 @@
-import pybullet
-
-import wandb
-from stable_baselines3 import TD3
-
-
 import gymnasium as gym
 import numpy as np
 from train_preo import config
@@ -30,8 +24,9 @@ def evaluate(env, num_steps=10000):
         # action = env.robot.compute_action_neo_pybullet(env.task.goal, env.task.obstacles, env.task.collision_detector)
         # pybullet.removeAllUserDebugItems(physicsClientId=0)
         #rl_action, _ = model.predict(obs)
-
-        obs, reward, done, truncated, info, = env.step(action)
+        env.robot.set_action(action, clip=False)
+        env.sim.step()
+        obs, reward, done, truncated, info, = env.step(np.zeros(7))
         #sleep(0.01)
 
         # Stats
@@ -64,7 +59,7 @@ def evaluate(env, num_steps=10000):
     return mean_100ep_reward
 
 
-panda_gym.register_envs(200)
+panda_gym.register_envs(50)
 # instantiate reachEvadeObstacle
 # env = gym.make(config["env_name"], render=True, control_type=config["control_type"], reward_type=config["reward_type"],
 #                show_goal_space=False, obstacle_layout=1,
@@ -78,7 +73,7 @@ panda_gym.register_envs(200)
 env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
                obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                reward_type=config["reward_type"], limiter=config["limiter"],
-               show_goal_space=False, obstacle_layout="sphere_2_random",
+               show_goal_space=False, obstacle_layout="cube_1",
                show_debug_labels=True)
 
 

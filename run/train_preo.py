@@ -4,20 +4,22 @@ import numpy as np
 import wandb
 # from pygame import mixer
 
+import sys
+import gymnasium
+sys.modules["gym"] = gymnasium
+
 import panda_gym
 import os
 from learning_methods.curriculum_learning import learn
-from learning_methods.imitation_learning import fill_replay_buffer
-from stable_baselines3.common.noise import NormalActionNoise, VectorizedActionNoise
+
 from stable_baselines3 import HerReplayBuffer
-from learning_methods.curriculum_learning import get_env, get_model
-from stable_baselines3 import TD3
+
 
 # hyperparameters from rl-baselines3-zoo tuned pybullet defaults
 
 config = {
     "env_name": "PandaReachEvadeObstacles-v3",
-    "algorithm": "TD3",
+    "algorithm": "TQC",
     "reward_type": "sparse",  # sparse; dense
     "goal_distance_threshold": 0.02,
     "max_timesteps": 160_000,
@@ -37,7 +39,7 @@ config = {
     "reward_thresholds": [-10],  # [-7, -10, -12, -17, -20]
     "joint_obstacle_observation": "closest",  # "all": closest distance to any obstacle of all joints is observed;
     "learning_starts": 10_000,
-    "prior_steps": 0
+    "prior_steps": 10_000
     # "closest": only closest joint distance is observed
 }
 
@@ -75,12 +77,9 @@ if __name__ == "__main__":
     # register envs to gymnasium
     panda_gym.register_envs(config["max_ep_steps"])
 
-    #env = get_env(config, "sphere_2_random")
-
-    # for algorithm in "PPO":
     if config["algorithm"] in ("TD3", "DDPG"):
         config.update(hyperparameters_td3)
-    elif config["algorithm"] == "SAC":
+    elif config["algorithm"] in  ("SAC", "TQC"):
         config.update(hyperparameters_sac)
 
     # model = TD3.load(r"run_data/wandb/run-20221206_122636-k1fwbcbr/files/model.zip", env=env,
