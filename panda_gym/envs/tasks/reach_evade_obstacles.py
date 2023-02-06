@@ -43,7 +43,8 @@ class ReachEvadeObstacles(Task):
     ) -> None:
         super().__init__(sim)
         self.sim_id = self.sim.physics_client._client
-        # self.dummy_sim_id = self.sim.dummy_collision_client._client
+        if self.sim.dummy_collision_client is not None:
+            self.dummy_sim_id = self.sim.dummy_collision_client._client
 
         self.robot: Panda = robot
         self.obstacles = {}
@@ -60,6 +61,8 @@ class ReachEvadeObstacles(Task):
 
         # if target is fixed, it won't be randomly sampled on each episode
         self.fixed_target = fixed_target
+
+        self.randomize_obstacle_velocity = True
 
         create_obstacle_layout = {
             1: self.create_stage_1,
@@ -128,6 +131,10 @@ class ReachEvadeObstacles(Task):
             # set goal range
             self.goal_range_low = np.array([-self.goal_range / 2.5, -self.goal_range / 1.5, 0])
             self.goal_range_high = np.array([self.goal_range / 2.5, self.goal_range / 1.5, self.goal_range])
+
+            # set velocity range
+            self.velocity_range_low = np.array([-0.2,-0.2,-0.2])
+            self.velocity_range_high = np.array([0.2, 0.2, 0.2])
 
             if show_goal_space:
                 self.show_goal_space()
@@ -357,7 +364,8 @@ class ReachEvadeObstacles(Task):
         self.goal = self.fixed_target
         self.create_obstacle_sphere(radius=0.0001, position=np.array([-0.1, -0.2, -0.25]))
 
-    def create_obstacle_sphere(self, position=np.array([0.1, 0, 0.1]), radius=0.02, alpha=0.8):
+    def create_obstacle_sphere(self, position=np.array([0.1, 0, 0.1]), radius=0.02, velocity=np.array([0, 0, 0]),
+                               alpha=0.8):
         obstacle_name = "obstacle"
         # position[0] += 0.6
 
@@ -371,11 +379,13 @@ class ReachEvadeObstacles(Task):
                 rgba_color=np.array([0.5, 0, 0, alpha]),
                 physics_client=physics_client
             ))
+
         self.obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[0]
         self.dummy_obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[1]
         self.dummy_obstacle_id[ids[0]] = ids[1]
 
-    def create_obstacle_cuboid(self, position=np.array([0.1, 0, 0.1]), size=np.array([0.01, 0.01, 0.01])):
+    def create_obstacle_cuboid(self, position=np.array([0.1, 0, 0.1]),
+                               size=np.array([0.01, 0.01, 0.01])):
         obstacle_name = "obstacle"
         position[0] += 0.6
         ids = []
@@ -386,7 +396,7 @@ class ReachEvadeObstacles(Task):
                 mass=0.0,
                 position=position,
                 rgba_color=np.array([0.5, 0.5, 0.5, 1]),
-                physics_client=physics_client
+                physics_client=physics_client,
             ))
 
         self.obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[0]
@@ -426,7 +436,7 @@ class ReachEvadeObstacles(Task):
         if self.obstacles:
             q = self.robot.get_joint_angles(self.robot.joint_indices[:7])
             obs_per_link = self.collision_detector.compute_distances_per_link(q, self.robot.joint_indices[:7],
-                                                                               max_distance=10.0)
+                                                                              max_distance=10.0)
             # obs_per_link = {}
             # links = self.robot.get_rtb_links()
             # for link in links:
@@ -472,6 +482,13 @@ class ReachEvadeObstacles(Task):
                             self.sim.set_base_pose_dummy(self.dummy_obstacle_id[obstacle_id], pos,
                                                          np.array([0.0, 0.0, 0.0, 1.0]),
                                                          physics_client=self.sim.dummy_collision_client)
+                            if self.randomize_obstacle_velocity:
+                                velocity = np.random.uniform(self.velocity_range_low, self.velocity_range_high)
+                                self.sim.set_base_velocity(obstacle, velocity=velocity)
+                                self.sim.set_base_velocity_dummy(self.dummy_obstacle_id[obstacle_id],
+                                                                 velocity=velocity,
+                                                                 physics_client=self.sim.dummy_collision_client
+                                                                 )
 
         collision = True
         # get collision free goal

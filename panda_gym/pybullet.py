@@ -320,6 +320,21 @@ class PyBullet:
             bodyUniqueId=self._bodies_idx[body], posObj=position, ornObj=orientation
         )
 
+    def set_base_velocity(self, body: str, velocity:np.ndarray, physics_client=None) -> None:
+        """Set the position of the body.
+
+        Args:
+            body (str): Body unique name.
+            position (np.ndarray): The position, as (x, y, z).
+            orientation (np.ndarray): The target orientation as quaternion (x, y, z, w).
+        """
+        if physics_client is None:
+            physics_client = self.physics_client
+
+        physics_client.resetBaseVelocity(
+            objectUniqueId=self._bodies_idx[body], linearVelocity=velocity
+        )
+
     def set_base_pose_dummy(self, body_id: int, position: np.ndarray, orientation: np.ndarray,
                       physics_client=None) -> None:
         """Set the position of the body.
@@ -336,6 +351,21 @@ class PyBullet:
             orientation = physics_client.getQuaternionFromEuler(orientation)
         physics_client.resetBasePositionAndOrientation(
             bodyUniqueId=body_id, posObj=position, ornObj=orientation
+        )
+
+    def set_base_velocity_dummy(self, body_id: int, velocity:np.ndarray, physics_client=None) -> None:
+        """Set the position of the body.
+
+        Args:
+            body (str): Body unique name.
+            position (np.ndarray): The position, as (x, y, z).
+            orientation (np.ndarray): The target orientation as quaternion (x, y, z, w).
+        """
+        if physics_client is None:
+            physics_client = self.physics_client
+
+        physics_client.resetBaseVelocity(
+            objectUniqueId=body_id, linearVelocity=velocity
         )
 
     def set_joint_angles(self, body: str, joints: np.ndarray, angles: np.ndarray) -> None:
