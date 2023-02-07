@@ -12,6 +12,7 @@ import panda_gym
 import os
 from learning_methods.curriculum_learning import learn
 
+#from learning_methods.multi_env_her import HerReplayBuffer
 from stable_baselines3 import HerReplayBuffer
 
 
@@ -32,7 +33,7 @@ config = {
     "replay_buffer": HerReplayBuffer,  # HerReplayBuffer
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": True,
-    "n_envs": 1,
+    "n_envs": 4,
     "max_ep_steps": 50,
     "eval_freq": 5_000,
     "stages": ["cube_3_random"],
