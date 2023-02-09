@@ -39,7 +39,7 @@ def evaluate(model, num_steps=10_000):
         action, _states = model.predict(obs)
 
         obs, reward, done, truncated, info, = env.step(action)
-        sleep(0.05) # for human eval
+        #sleep(0.05) # for human eval
 
         # Stats
         episode_rewards[-1] += reward
@@ -73,10 +73,10 @@ panda_gym.register_envs(100)
 env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
                obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                reward_type=config["reward_type"], limiter=config["limiter"],
-               show_goal_space=False, obstacle_layout="sphere_2_random",
+               show_goal_space=False, obstacle_layout="cube_3_random",
                show_debug_labels=True)
 
-model = TQC.load(r"run_data/wandb/run-20230204_153453-3k62p9ul/files/best_model.zip", env=env)
+model = TQC.load(r"run_data/wandb/run-20230208_111724-1ydzmh1q/files/model.zip", env=env)
 
 evaluate(model)
 

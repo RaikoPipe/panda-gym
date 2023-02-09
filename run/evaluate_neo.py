@@ -34,7 +34,7 @@ def evaluate(env, num_steps=10000):
         # action = env.robot.compute_action_neo_pybullet(env.task.goal, env.task.obstacles, env.task.collision_detector)
         # pybullet.removeAllUserDebugItems(physicsClientId=0)
         #rl_action, _ = model.predict(obs)
-        env.robot.set_action(action, clip=False)
+        env.robot.set_action(action)
         env.sim.step()
         obs, reward, done, truncated, info, = env.step(np.zeros(7))
         #sleep(0.01)

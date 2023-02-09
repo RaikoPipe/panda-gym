@@ -38,6 +38,7 @@ class Panda(PyBulletRobot):
             control_type: str = "js",
             obs_type: str = "ee",
             limiter: str = "sim",
+            action_limiter: str = "clip",
             use_robotics_toolbox=True
     ) -> None:
         base_position = base_position if base_position is not None else np.zeros(3)
@@ -78,6 +79,8 @@ class Panda(PyBulletRobot):
         # ruckig
         self.use_ruckig_limiter = True if limiter == "ruckig" else False
 
+        self.action_limiter = action_limiter
+
         # remember actions
         self.previous_action = None
         self.recent_action = None
@@ -109,16 +112,20 @@ class Panda(PyBulletRobot):
             self.init_swift_robot()
             self.update_dummy_robot_link_positions()
 
-    def set_action(self, action: np.ndarray, clip=True) -> None:
+    def set_action(self, action: np.ndarray, action_limiter=None) -> None:
 
         action = action.copy()  # ensure action don't change
-        # todo: apply min max scaling
-        if any([x < -1 or x > 1 for x in action]):
-            # if any action is smaller than -1 or bigger than -1, scale down
-            max_value = max(abs(action))
-            action = np.array([x/max_value for x in action])
-        # if clip:
-        #     action = np.clip(action, self.action_space.low, self.action_space.high)
+
+        if action_limiter is None:
+            action_limiter = self.action_limiter
+
+        if action_limiter == "scale":
+            if any([x < -1 or x > 1 for x in action]):
+                # if any action is smaller than -1 or bigger than -1, scale down
+                max_value = max(abs(action))
+                action = np.array([x / max_value for x in action])
+        elif action_limiter == "clip":
+            action = np.clip(action, self.action_space.low, self.action_space.high)
 
         # save action
         self.previous_action = self.recent_action
@@ -178,9 +185,9 @@ class Panda(PyBulletRobot):
             locations = self.update_dummy_robot_link(idx, link)
             self.link_collision_location_info[link.name] = locations
 
-
     def get_rtb_links(self):
-        end, start, _ = self.panda_rtb._get_limit_links(start=self.panda_rtb.link_dict["panda_link1"], end=self.panda_rtb.link_dict["panda_hand"],)
+        end, start, _ = self.panda_rtb._get_limit_links(start=self.panda_rtb.link_dict["panda_link1"],
+                                                        end=self.panda_rtb.link_dict["panda_hand"], )
         links, n, _ = self.panda_rtb.get_path(start=start, end=end)
         return links
 
@@ -283,7 +290,6 @@ class Panda(PyBulletRobot):
             position = np.array([self.get_joint_angle(joint=i) for i in range(7)])
             velocity = np.array([self.get_joint_velocity(joint=i) for i in range(7)])
 
-
         # fingers opening
         if not self.block_gripper:
             fingers_width = self.get_fingers_width()
@@ -338,13 +344,12 @@ class Panda(PyBulletRobot):
                 Tep = SE3().Rx(135, unit="deg")
             else:
                 Tep = SE3().Rx(-135, unit="deg")
-            #Tep = self.panda_rtb.fkine(self.panda_rtb.q)
-        #Tep = SE3.OA([0, 1, 0], [0, 0, -1])
+            # Tep = self.panda_rtb.fkine(self.panda_rtb.q)
+        # Tep = SE3.OA([0, 1, 0], [0, 0, -1])
         Tep.A[:3, 3] = target
 
-        #sol = self.panda_rtb.ik_lm_chan(Tep)
-        #Tep = self.panda_rtb.fkine(sol.q)
-
+        # sol = self.panda_rtb.ik_lm_chan(Tep)
+        # Tep = self.panda_rtb.fkine(sol.q)
 
         # The se3 pose of the Panda's end-effector
         Te = self.panda_rtb.fkine(self.panda_rtb.q)
@@ -446,9 +451,8 @@ class Panda(PyBulletRobot):
             Tep = self.panda_rtb.fkine(self.panda_rtb.q)
             Tep.A[:3, 3] = target
 
-        #sol = self.panda_rtb.ik_lm_chan(Tep)
-        #Tep = self.panda_rtb.fkine(sol.q)
-
+        # sol = self.panda_rtb.ik_lm_chan(Tep)
+        # Tep = self.panda_rtb.fkine(sol.q)
 
         # The se3 pose of the Panda's end-effector
         Te = self.panda_rtb.fkine(self.panda_rtb.q)
@@ -528,7 +532,7 @@ class Panda(PyBulletRobot):
         # Solve for the joint velocities dq
         qd = qp.solve_qp(Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver="gurobi")
 
-        #self.panda_rtb.qd[:] = qd[:n]
+        # self.panda_rtb.qd[:] = qd[:n]
 
         # Return the joint velocities
         if qd is None:

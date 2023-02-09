@@ -62,7 +62,7 @@ class ReachEvadeObstacles(Task):
         # if target is fixed, it won't be randomly sampled on each episode
         self.fixed_target = fixed_target
 
-        self.randomize_obstacle_velocity = True
+        self.randomize_obstacle_velocity = False
 
         create_obstacle_layout = {
             1: self.create_stage_1,

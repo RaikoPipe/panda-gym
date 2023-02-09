@@ -12,8 +12,8 @@ import panda_gym
 import os
 from learning_methods.curriculum_learning import learn
 
-#from learning_methods.multi_env_her import HerReplayBuffer
-from stable_baselines3 import HerReplayBuffer
+from multiEnvHer.her_replay_buffer import HerReplayBuffer
+# from stable_baselines3 import HerReplayBuffer
 
 
 # hyperparameters from rl-baselines3-zoo tuned pybullet defaults
@@ -23,19 +23,20 @@ config = {
     "algorithm": "TQC",
     "reward_type": "sparse",  # sparse; dense
     "goal_distance_threshold": 0.02,
-    "max_timesteps": 160_000,
+    "max_timesteps": 300_000,
     "seed": 10,
     "render": False,  # renders the pybullet env
     "obs_type": "ee",
     "control_type": "js",  # "ee": end effector displacement; "js": joint space
     "limiter": "sim",
+    "action_limiter": "clip",
     "show_goal_space": True,
     "replay_buffer": HerReplayBuffer,  # HerReplayBuffer
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": True,
     "n_envs": 4,
     "max_ep_steps": 50,
-    "eval_freq": 5_000,
+    "eval_freq": 10_000,
     "stages": ["cube_3_random"],
     "reward_thresholds": [-10],  # [-7, -10, -12, -17, -20]
     "joint_obstacle_observation": "closest",  # "all": closest distance to any obstacle of all joints is observed;

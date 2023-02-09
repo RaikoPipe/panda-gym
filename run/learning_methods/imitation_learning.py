@@ -23,7 +23,7 @@ def fill_replay_buffer(model: TD3, num_steps=10000):
     for i in range(num_steps):
         action = env.robot.compute_action_neo(env.task.goal, env.task.dummy_obstacles)
 
-        env.robot.set_action(action, clip=False)
+        env.robot.set_action(action)
         env.sim.step()
         next_obs, reward, done, truncated, info, = env.step(np.zeros(7))
         replay_buffer.add(obs, next_obs, action, reward, done, [info])

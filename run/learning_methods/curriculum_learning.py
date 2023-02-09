@@ -31,11 +31,13 @@ def get_env(config, stage, deactivate_render=False):
                                        "reward_type": config["reward_type"],
                                        "goal_distance_threshold": config["goal_distance_threshold"],
                                        "limiter": config["limiter"],
+                                       "action_limiter": config["action_limiter"],
                                        "show_goal_space": False,
                                        "obstacle_layout": stage,
                                        "show_debug_labels": False
                                        },
-                           vec_env_cls=SubprocVecEnv)
+                           #vec_env_cls=SubprocVecEnv
+                           )
     else:
         # todo: check if obsolete
         # env = gym.make(config["env_name"],
@@ -56,6 +58,7 @@ def get_env(config, stage, deactivate_render=False):
                                        "reward_type": config["reward_type"],
                                        "goal_distance_threshold": config["goal_distance_threshold"],
                                        "limiter": config["limiter"],
+                                       "action_limiter": config["action_limiter"],
                                        "show_goal_space": False,
                                        "obstacle_layout": stage,
                                        "show_debug_labels": False
@@ -104,9 +107,10 @@ def get_model(algorithm, config):
                     verbose=1, seed=config["seed"],
                     tensorboard_log=f"runs/{run.id}", device="cuda",
                     replay_buffer_class=config["replay_buffer"],
+                    learning_starts=config["learning_starts"],
 
                     # hyperparameters
-                    learning_starts=config["learning_starts"],
+
                     learning_rate=config["learning_rate"],
                     gamma=config["gamma"],
                     tau=config["tau"],
@@ -121,9 +125,10 @@ def get_model(algorithm, config):
                     verbose=1, seed=config["seed"],
                     tensorboard_log=f"runs/{run.id}", device="cuda",
                     replay_buffer_class=config["replay_buffer"],
+                    learning_starts=config["learning_starts"],
 
                     # hyperparameters
-                    learning_starts=config["learning_starts"],
+
                     learning_rate=config["learning_rate"],
                     gamma=config["gamma"],
                     tau=config["tau"],
