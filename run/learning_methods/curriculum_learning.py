@@ -36,7 +36,7 @@ def get_env(config, stage, deactivate_render=False):
                                        "obstacle_layout": stage,
                                        "show_debug_labels": False
                                        },
-                           #vec_env_cls=SubprocVecEnv
+                           vec_env_cls=SubprocVecEnv
                            )
     else:
         # todo: check if obsolete

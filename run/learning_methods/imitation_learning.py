@@ -20,15 +20,15 @@ def fill_replay_buffer(model: TD3, num_steps=10000):
     replay_buffer = model.replay_buffer
 
     done_events = []
+    episode_steps = 0
     for i in range(num_steps):
+
         action = env.robot.compute_action_neo(env.task.goal, env.task.dummy_obstacles)
 
-        env.robot.set_action(action)
+        env.robot.set_action(action, action_limiter="scale")
         env.sim.step()
         next_obs, reward, done, truncated, info, = env.step(np.zeros(7))
         replay_buffer.add(obs, next_obs, action, reward, done, [info])
-
-        model.train(gradient_steps=-1)
 
         obs = next_obs
 
@@ -46,8 +46,10 @@ def fill_replay_buffer(model: TD3, num_steps=10000):
                 done_events.append(0)
             obs, _ = env.reset()
             # unnecessary step (?) reset panda
-
+            model.train(gradient_steps=episode_steps)
             episode_rewards.append(0.0)
+            episode_steps = 0
+        episode_steps += 1
     # Compute mean reward for the last 100 episodes
     mean_100ep_reward = np.mean(episode_rewards[-100:])
     print("Mean reward:", mean_100ep_reward, "Num episodes:", len(episode_rewards))

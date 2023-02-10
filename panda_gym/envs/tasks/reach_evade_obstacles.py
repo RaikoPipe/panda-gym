@@ -42,6 +42,7 @@ class ReachEvadeObstacles(Task):
 
     ) -> None:
         super().__init__(sim)
+
         self.sim_id = self.sim.physics_client._client
         if self.sim.dummy_collision_client is not None:
             self.dummy_sim_id = self.sim.dummy_collision_client._client
@@ -113,6 +114,9 @@ class ReachEvadeObstacles(Task):
         # extra observations
         self.distances_links_to_closest_obstacle = np.zeros(len(self.collision_links))
         self.is_collided = False
+        self.action_magnitude = 0
+        self.action_diff = 0
+        self.manipulability = 0
 
         # set scene
         with self.sim.no_rendering():
@@ -598,7 +602,7 @@ class ReachEvadeObstacles(Task):
 
     def compute_reward(self, achieved_goal, desired_goal, info: Dict[str, Any]) -> np.ndarray:
         d = distance(achieved_goal, desired_goal)
-        manip = self.robot.get_manipulability()
+        manipulability = self.robot.get_manipulability()
         obs_d = self.distances_links_to_closest_obstacle
         action_diff = self.get_reward_action_difference()
         action_magnitude = self.get_reward_small_actions()
@@ -620,7 +624,11 @@ class ReachEvadeObstacles(Task):
                 reward += -np.array(d + exp(-min(obs_d)) * self.factor_punish_obstacle_proximity, dtype=np.float32)
 
         if self.sim.render_env:
-            self.update_labels(manip, d, obs_d, action_diff, action_magnitude, reward)
+            self.update_labels(manipulability, d, obs_d, action_diff, action_magnitude, reward)
+
+        self.action_diff = action_diff
+        self.action_magnitude = action_magnitude
+        self.manipulability = manipulability
 
         return reward
 

@@ -15,6 +15,7 @@ from stable_baselines3.her.goal_selection_strategy import KEY_TO_GOAL_STRATEGY, 
 def get_time_limit(env: VecEnv, current_max_episode_length: Optional[int]) -> int:
     """
     Get time limit from environment.
+
     :param env: Environment from which we want to get the time limit.
     :param current_max_episode_length: Current value for max_episode_length.
     :return: max episode length
@@ -41,14 +42,19 @@ class HerReplayBuffer(DictReplayBuffer):
     """
     Hindsight Experience Replay (HER) buffer.
     Paper: https://arxiv.org/abs/1707.01495
+
     .. warning::
+
       For performance reasons, the maximum number of steps per episodes must be specified.
       In most cases, it will be inferred if you specify ``max_episode_steps`` when registering the environment
       or if you use a ``gym.wrappers.TimeLimit`` (and ``env.spec`` is not None).
       Otherwise, you can directly pass ``max_episode_length`` to the replay buffer constructor.
+
+
     Replay buffer for sampling HER (Hindsight Experience Replay) transitions.
     In the online sampling case, these new transitions will not be saved in the replay buffer
     and will only be created at sampling time.
+
     :param env: The training environment
     :param buffer_size: The size of the buffer measured in transitions.
     :param max_episode_length: The maximum length of an episode. If not specified,
@@ -67,7 +73,7 @@ class HerReplayBuffer(DictReplayBuffer):
         self,
         env: VecEnv,
         buffer_size: int,
-        device: Union[th.device, str] = "cuda",
+        device: Union[th.device, str] = "cpu",
         replay_buffer: Optional[DictReplayBuffer] = None,
         max_episode_length: Optional[int] = None,
         n_sampled_goal: int = 4,
@@ -75,6 +81,7 @@ class HerReplayBuffer(DictReplayBuffer):
         online_sampling: bool = True,
         handle_timeout_termination: bool = True,
     ):
+
         super(HerReplayBuffer, self).__init__(buffer_size, env.observation_space, env.action_space, device, env.num_envs)
 
         # convert goal_selection_strategy into GoalSelectionStrategy if string
@@ -147,6 +154,7 @@ class HerReplayBuffer(DictReplayBuffer):
     def __getstate__(self) -> Dict[str, Any]:
         """
         Gets state for pickling.
+
         Excludes self.env, as in general Env's may not be pickleable.
         Note: when using offline sampling, this will also save the offline replay buffer.
         """
@@ -158,7 +166,9 @@ class HerReplayBuffer(DictReplayBuffer):
     def __setstate__(self, state: Dict[str, Any]) -> None:
         """
         Restores pickled state.
+
         User must call ``set_env()`` after unpickling before using.
+
         :param state:
         """
         self.__dict__.update(state)
@@ -168,6 +178,7 @@ class HerReplayBuffer(DictReplayBuffer):
     def set_env(self, env: VecEnv) -> None:
         """
         Sets the environment.
+
         :param env:
         """
         if self.env is not None:
@@ -190,6 +201,7 @@ class HerReplayBuffer(DictReplayBuffer):
         Sample function for online sampling of HER transition,
         this replaces the "regular" replay buffer ``sample()``
         method in the ``train()`` function.
+
         :param batch_size: Number of element to sample
         :param env: Associated gym VecEnv
             to normalize the observations/rewards when sampling
@@ -207,6 +219,7 @@ class HerReplayBuffer(DictReplayBuffer):
         Sample function for offline sampling of HER transition,
         in that case, only one episode is used and transitions
         are added to the regular replay buffer.
+
         :param n_sampled_goal: Number of sampled goals for replay
         :return: at most(n_sampled_goal * episode_length) HER transitions.
         """
@@ -228,6 +241,7 @@ class HerReplayBuffer(DictReplayBuffer):
         """
         Sample goals based on goal_selection_strategy.
         This is a vectorized (fast) version.
+
         :param episode_indices: Episode indices to use.
         :param her_indices: HER indices.
         :param transitions_indices: Transition indices to use.
@@ -536,6 +550,7 @@ class VecHerReplayBuffer(DictReplayBuffer):
     A Vectorized version of the Hindsight Experience Replay (HER) buffer.
     It is made to handle multiple environments at the same time
     and keep different ``HerReplayBuffer`` to do so.
+
     :param env: The training environment
     :param buffer_size: The size of the buffer measured in transitions.
     :param max_episode_length: The maximum length of an episode. If not specified,
@@ -613,6 +628,7 @@ class VecHerReplayBuffer(DictReplayBuffer):
         Sample function for online sampling of HER transition,
         this replaces the "regular" replay buffer ``sample()``
         method in the ``train()`` function.
+
         :param batch_size: Number of element to sample
         :param env: Associated gym VecEnv
             to normalize the observations/rewards when sampling
@@ -645,6 +661,7 @@ class VecHerReplayBuffer(DictReplayBuffer):
         def set_env(self, env: VecEnv) -> None:
             """
             See ``HerReplayBuffer`` doc.
+
             :param env:
             """
             for buffer in self.buffers:

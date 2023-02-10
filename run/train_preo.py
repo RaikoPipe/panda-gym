@@ -12,7 +12,7 @@ import panda_gym
 import os
 from learning_methods.curriculum_learning import learn
 
-from multiEnvHer.her_replay_buffer import HerReplayBuffer
+from stable_baselines3.her.her_replay_buffer import VecHerReplayBuffer, HerReplayBuffer
 # from stable_baselines3 import HerReplayBuffer
 
 
@@ -34,14 +34,14 @@ config = {
     "replay_buffer": HerReplayBuffer,  # HerReplayBuffer
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": True,
-    "n_envs": 4,
+    "n_envs": 1,
     "max_ep_steps": 50,
     "eval_freq": 10_000,
     "stages": ["cube_3_random"],
     "reward_thresholds": [-10],  # [-7, -10, -12, -17, -20]
     "joint_obstacle_observation": "closest",  # "all": closest distance to any obstacle of all joints is observed;
     "learning_starts": 10_000,
-    "prior_steps": 0
+    "prior_steps": 0,
     # "closest": only closest joint distance is observed
 }
 

@@ -32,6 +32,8 @@ def evaluate(model, num_steps=10_000):
     episode_rewards = [0.0]
     obs, _ = env.reset()
     done_events = []
+    action_diffs = []
+    manipulabilities = []
     # todo: change neutral values of panda
 
     for i in range(num_steps):
@@ -39,10 +41,14 @@ def evaluate(model, num_steps=10_000):
         action, _states = model.predict(obs)
 
         obs, reward, done, truncated, info, = env.step(action)
-        #sleep(0.05) # for human eval
+        action_diff = env.task.action_diff
+        manipulability = env.task.manipulability
+        sleep(0.05) # for human eval
 
         # Stats
         episode_rewards[-1] += reward
+        action_diffs.append(action_diff)
+        manipulabilities.append(manipulability)
 
         if done or truncated:
             #sleep(2)
@@ -63,6 +69,11 @@ def evaluate(model, num_steps=10_000):
     print("Mean reward:", mean_100ep_reward, "Num episodes:", len(episode_rewards))
     print(f"Success Rate: {done_events.count(1)/len(done_events)}")
     print(f"Collision Rate: {done_events.count(-1) / len(done_events)}")
+    print(f"Mean Action Difference: {np.mean(action_diffs)}")
+    print(f"Mean Manipulability: {np.mean(manipulabilities)}")
+
+    print(sum(action_diffs))
+    print(sum(manipulabilities))
 
     return mean_100ep_reward
 
@@ -76,7 +87,7 @@ env = gym.make(config["env_name"], render=True, control_type=config["control_typ
                show_goal_space=False, obstacle_layout="cube_3_random",
                show_debug_labels=True)
 
-model = TQC.load(r"run_data/wandb/run-20230208_111724-1ydzmh1q/files/model.zip", env=env)
+model = TQC.load(r"run_data/wandb/run-20230209_144728-2fm6ti9o/files/best_model.zip", env=env)
 
 evaluate(model)
 
