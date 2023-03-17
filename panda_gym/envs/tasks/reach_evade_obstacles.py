@@ -4,6 +4,7 @@ from typing import Any, Dict
 
 import numpy as np
 import pybullet
+from pathlib import Path
 
 import gymnasium as gym
 
@@ -19,7 +20,10 @@ sys.modules["gym"] = gymnasium
 
 from stable_baselines3 import TD3
 
-
+ROOT_DIR = Path(__file__).parent.parent.parent
+SCENARIO_DIR = f"{ROOT_DIR}\\assets\\scenarios"
+NARROW_TUNNEL_DIR = f"{SCENARIO_DIR}\\narrow_tunnel"
+LIBRARY_DIR = f"{SCENARIO_DIR}\\library"
 class ReachEvadeObstacles(Task):
     def __init__(
             self,
@@ -66,6 +70,10 @@ class ReachEvadeObstacles(Task):
         self.randomize_obstacle_velocity = False
 
         create_obstacle_layout = {
+            # scenarios
+            "narrow_tunnel": self.create_scenario_narrow_tunnel,
+
+            0: self.create_stage_0,
             1: self.create_stage_1,
             2: self.create_stage_2,
             3: self.create_stage_3,
@@ -178,7 +186,7 @@ class ReachEvadeObstacles(Task):
     def _create_scene(self):
 
         self.sim.create_plane(z_offset=-0.4)
-        self.sim.create_table(length=1.1, width=0.7, height=0.4, x_offset=-0.3)
+        self.sim.create_table(length=1.1, width=0.7, height=0.4, x_offset=0.3)
         self.sim.create_sphere(
             body_name="target",
             radius=0.02,
@@ -195,7 +203,51 @@ class ReachEvadeObstacles(Task):
             position=np.zeros(3),
             rgba_color=np.array([0.1, 0.9, 0.1, 0.0]),
         )
+    def create_scenario_narrow_tunnel(self):
+        #todo: set fixed starting state
+        # self.robot.neutral_joint_values =
+        # todo: set fixed target according to scenario
+        self.fixed_target = np.array([-0.2, -0.4, 0.2])
+        self.goal = self.fixed_target
+        urdfs = {
+            "tunnel": {
+                "bodyName": "narrow_tunnel",
+                "fileName":f"{NARROW_TUNNEL_DIR}\\narrow_tunnel.urdf",
+                "basePosition":[0.8, -0.15, 0.0],
+                "useFixedBase": True
+            }
+        }
+        self.sim.load_scenario(urdfs)
 
+    def create_scenario_library(self):
+        # todo: set correct scale
+        #todo: set fixed starting state
+        # self.robot.neutral_joint_values =
+        # todo: set fixed target according to scenario
+        self.fixed_target = np.array([-0.2, -0.4, 0.2])
+        self.goal = self.fixed_target
+        urdfs = {
+            "shelf": {
+                "bodyName": "shelf",
+                "fileName":f"{LIBRARY_DIR}\\shelf.urdf",
+                "basePosition":[0.0, 0.0, 0.0],
+                "useFixedBase": True
+            },
+            "table": {
+                "bodyName": "table",
+                "fileName": f"{LIBRARY_DIR}\\table.urdf",
+                "basePosition": [0.0, 0.0, 0.0],
+                "useFixedBase": True
+            },
+        }
+        self.sim.load_scenario(urdfs)
+    def create_stage_0(self):
+        """one obstacle in the corner of the goal space, small goal space"""
+        self.goal_range = 0.3
+
+        self.create_obstacle_cuboid(
+            np.array([0, 0.05, -1]),
+            size=np.array([0.02, 0.02, 0.02]))
     def create_stage_1(self):
         """one obstacle in the corner of the goal space, small goal space"""
         self.goal_range = 0.3

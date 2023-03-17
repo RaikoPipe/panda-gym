@@ -69,7 +69,7 @@ def evaluate(env, num_steps=10000):
     return mean_100ep_reward
 
 
-panda_gym.register_envs(50)
+panda_gym.register_envs(100*20)
 # instantiate reachEvadeObstacle
 # env = gym.make(config["env_name"], render=True, control_type=config["control_type"], reward_type=config["reward_type"],
 #                show_goal_space=False, obstacle_layout=1,

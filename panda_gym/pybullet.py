@@ -456,8 +456,15 @@ class PyBullet:
             body_name (str): The name of the body. Must be unique in the sim.
         """
         idx = self._bodies_idx[body_name] = self.physics_client.loadURDF(**kwargs)
-
         return idx
+    def load_scenario(self, urdfs):
+        for _, kwargs in urdfs.items():
+            self.loadURDF(body_name=kwargs["bodyName"],
+                          fileName = kwargs["fileName"],
+                          basePosition= kwargs["basePosition"],
+                          useFixedBase= kwargs["useFixedBase"])
+
+
 
     def create_box(
             self,

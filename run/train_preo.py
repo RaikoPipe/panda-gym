@@ -12,7 +12,7 @@ import panda_gym
 import os
 from learning_methods.curriculum_learning import learn
 
-from stable_baselines3.her.her_replay_buffer import VecHerReplayBuffer, HerReplayBuffer
+from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
 # from stable_baselines3 import HerReplayBuffer
 
 
