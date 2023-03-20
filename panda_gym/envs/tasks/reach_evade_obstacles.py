@@ -24,6 +24,8 @@ ROOT_DIR = Path(__file__).parent.parent.parent
 SCENARIO_DIR = f"{ROOT_DIR}\\assets\\scenarios"
 NARROW_TUNNEL_DIR = f"{SCENARIO_DIR}\\narrow_tunnel"
 LIBRARY_DIR = f"{SCENARIO_DIR}\\library"
+
+
 class ReachEvadeObstacles(Task):
     def __init__(
             self,
@@ -72,6 +74,7 @@ class ReachEvadeObstacles(Task):
         create_obstacle_layout = {
             # scenarios
             "narrow_tunnel": self.create_scenario_narrow_tunnel,
+            "library": self.create_scenario_library,
 
             0: self.create_stage_0,
             1: self.create_stage_1,
@@ -145,7 +148,7 @@ class ReachEvadeObstacles(Task):
             self.goal_range_high = np.array([self.goal_range / 2.5, self.goal_range / 1.5, self.goal_range])
 
             # set velocity range
-            self.velocity_range_low = np.array([-0.2,-0.2,-0.2])
+            self.velocity_range_low = np.array([-0.2, -0.2, -0.2])
             self.velocity_range_high = np.array([0.2, 0.2, 0.2])
 
             if show_goal_space:
@@ -186,7 +189,8 @@ class ReachEvadeObstacles(Task):
     def _create_scene(self):
 
         self.sim.create_plane(z_offset=-0.4)
-        self.sim.create_table(length=1.1, width=0.7, height=0.4, x_offset=0.3)
+        #self.sim.create_table(length=1.1, width=0.7, height=0.4, x_offset=0.3)
+        self.sim.create_table(length=3.0, width=3.0, height=0.4, x_offset=0.3)
         self.sim.create_sphere(
             body_name="target",
             radius=0.02,
@@ -203,8 +207,9 @@ class ReachEvadeObstacles(Task):
             position=np.zeros(3),
             rgba_color=np.array([0.1, 0.9, 0.1, 0.0]),
         )
+
     def create_scenario_narrow_tunnel(self):
-        #todo: set fixed starting state
+        # todo: set fixed starting state
         # self.robot.neutral_joint_values =
         # todo: set fixed target according to scenario
         self.fixed_target = np.array([-0.2, -0.4, 0.2])
@@ -212,35 +217,35 @@ class ReachEvadeObstacles(Task):
         urdfs = {
             "tunnel": {
                 "bodyName": "narrow_tunnel",
-                "fileName":f"{NARROW_TUNNEL_DIR}\\narrow_tunnel.urdf",
-                "basePosition":[0.8, -0.15, 0.0],
+                "fileName": f"{NARROW_TUNNEL_DIR}\\narrow_tunnel.urdf",
+                "basePosition": [0.8, -0.15, 0.0],
                 "useFixedBase": True
             }
         }
         self.sim.load_scenario(urdfs)
 
     def create_scenario_library(self):
-        # todo: set correct scale
-        #todo: set fixed starting state
-        # self.robot.neutral_joint_values =
-        # todo: set fixed target according to scenario
-        self.fixed_target = np.array([-0.2, -0.4, 0.2])
+
+        self.robot.neutral_joint_values = [0.0, 0.12001979, 0.0, -1.64029458, 0.02081271, 3.1,
+                                           0.77979846] # above table
+        self.fixed_target = np.array([0.7, 0.0, 0.2]) # below table
         self.goal = self.fixed_target
         urdfs = {
             "shelf": {
                 "bodyName": "shelf",
-                "fileName":f"{LIBRARY_DIR}\\shelf.urdf",
-                "basePosition":[0.0, 0.0, 0.0],
+                "fileName": f"{LIBRARY_DIR}\\shelf.urdf",
+                "basePosition": [-0.8, -0.5, 0.0],
                 "useFixedBase": True
             },
             "table": {
                 "bodyName": "table",
                 "fileName": f"{LIBRARY_DIR}\\table.urdf",
-                "basePosition": [0.0, 0.0, 0.0],
+                "basePosition": [-0.7, -0.5, 0.1],
                 "useFixedBase": True
             },
         }
         self.sim.load_scenario(urdfs)
+
     def create_stage_0(self):
         """one obstacle in the corner of the goal space, small goal space"""
         self.goal_range = 0.3
@@ -248,6 +253,7 @@ class ReachEvadeObstacles(Task):
         self.create_obstacle_cuboid(
             np.array([0, 0.05, -1]),
             size=np.array([0.02, 0.02, 0.02]))
+
     def create_stage_1(self):
         """one obstacle in the corner of the goal space, small goal space"""
         self.goal_range = 0.3

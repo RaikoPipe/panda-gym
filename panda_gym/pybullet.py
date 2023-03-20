@@ -744,7 +744,7 @@ class PyBullet:
             mass=0.0,
             position=np.array([x_offset, 0.0, -height / 2]),
             specular_color=np.zeros(3),
-            rgba_color=np.array([0.95, 0.95, 0.95, 1]),
+            rgba_color=np.array([0.2, 0.2, 0.2, 1]),
             lateral_friction=lateral_friction,
             spinning_friction=spinning_friction,
             physics_client=physics_client

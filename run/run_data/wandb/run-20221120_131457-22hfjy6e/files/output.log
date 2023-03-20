@@ -1,6 +1,0 @@
-Traceback (most recent call last):
-  File "C:\Users\eclip\Documents\GitHub\panda-gym\run\train_curr.py", line 51, in <module>
-    curriculum_learn(config=config, initial_model=model)
-  File "C:\Users\eclip\Documents\GitHub\panda-gym\run\utils\learning.py", line 63, in curriculum_learn
-    assert starting_stage in stages
-AssertionError

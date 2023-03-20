@@ -2,6 +2,8 @@ import wandb
 
 import sys
 import gymnasium
+from matplotlib import pyplot as plt
+
 sys.modules["gym"] = gymnasium
 
 from stable_baselines3 import TD3
@@ -15,9 +17,21 @@ import gym
 
 import panda_gym
 
+
 from learning_methods.curriculum_learning import get_env
 
+import seaborn as sns
 
+done_events = []
+action_diffs = []
+manipulabilities = []
+
+end_effector_positions = []
+end_effector_velocities = []
+end_effector_speeds = []
+
+joint_positions = []
+joint_velocities = []
 
 def evaluate(model, num_steps=10_000):
     """
@@ -27,13 +41,12 @@ def evaluate(model, num_steps=10_000):
     :return: (float) Mean reward for the last 100 episodes
     """
     # robot parameters
-    env.robot.neutral_joint_values = np.array([0, -0.3, 0, -2.2, 0, 2.0, np.pi / 4, 0.00, 0.00])
+    #env.robot.neutral_joint_values = np.array([0, -0.3, 0, -2.2, 0, 2.0, np.pi / 4, 0.00, 0.00])
 
     episode_rewards = [0.0]
     obs, _ = env.reset()
-    done_events = []
-    action_diffs = []
-    manipulabilities = []
+
+
     # todo: change neutral values of panda
 
     for i in range(num_steps):
@@ -49,6 +62,14 @@ def evaluate(model, num_steps=10_000):
         episode_rewards[-1] += reward
         action_diffs.append(action_diff)
         manipulabilities.append(manipulability)
+
+        end_effector_positions.append(env.robot.get_ee_position())
+        ee_velocity = env.robot.get_ee_velocity
+        end_effector_velocities.append(ee_velocity)
+        end_effector_speeds.append(np.square(np.linalg.norm(ee_velocity)))
+
+        joint_positions.append(np.array([env.robot.get_joint_angle(joint=i) for i in range(7)]))
+        joint_velocities.append(np.array([env.robot.get_joint_velocity(joint=i) for i in range(7)]))
 
         if done or truncated:
             #sleep(2)
@@ -80,16 +101,33 @@ def evaluate(model, num_steps=10_000):
 panda_gym.register_envs(100)
 
 #env = get_env(config, "cube_3_random")
+if __name__ == "__main__":
+    env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
+                   obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
+                   reward_type=config["reward_type"], limiter=config["limiter"],
+                   show_goal_space=False, obstacle_layout="cube_3_random",
+                   show_debug_labels=True)
 
-env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
-               obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
-               reward_type=config["reward_type"], limiter=config["limiter"],
-               show_goal_space=False, obstacle_layout="cube_3_random",
-               show_debug_labels=True)
+    model = TQC.load(r"run_data/wandb/incandescent_monkey_18/files/best_model.zip", env=env)
 
-model = TQC.load(r"run_data/wandb/run-20230209_144728-2fm6ti9o/files/best_model.zip", env=env)
+    evaluate(model)
 
-evaluate(model)
+    # Some boilerplate to initialise things
+    sns.set()
+    plt.figure()
+
+    # This is where the actual plot gets made
+    ax = sns.lineplot(data=end_effector_speeds, saturation=0.6)
+
+    # Customise some display properties
+    ax.set_title('End Effector Speeds')
+    ax.grid(color='#cccccc')
+    ax.set_ylabel('Speed')
+    ax.set_xlabel("TimeStep")
+    #ax.set_xticklabels(df["year"].unique().astype(str), rotation='vertical')
+
+    # Ask Matplotlib to show it
+    plt.show()
 
 
 

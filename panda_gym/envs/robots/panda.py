@@ -297,6 +297,8 @@ class Panda(PyBulletRobot):
         else:
             observation = np.concatenate((position, velocity))
 
+        print(position)
+
         return observation
 
     def reset(self) -> None:

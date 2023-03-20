@@ -14,7 +14,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="shelf.obj" />
+        <mesh filename="table.obj" scale="0.0008 0.0008 0.0008"/>
       </geometry>
       <material name="metal_material">
         <color rgba="0.7 0.7 0.7 1"/>
@@ -23,7 +23,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="narrow_tunnel.obj" />
+        <mesh filename="table.obj" scale="0.0008 0.0008 0.0008"/>
       </geometry>
     </collision>
   </link>
