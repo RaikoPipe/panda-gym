@@ -1,4 +1,4 @@
-import os
+import os, sys
 
 from gymnasium.envs.registration import register
 

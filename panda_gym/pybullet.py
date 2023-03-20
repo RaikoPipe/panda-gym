@@ -22,8 +22,8 @@ class PyBullet:
             Defaults to np.array([223, 54, 45]).
     """
 
-    def __init__(self, render: bool = False, realtime=False, n_substeps: int = 20,
-                 background_color: Optional[np.ndarray] = None, dummy_client=True,) -> None:
+    def __init__(self, render: bool = False, n_substeps: int = 20,
+                 background_color: Optional[np.ndarray] = None, dummy_client=True, ) -> None:
         background_color = background_color if background_color is not None else np.array([0.0, 134.0, 201.0])
         self.background_color = background_color.astype(np.float32) / 255
         options = "--background_color_red={} \
@@ -40,7 +40,7 @@ class PyBullet:
             self.dummy_collision_client = bc.BulletClient(connection_mode=p.DIRECT)
         # self.physics_client = bc.BulletClient(connection_mode=p.DIRECT, options=options)
         # self.dummy_collision_client = bc.BulletClient(connection_mode=p.GUI)
-        self.physics_client.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+        self.physics_client.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
         self.physics_client.configureDebugVisualizer(p.COV_ENABLE_MOUSE_PICKING, 1)
 
         self.n_substeps = n_substeps
@@ -457,12 +457,16 @@ class PyBullet:
         """
         idx = self._bodies_idx[body_name] = self.physics_client.loadURDF(**kwargs)
         return idx
+
     def load_scenario(self, urdfs):
+        indexes = []
         for _, kwargs in urdfs.items():
-            self.loadURDF(body_name=kwargs["bodyName"],
+            indexes.append(self.loadURDF(body_name=kwargs["bodyName"],
                           fileName = kwargs["fileName"],
                           basePosition= kwargs["basePosition"],
-                          useFixedBase= kwargs["useFixedBase"])
+                          useFixedBase= kwargs["useFixedBase"]))
+
+        return indexes
 
 
 

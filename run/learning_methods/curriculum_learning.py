@@ -1,6 +1,4 @@
 from typing import Optional, Union
-
-import gymnasium as gym
 import numpy as np
 
 import sys
@@ -33,7 +31,7 @@ def get_env(config, stage, deactivate_render=False):
                                        "limiter": config["limiter"],
                                        "action_limiter": config["action_limiter"],
                                        "show_goal_space": False,
-                                       "obstacle_layout": stage,
+                                       "scenario": stage,
                                        "show_debug_labels": False
                                        },
                            vec_env_cls=SubprocVecEnv
@@ -49,7 +47,7 @@ def get_env(config, stage, deactivate_render=False):
         #                reward_type=config["reward_type"],
         #                limiter=config["limiter"],
         #                show_goal_space=False,
-        #                obstacle_layout=stage,
+        #                scenario=stage,
         #                show_debug_labels=False,)
         env = make_vec_env(config["env_name"], n_envs=config["n_envs"],
                            env_kwargs={"render": config["render"] if not deactivate_render else False,
@@ -60,16 +58,14 @@ def get_env(config, stage, deactivate_render=False):
                                        "limiter": config["limiter"],
                                        "action_limiter": config["action_limiter"],
                                        "show_goal_space": False,
-                                       "obstacle_layout": stage,
+                                       "scenario": stage,
                                        "show_debug_labels": False
                                        })
 
     return env
 
 
-def get_model(algorithm, config):
-    tags = get_tags(config)
-    run = init_wandb(config, tags)
+def get_model(algorithm, config, run):
 
     #env = get_env(config, config["stages"][0], deactivate_render=True)
     #n_actions = env.action_space.shape[0]
@@ -139,7 +135,7 @@ def get_model(algorithm, config):
                     policy_kwargs=config["policy_kwargs"]
                     )
 
-    return model, run
+    return model
 
 
 def get_tags(config):
@@ -178,9 +174,15 @@ def init_wandb(config, tags):
 
 def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
           starting_stage: Optional[str] = None, algorithm: str = "TD3"):
+
+    tags = get_tags(config)
+    if initial_model:
+        tags.append("pre-trained")
+    run = init_wandb(config, tags)
+
     if not initial_model:
 
-        model, run = get_model(algorithm, config)
+        model= get_model(algorithm, config, run)
 
     else:
         model = initial_model
@@ -210,10 +212,10 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
         if config["prior_steps"]:
             model.replay_buffer = fill_replay_buffer(model, config["prior_steps"])
 
-        eval_env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
+        eval_env = gymnasium.make(config["env_name"], render=True, control_type=config["control_type"],
                             obs_type=config["obs_type"],
                             reward_type=config["reward_type"],
-                            show_goal_space=False, obstacle_layout=stage,
+                            show_goal_space=False, scenario=stage,
                             show_debug_labels=False)
 
         stop_train_callback = StopTrainingOnRewardThreshold(reward_threshold=reward_threshold, verbose=1)

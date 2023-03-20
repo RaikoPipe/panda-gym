@@ -53,7 +53,7 @@ class Panda(PyBulletRobot):
         super().__init__(
             sim,
             body_name="panda",
-            file_name="franka_panda_custom/panda.urdf",
+            file_name="franka_panda_custom/panda.urdf" if use_robotics_toolbox else "franka_panda/panda.urdf",
             base_position=base_position,
             action_space=action_space,
             joint_indices=np.array([0, 1, 2, 3, 4, 5, 6, 9, 10]),
@@ -91,12 +91,13 @@ class Panda(PyBulletRobot):
         self.current_joint_acceleration = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
         self.rtb = use_robotics_toolbox
+        self.panda_rtb = rtb.models.Panda()
 
         if self.rtb:
             # init roboticstoolbox panda
             # self.swift_env = Swift()
             # self.swift_env.launch()
-            self.panda_rtb = rtb.models.Panda()
+
             self.optimal_pose = None
             # move = spatialmath.SE3(-0.6, 0, 0)
             # self.panda_rtb.base = move
@@ -149,7 +150,6 @@ class Panda(PyBulletRobot):
             target_fingers_width = fingers_width + fingers_ctrl
 
         target_angles = np.concatenate((target_arm_angles, [target_fingers_width / 2, target_fingers_width / 2]))
-
         self.control_joints(target_angles=target_angles)
 
         if self.rtb:
@@ -296,8 +296,6 @@ class Panda(PyBulletRobot):
             observation = np.concatenate((position, velocity, [fingers_width]))
         else:
             observation = np.concatenate((position, velocity))
-
-        print(position)
 
         return observation
 

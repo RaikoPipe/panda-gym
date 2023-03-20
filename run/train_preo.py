@@ -1,6 +1,8 @@
 import time
 
 import numpy as np
+
+
 import wandb
 # from pygame import mixer
 
@@ -8,9 +10,10 @@ import sys
 import gymnasium
 sys.modules["gym"] = gymnasium
 
+from sb3_contrib import TQC
 import panda_gym
 import os
-from learning_methods.curriculum_learning import learn
+from learning_methods.curriculum_learning import learn, get_env
 
 from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
 # from stable_baselines3 import HerReplayBuffer
@@ -37,10 +40,10 @@ config = {
     "n_envs": 1,
     "max_ep_steps": 50,
     "eval_freq": 10_000,
-    "stages": ["cube_3_random"],
+    "stages": ["library"],
     "reward_thresholds": [-10],  # [-7, -10, -12, -17, -20]
     "joint_obstacle_observation": "closest",  # "all": closest distance to any obstacle of all joints is observed;
-    "learning_starts": 10_000,
+    "learning_starts": 0,
     "prior_steps": 0,
     # "closest": only closest joint distance is observed
 }
@@ -70,7 +73,7 @@ hyperparameters_sac = {
 }
 
 # register envs to gymnasium
-panda_gym.register_envs(config["max_ep_steps"])
+#panda_gym.register_envs(config["max_ep_steps"])
 
 if __name__ == "__main__":
     key = os.getenv("wandb_key")
@@ -79,7 +82,7 @@ if __name__ == "__main__":
     # register envs to gymnasium
     panda_gym.register_envs(config["max_ep_steps"])
 
-    #env = get_env(config, "sphere_2_random")
+    env = get_env(config, "narrow_tunnel")
 
     # for algorithm in "PPO":
     if config["algorithm"] in ("TD3", "DDPG"):
@@ -87,12 +90,12 @@ if __name__ == "__main__":
     elif config["algorithm"] in  ("SAC", "TQC"):
         config.update(hyperparameters_sac)
 
-    # model = TD3.load(r"run_data/wandb/run-20221206_122636-k1fwbcbr/files/model.zip", env=env,
-    #                  train_freq=config["n_envs"],
-    #                  gradient_steps=config["gradient_steps"])
+    model = TQC.load(r"run_data/wandb/run-20230209_144728-2fm6ti9o/files/best_model.zip", env=env,
+                     train_freq=config["n_envs"],
+                     gradient_steps=config["gradient_steps"])
 
 
-    model = learn(config=config, algorithm=config["algorithm"], )#initial_model=model)
+    model = learn(config=config, algorithm=config["algorithm"], initial_model=model)
 
 
     # mixer.init()

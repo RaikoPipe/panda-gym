@@ -36,7 +36,7 @@ class ReachEvadeObstacles(Task):
             goal_distance_threshold=0.05,
             show_goal_space=False,
             joint_obstacle_observation="all",
-            obstacle_layout=1,
+            scenario=1,
             show_debug_labels=True,
             fixed_target=None,
             # adjustment factors for dense rewards
@@ -71,7 +71,7 @@ class ReachEvadeObstacles(Task):
 
         self.randomize_obstacle_velocity = False
 
-        create_obstacle_layout = {
+        create_scenario = {
             # scenarios
             "narrow_tunnel": self.create_scenario_narrow_tunnel,
             "library": self.create_scenario_library,
@@ -120,7 +120,7 @@ class ReachEvadeObstacles(Task):
         exclude_links = ["panda_grasptarget", "panda_leftfinger", "panda_rightfinger"]  # env has no grasptarget
         self.collision_links = [i for i in self.robot.link_names if i not in exclude_links]
         self.collision_objects = []
-        self.randomize = False  # Randomize obstacle placement
+        self.randomize_obstacle_position = False  # Randomize obstacle placement
 
         # extra observations
         self.distances_links_to_closest_obstacle = np.zeros(len(self.collision_links))
@@ -135,8 +135,8 @@ class ReachEvadeObstacles(Task):
 
             self.sim.place_visualizer(target_position=np.zeros(3), distance=0.9, yaw=45, pitch=-30)
 
-            if obstacle_layout:
-                create_obstacle_layout[obstacle_layout]()
+            if scenario:
+                create_scenario[scenario]()
 
                 # register collision objects for collision detector
                 for obstacle_name, obstacle_id in self.obstacles.items():
@@ -209,10 +209,13 @@ class ReachEvadeObstacles(Task):
         )
 
     def create_scenario_narrow_tunnel(self):
-        # todo: set fixed starting state
-        # self.robot.neutral_joint_values =
-        # todo: set fixed target according to scenario
-        self.fixed_target = np.array([-0.2, -0.4, 0.2])
+        # todo: Create custom goal space
+        self.robot.neutral_joint_values = np.array(
+            [-2.34477029,  1.69617261,  1.81619755, - 1.98816377, - 1.58805049,  1.2963265,
+             0.41092735]
+            )
+        self.robot.set_joint_neutral()
+        self.fixed_target = np.array([0.4, 0.15, 0.2])
         self.goal = self.fixed_target
         urdfs = {
             "tunnel": {
@@ -222,14 +225,20 @@ class ReachEvadeObstacles(Task):
                 "useFixedBase": True
             }
         }
-        self.sim.load_scenario(urdfs)
+
+        indexes = self.sim.load_scenario(urdfs)
+
+        for idx, body in zip(indexes, [urdfs["tunnel"]]):
+            name = body["bodyName"]
+            self.obstacles[f"{name}_{len(self.obstacles)}"] = idx
 
     def create_scenario_library(self):
+        # todo: Create custom goal space
 
         self.robot.neutral_joint_values = [0.0, 0.12001979, 0.0, -1.64029458, 0.02081271, 3.1,
                                            0.77979846] # above table
-        self.fixed_target = np.array([0.7, 0.0, 0.2]) # below table
-        self.goal = self.fixed_target
+        #self.fixed_target = np.array([0.7, 0.0, 0.2]) # below table
+        #self.goal = self.fixed_target
         urdfs = {
             "shelf": {
                 "bodyName": "shelf",
@@ -245,6 +254,13 @@ class ReachEvadeObstacles(Task):
             },
         }
         self.sim.load_scenario(urdfs)
+
+
+        indexes = self.sim.load_scenario(urdfs)
+
+        for idx, body in zip(indexes, [urdfs["shelf"], urdfs["table"]]):
+            name = body["bodyName"]
+            self.obstacles[f"{name}_{len(self.obstacles)}"] = idx
 
     def create_stage_0(self):
         """one obstacle in the corner of the goal space, small goal space"""
@@ -351,7 +367,7 @@ class ReachEvadeObstacles(Task):
     def create_stage_cube_1_random(self):
         """2 random small cubes. Annoying."""
         self.goal_range = 0.4
-        self.randomize = True
+        self.randomize_obstacle_position = True
 
         self.create_obstacle_cuboid(
             np.array([-0.05, -0.08, 0.5]),
@@ -360,7 +376,7 @@ class ReachEvadeObstacles(Task):
     def create_stage_cube_2_random(self):
         """2 random small cubes. Annoying."""
         self.goal_range = 0.5
-        self.randomize = True
+        self.randomize_obstacle_position = True
 
         self.create_obstacle_cuboid(
             np.array([0.05, 0.08, 0.2]),
@@ -373,7 +389,7 @@ class ReachEvadeObstacles(Task):
     def create_stage_cube_3_random(self):
         """3 random small cubes. Infuriating."""
         self.goal_range = 0.5
-        self.randomize = True
+        self.randomize_obstacle_position = True
         self.create_obstacle_cuboid(
             np.array([0.05, 0.08, 0.2]),
             size=self.cube_size_small)
@@ -405,7 +421,7 @@ class ReachEvadeObstacles(Task):
     def create_stage_sphere_2_random(self):
         """2 randomly placed spheres"""
         self.goal_range = 0.4
-        self.randomize = True
+        self.randomize_obstacle_position = True
 
         self.create_obstacle_sphere(
             radius=0.05
@@ -528,7 +544,7 @@ class ReachEvadeObstacles(Task):
         # sample new (collision free) obstacles
         if self.fixed_target is None:
             self.goal = self._sample_goal()
-            if self.randomize:
+            if self.randomize_obstacle_position:
                 # randomize obstacle position within goal space
                 for obstacle in self.obstacles.keys():
                     # get collision free obstacle position
@@ -553,7 +569,7 @@ class ReachEvadeObstacles(Task):
                                                                  )
 
         collision = True
-        # get collision free goal
+        # get collision free goal within goal space
         while collision and self.obstacles:
 
             self.sim.set_base_pose("dummy_target", self.goal, np.array([0.0, 0.0, 0.0, 1.0]))
