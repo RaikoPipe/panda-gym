@@ -15,6 +15,7 @@ from pyb_utils.collision import NamedCollisionObject, CollisionDetector, compute
 import pybullet as p
 import sys
 import gymnasium
+import itertools
 
 sys.modules["gym"] = gymnasium
 
@@ -107,6 +108,11 @@ class ReachEvadeObstacles(Task):
         self.goal_range = 0.3
         self.obstacle_count = 0
 
+        # set goal range
+        self.x_offset = 0.6
+        self.goal_range_low = np.array([-self.goal_range / 2.5 +self.x_offset, -self.goal_range / 1.5, 0])
+        self.goal_range_high = np.array([self.goal_range / 2.5 +self.x_offset, self.goal_range / 1.5, self.goal_range])
+
         # # init pose generator env
         # self.reach_checker_env = gym.make("PandaReachChecker", control_type = "js", render=False)
 
@@ -135,6 +141,7 @@ class ReachEvadeObstacles(Task):
 
             self.sim.place_visualizer(target_position=np.zeros(3), distance=0.9, yaw=45, pitch=-30)
 
+
             if scenario:
                 create_scenario[scenario]()
 
@@ -143,16 +150,12 @@ class ReachEvadeObstacles(Task):
                     self.collision_objects.append(NamedCollisionObject(obstacle_name))
                     self.bodies[obstacle_name] = obstacle_id
 
-            # set goal range
-            self.goal_range_low = np.array([-self.goal_range / 2.5, -self.goal_range / 1.5, 0])
-            self.goal_range_high = np.array([self.goal_range / 2.5, self.goal_range / 1.5, self.goal_range])
-
             # set velocity range
             self.velocity_range_low = np.array([-0.2, -0.2, -0.2])
             self.velocity_range_high = np.array([0.2, 0.2, 0.2])
 
-            if show_goal_space:
-                self.show_goal_space()
+        if show_goal_space:
+            self.show_goal_space()
 
         # add collision detector for robot
         self.named_collision_pairs_rob_obs = []
@@ -163,7 +166,8 @@ class ReachEvadeObstacles(Task):
         self.collision_detector = CollisionDetector(col_id=self.sim_id, bodies=self.bodies,
                                                     named_collision_pairs=self.named_collision_pairs_rob_obs)
 
-        if show_debug_labels:
+        self.show_debug_labels = show_debug_labels
+        if self.show_debug_labels:
             self.debug_manip_label_name = "manip"
             self.debug_manip_label_base_text = "Manipulability Score:"
             self.debug_dist_label_name = "dist"
@@ -210,6 +214,7 @@ class ReachEvadeObstacles(Task):
 
     def create_scenario_narrow_tunnel(self):
         # todo: Create custom goal space
+
         self.robot.neutral_joint_values = np.array(
             [-2.34477029,  1.69617261,  1.81619755, - 1.98816377, - 1.58805049,  1.2963265,
              0.41092735]
@@ -234,6 +239,8 @@ class ReachEvadeObstacles(Task):
 
     def create_scenario_library(self):
         # todo: Create custom goal space
+        self.goal_range_low = np.array([0.2, -0.3, 0])
+        self.goal_range_high = np.array([0.75, 0.3, 0.6])
 
         self.robot.neutral_joint_values = [0.0, 0.12001979, 0.0, -1.64029458, 0.02081271, 3.1,
                                            0.77979846] # above table
@@ -624,7 +631,6 @@ class ReachEvadeObstacles(Task):
     def _sample_goal(self) -> np.ndarray:
         """Randomize goal."""
         goal = self.np_random.uniform(self.goal_range_low, self.goal_range_high)
-        goal[0] += 0.6
         return goal
 
     def is_success(self, achieved_goal: np.ndarray, desired_goal: np.ndarray) -> np.ndarray:
@@ -697,7 +703,7 @@ class ReachEvadeObstacles(Task):
             else:
                 reward += -np.array(d + exp(-min(obs_d)) * self.factor_punish_obstacle_proximity, dtype=np.float32)
 
-        if self.sim.render_env:
+        if self.sim.render_env and self.show_debug_labels:
             self.update_labels(manipulability, d, obs_d, action_diff, action_magnitude, reward)
 
         self.action_diff = action_diff
@@ -707,12 +713,41 @@ class ReachEvadeObstacles(Task):
         return reward
 
     def show_goal_space(self):
-        self.sim.create_box(
-            body_name="goal_space",
-            ghost=True,
-            half_extents=np.array([(self.goal_range_high[0] - self.goal_range_low[0]) / 2, self.goal_range_high[1],
-                                   self.goal_range_high[2]]),
-            mass=0.0,
-            position=np.array([0.0, 0.0, 0.0]),
-            rgba_color=np.array([0.0, 0.0, 0.5, 0.2]),
-        )
+
+        x = (self.goal_range_high[0] - self.goal_range_low[0]) / 2
+        y = (self.goal_range_high[1] - self.goal_range_low[1]) / 2
+        z = (self.goal_range_high[2] - self.goal_range_low[2]) / 2
+
+        d = [self.goal_range_low, self.goal_range_high]
+
+        d.append(np.array([self.goal_range_low[0], self.goal_range_high[1], self.goal_range_high[2]]))
+        d.append(np.array([self.goal_range_low[0], self.goal_range_low[1], self.goal_range_high[2]]))
+        d.append(np.array([self.goal_range_low[0], self.goal_range_high[1], self.goal_range_low[2]]))
+        d.append(np.array([self.goal_range_high[0], self.goal_range_low[1], self.goal_range_high[2]]))
+        d.append(np.array([self.goal_range_high[0], self.goal_range_low[1], self.goal_range_low[2]]))
+        d.append(np.array([self.goal_range_high[0], self.goal_range_high[1], self.goal_range_low[2]]))
+        d.append(np.array([self.goal_range_high[0], self.goal_range_low[1], self.goal_range_high[2]]))
+
+        subset = list(itertools.combinations(d, 2))
+
+        for d1, d2 in subset:
+            self.sim.create_debug_line(d1, d2)
+
+
+
+        # for dot in d:
+        #     for dot2 in d:
+        #         self.sim.create_debug_line(dot, dot2)
+
+
+        # self.sim.create_box(
+        #     body_name="goal_space",
+        #     ghost=True,
+        #     half_extents=np.array([x, y, z]),
+        #     mass=0.0,
+        #     position=np.array([0.0, 0.0, self.goal_range_high[2]/2]),
+        #     rgba_color=np.array([0.0, 0.0, 0.5, 0.2])
+        # )
+
+
+

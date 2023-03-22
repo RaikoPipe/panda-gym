@@ -788,6 +788,9 @@ class PyBullet:
 
         return idx
 
+    def create_debug_line(self, start, end):
+        p.addUserDebugLine(lineFromXYZ=start, lineToXYZ=end, lineColorRGB=np.array([1,0,0]))
+
     def remove_debug_text(self, text_name):
 
         self.physics_client.removeUserDebugItem(itemUniqueId=self._string_idx[text_name],
