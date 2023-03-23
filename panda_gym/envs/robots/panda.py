@@ -53,7 +53,7 @@ class Panda(PyBulletRobot):
         super().__init__(
             sim,
             body_name="panda",
-            file_name="franka_panda_custom/panda.urdf" if use_robotics_toolbox else "franka_panda/panda.urdf",
+            file_name="franka_panda_custom/panda.urdf",
             base_position=base_position,
             action_space=action_space,
             joint_indices=np.array([0, 1, 2, 3, 4, 5, 6, 9, 10]),

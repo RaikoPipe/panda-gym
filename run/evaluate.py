@@ -58,7 +58,7 @@ def evaluate(model, num_steps=10_000):
         obs, reward, done, truncated, info, = env.step(action)
         action_diff = env.task.action_diff
         manipulability = env.task.manipulability
-        sleep(0.05) # for human eval
+        sleep(0.025) # for human eval
 
         # Stats
         episode_rewards[-1] += reward
@@ -100,17 +100,17 @@ def evaluate(model, num_steps=10_000):
 
     return mean_100ep_reward
 
-panda_gym.register_envs(100)
+panda_gym.register_envs(200)
 
 #env = get_env(config, "cube_3_random")
 if __name__ == "__main__":
     env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
                    obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                    reward_type=config["reward_type"], limiter=config["limiter"],
-                   show_goal_space=False, scenario="library",
+                   show_goal_space=False, scenario="cube_3_random",
                    show_debug_labels=True)
 
-    model = TQC.load(r"run_data/wandb/incandescent_monkey_18/files/best_model.zip", env=env)
+    model = TQC.load(r"run_data/wandb/lively_sunset_96/files/best_model.zip", env=env)
 
     evaluate(model)
 

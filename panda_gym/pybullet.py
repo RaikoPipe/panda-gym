@@ -40,7 +40,7 @@ class PyBullet:
             self.dummy_collision_client = bc.BulletClient(connection_mode=p.DIRECT)
         # self.physics_client = bc.BulletClient(connection_mode=p.DIRECT, options=options)
         # self.dummy_collision_client = bc.BulletClient(connection_mode=p.GUI)
-        self.physics_client.configureDebugVisualizer(p.COV_ENABLE_GUI, 1)
+        self.physics_client.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
         self.physics_client.configureDebugVisualizer(p.COV_ENABLE_MOUSE_PICKING, 1)
 
         self.n_substeps = n_substeps

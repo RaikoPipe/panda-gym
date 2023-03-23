@@ -25,7 +25,7 @@ config = {
     "env_name": "PandaReachEvadeObstacles-v3",
     "algorithm": "TQC",
     "reward_type": "sparse",  # sparse; dense
-    "goal_distance_threshold": 0.02,
+    "goal_distance_threshold": 0.05,
     "max_timesteps": 300_000,
     "seed": 10,
     "render": False,  # renders the pybullet env
@@ -38,10 +38,10 @@ config = {
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": True,
     "n_envs": 1,
-    "max_ep_steps": 50,
-    "eval_freq": 10_000,
-    "stages": ["library"],
-    "reward_thresholds": [-10],  # [-7, -10, -12, -17, -20]
+    "max_ep_steps": 100,
+    "eval_freq": 5_000,
+    "stages": ["cube_3_random_training"],
+    "reward_thresholds": [-20],  # [-7, -10, -12, -17, -20]
     "joint_obstacle_observation": "closest",  # "all": closest distance to any obstacle of all joints is observed;
     "learning_starts": 0,
     "prior_steps": 0,
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     # register envs to gymnasium
     panda_gym.register_envs(config["max_ep_steps"])
 
-    env = get_env(config, "narrow_tunnel")
+    env = get_env(config, config["stages"][0])
 
     # for algorithm in "PPO":
     if config["algorithm"] in ("TD3", "DDPG"):
@@ -90,12 +90,12 @@ if __name__ == "__main__":
     elif config["algorithm"] in  ("SAC", "TQC"):
         config.update(hyperparameters_sac)
 
-    model = TQC.load(r"run_data/wandb/run-20230209_144728-2fm6ti9o/files/best_model.zip", env=env,
-                     train_freq=config["n_envs"],
-                     gradient_steps=config["gradient_steps"])
+    # model = TQC.load(r"run_data/wandb/lively_sunset_96/files/best_model.zip", env=env,
+    #                  train_freq=config["n_envs"],
+    #                  gradient_steps=config["gradient_steps"])
 
 
-    model = learn(config=config, algorithm=config["algorithm"], initial_model=model)
+    model = learn(config=config, algorithm=config["algorithm"]) #, initial_model=model)
 
 
     # mixer.init()

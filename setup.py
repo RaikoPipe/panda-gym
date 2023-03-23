@@ -23,7 +23,8 @@ setup(
     version=__version__,
     install_requires=["gymnasium~=0.26", "pybullet", "numpy", "scipy", "torch", "wandb", "ruckig",
                       'pyb_utils @ git+https://git@github.com/RaikoPipe/pyb_utils',
-                      'stable_baselines3 @ git+https://git@github.com/RaikoPipe/stable-baselines3',
+                      'stable_baselines3 @ git+https://git@github.com/RaikoPipe/stable-baselines3@fix_tests',
+                        'stable-baselines3-contrib @ git+https://git@github.com/RaikoPipe/stable-baselines3-contrib@feat/gymnasium_version'
                       'roboticstoolbox-python @ git+https://github.com/RaikoPipe/robotics-toolbox-python', "tensorboard"],
     dependency_links=["https://download.pytorch.org/whl/cu117"],
     extras_require={

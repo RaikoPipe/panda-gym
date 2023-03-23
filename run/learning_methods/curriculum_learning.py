@@ -212,7 +212,7 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
         if config["prior_steps"]:
             model.replay_buffer = fill_replay_buffer(model, config["prior_steps"])
 
-        eval_env = gymnasium.make(config["env_name"], render=True, control_type=config["control_type"],
+        eval_env = gymnasium.make(config["env_name"], render=True if not config["render"] else False, control_type=config["control_type"],
                             obs_type=config["obs_type"],
                             reward_type=config["reward_type"],
                             show_goal_space=False, scenario=stage,
