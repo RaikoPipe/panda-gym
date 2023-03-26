@@ -419,15 +419,19 @@ class ReachEvadeObstacles(Task):
 
         self.create_obstacle_cuboid(
             np.array([0.05, 0.08, 0.2]),
-            size=self.cube_size_small)
+            size=self.cube_size_medium)
 
         self.create_obstacle_cuboid(
             np.array([-0.05, -0.08, 0.5]),
-            size=self.cube_size_small)
+            size=self.cube_size_medium)
 
         self.create_obstacle_cuboid(
             np.array([-0.05, -0.08, 0.5]),
-            size=self.cube_size_small)
+            size=self.cube_size_medium)
+
+        self.create_obstacle_cuboid(
+            np.array([-0.05, -0.08, 0.5]),
+            size=self.cube_size_medium)
 
     def create_stage_cube_3_random(self):
         """3 random small cubes. Infuriating."""
@@ -620,7 +624,7 @@ class ReachEvadeObstacles(Task):
             collision = []
             self.sim.set_base_pose("dummy_target", self.goal, np.array([0.0, 0.0, 0.0, 1.0]))
             self.sim.physics_client.performCollisionDetection()
-            collision.append(self.get_collision("dummy_target", "robot"))
+            collision.append(self.get_collision("dummy_target", "robot", margin=0.05))
 
             for obstacle in self.obstacles:
                 collision.append(self.get_collision("dummy_target", obstacle))

@@ -33,7 +33,7 @@ end_effector_speeds = []
 joint_positions = []
 joint_velocities = []
 
-def evaluate(model, num_steps=10_000):
+def evaluate(model, human=True, num_steps=10_000):
     """
     Evaluate a RL agent
     :param model: (BaseRLModel object) the RL Agent
@@ -58,7 +58,8 @@ def evaluate(model, num_steps=10_000):
         obs, reward, done, truncated, info, = env.step(action)
         action_diff = env.task.action_diff
         manipulability = env.task.manipulability
-        sleep(0.025) # for human eval
+        if human:
+            sleep(0.025) # for human eval
 
         # Stats
         episode_rewards[-1] += reward
@@ -107,12 +108,12 @@ if __name__ == "__main__":
     env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
                    obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                    reward_type=config["reward_type"], limiter=config["limiter"],
-                   show_goal_space=False, scenario="cube_3_random",
+                   show_goal_space=False, scenario="library2",
                    show_debug_labels=True)
 
-    model = TQC.load(r"run_data/wandb/lively_sunset_96/files/best_model.zip", env=env)
+    model = TQC.load(r"run_data/wandb/run-20230324_155206-3j88oc6g/files/best_model.zip", env=env)
 
-    evaluate(model)
+    evaluate(model, human=False)
 
     # Some boilerplate to initialise things
     sns.set()

@@ -38,12 +38,12 @@ config = {
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": True,
     "n_envs": 1,
-    "max_ep_steps": 100,
+    "max_ep_steps": 50,
     "eval_freq": 5_000,
-    "stages": ["cube_3_random_training"],
+    "stages": ["library2"],
     "reward_thresholds": [-20],  # [-7, -10, -12, -17, -20]
     "joint_obstacle_observation": "closest",  # "all": closest distance to any obstacle of all joints is observed;
-    "learning_starts": 0,
+    "learning_starts": 20_000,
     "prior_steps": 0,
     # "closest": only closest joint distance is observed
 }
@@ -72,9 +72,6 @@ hyperparameters_sac = {
     "policy_kwargs": dict(log_std_init=-3, net_arch=[400, 300])
 }
 
-# register envs to gymnasium
-#panda_gym.register_envs(config["max_ep_steps"])
-
 if __name__ == "__main__":
     key = os.getenv("wandb_key")
     wandb.login(key=os.getenv("wandb_key"))
@@ -90,9 +87,9 @@ if __name__ == "__main__":
     elif config["algorithm"] in  ("SAC", "TQC"):
         config.update(hyperparameters_sac)
 
-    # model = TQC.load(r"run_data/wandb/lively_sunset_96/files/best_model.zip", env=env,
-    #                  train_freq=config["n_envs"],
-    #                  gradient_steps=config["gradient_steps"])
+    model = TQC.load(r"run_data/wandb/run-20230326_110125-2nb5mwj3/files/best_model.zip", env=env,
+                     train_freq=config["n_envs"],
+                     gradient_steps=config["gradient_steps"])
 
 
     model = learn(config=config, algorithm=config["algorithm"]) #, initial_model=model)
