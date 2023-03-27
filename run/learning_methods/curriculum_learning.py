@@ -13,7 +13,7 @@ from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.noise import NormalActionNoise, VectorizedActionNoise
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 from stable_baselines3.common.vec_env import SubprocVecEnv
-from run.learning_methods.imitation_learning import fill_replay_buffer
+from run.learning_methods.imitation_learning import fill_replay_buffer_with_prior, fill_replay_buffer_with_initial_model_actions
 
 import wandb
 from wandb.integration.sb3 import WandbCallback
@@ -206,11 +206,15 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
         model.set_env(get_env(config, stage))
 
         if config["learning_starts"]:
-            model.learn(total_timesteps=config["learning_starts"])
+            if initial_model:
+                model.replay_buffer = fill_replay_buffer_with_initial_model_actions(model, num_steps=config[
+                    "learning_starts"])
+            else:
+                model.learn(total_timesteps=config["learning_starts"])
             model.learning_starts = 0
 
         if config["prior_steps"]:
-            model.replay_buffer = fill_replay_buffer(model, config["prior_steps"])
+            model.replay_buffer = fill_replay_buffer_with_prior(model, config["prior_steps"])
 
         eval_env = gymnasium.make(config["env_name"], render=True if not config["render"] else False, control_type=config["control_type"],
                             obs_type=config["obs_type"],
@@ -223,6 +227,7 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
         eval_callback = EvalCallback(eval_env, eval_freq=max(config["eval_freq"] // config["n_envs"], 1),
                                      callback_after_eval=stop_train_callback, verbose=1, n_eval_episodes=100,
                                      best_model_save_path=wandb.run.dir)
+
 
         model.learn(
             total_timesteps=config["max_timesteps"],

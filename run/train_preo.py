@@ -13,7 +13,7 @@ sys.modules["gym"] = gymnasium
 from sb3_contrib import TQC
 import panda_gym
 import os
-from learning_methods.curriculum_learning import learn, get_env
+from run.learning_methods.curriculum_learning import learn, get_env
 
 from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
 # from stable_baselines3 import HerReplayBuffer
@@ -43,7 +43,7 @@ config = {
     "stages": ["library2"],
     "reward_thresholds": [-20],  # [-7, -10, -12, -17, -20]
     "joint_obstacle_observation": "closest",  # "all": closest distance to any obstacle of all joints is observed;
-    "learning_starts": 20_000,
+    "learning_starts": 5_000,
     "prior_steps": 0,
     # "closest": only closest joint distance is observed
 }
@@ -87,12 +87,12 @@ if __name__ == "__main__":
     elif config["algorithm"] in  ("SAC", "TQC"):
         config.update(hyperparameters_sac)
 
-    model = TQC.load(r"run_data/wandb/run-20230326_110125-2nb5mwj3/files/best_model.zip", env=env,
+    model = TQC.load(r"run_data/wandb/quiet-lion-122/files/model.zip", env=env,
                      train_freq=config["n_envs"],
                      gradient_steps=config["gradient_steps"])
 
 
-    model = learn(config=config, algorithm=config["algorithm"]) #, initial_model=model)
+    model = learn(config=config, algorithm=config["algorithm"], initial_model=model)
 
 
     # mixer.init()
