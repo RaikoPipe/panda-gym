@@ -688,7 +688,7 @@ class ReachEvadeObstacles(Task):
 
     def update_labels(self, manipulability, distance, obstacle_distances, action_difference, action_magnitude, reward):
         with self.sim.no_rendering():
-            self.sim.remove_all_debug_text()
+            #self.sim.remove_all_debug_text()
             # self.sim.remove_debug_text(self.debug_dist_label_name)
             # self.sim.remove_debug_text(self.debug_manip_label_name)
 

@@ -51,6 +51,7 @@ class PyBullet:
         self.physics_client.setGravity(0, 0, -9.81)
         self._bodies_idx = {}
         self._string_idx = {}
+        self._string_positions = {}
 
     @property
     def dt(self):
@@ -774,17 +775,24 @@ class PyBullet:
 
         """
 
-        if position is None:
-            x = 0
-            y = -0.5
-            z = +0.5 - len(self._string_idx) / 50
-            position = np.array([x, y, z])
+        idx = self._string_idx.get(text_name)
+        if idx is None:
+            position = np.array([0.5, 0.9, +1.0 - len(self._string_idx) / 20])
+            idx = self._string_idx[text_name] = p.addUserDebugText(text=text,
+                                                                   textSize=1, lifeTime=0,
+                                                                   physicsClientId=self.physics_client._client,
+                                                                   textPosition=position,
+                                                                   textColorRGB=color)
+            self._string_positions[text_name] = position
 
-        idx = self._string_idx[text_name] = p.addUserDebugText(text=text,
-                                                               textSize=1, lifeTime=0,
-                                                               physicsClientId=self.physics_client._client,
-                                                               textPosition=position,
-                                                               textColorRGB=color)
+        else:
+            position = self._string_positions[text_name]
+            idx = self._string_idx[text_name] = p.addUserDebugText(text=text,
+                                                                   textSize=1, lifeTime=0,
+                                                                   physicsClientId=self.physics_client._client,
+                                                                   textPosition=position,
+                                                                   textColorRGB=color,
+                                                                   replaceItemUniqueId= idx)
 
         return idx
 
