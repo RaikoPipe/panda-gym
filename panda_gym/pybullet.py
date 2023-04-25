@@ -390,22 +390,32 @@ class PyBullet:
         """
         self.physics_client.resetJointState(bodyUniqueId=self._bodies_idx[body], jointIndex=joint, targetValue=angle)
 
-    def control_joints(self, body: str, joints: np.ndarray, target_angles: np.ndarray, forces: np.ndarray) -> None:
+    def control_joints(self, body: str, joints: np.ndarray, action: np.ndarray, forces: np.ndarray, control_mode: int) -> None:
         """Control the joints motor.
 
         Args:
             body (str): Body unique name.
             joints (np.ndarray): List of joint indices, as a list of ints.
-            target_angles (np.ndarray): List of target angles, as a list of floats.
+            action (np.ndarray): List of target angles, as a list of floats.
             forces (np.ndarray): Forces to apply, as a list of floats.
         """
-        self.physics_client.setJointMotorControlArray(
-            self._bodies_idx[body],
-            jointIndices=joints,
-            controlMode=self.physics_client.POSITION_CONTROL,
-            targetPositions=target_angles,
-            forces=forces,
-        )
+        match control_mode:
+            case self.physics_client.POSITION_CONTROL:
+                self.physics_client.setJointMotorControlArray(
+                    self._bodies_idx[body],
+                    jointIndices=joints,
+                    controlMode=control_mode,
+                    targetPositions=action,
+                    forces=forces,
+                )
+            case self.physics_client.VELOCITY_CONTROL:
+                self.physics_client.setJointMotorControlArray(
+                    self._bodies_idx[body],
+                    jointIndices=joints,
+                    controlMode=control_mode,
+                    targetVelocities=action,
+                    forces=forces,
+                )
 
     def inverse_kinematics(self, body: str, link: int, position: np.ndarray, orientation: np.ndarray) -> np.ndarray:
         """Compute the inverse kinematics and return the new joint state.

@@ -8,7 +8,7 @@ from panda_gym.envs.tasks.push import Push
 from panda_gym.envs.tasks.reach import Reach
 from panda_gym.envs.tasks.slide import Slide
 from panda_gym.envs.tasks.stack import Stack
-from panda_gym.envs.tasks.reach_evade_obstacles import ReachEvadeObstacles
+from panda_gym.envs.tasks.reach_ao import ReachAO
 from panda_gym.pybullet import PyBullet
 
 
@@ -104,7 +104,7 @@ class PandaReachCheckerEnv(RobotTaskEnv):
         super().__init__(robot, task)
 
 
-class PandaReachEvadeObstaclesEnv(RobotTaskEnv):
+class PandaReachAOEnv(RobotTaskEnv):
     """Reach task wih Panda robot.
 
     Args:
@@ -116,15 +116,15 @@ class PandaReachEvadeObstaclesEnv(RobotTaskEnv):
 
     def __init__(self, render: bool = False, realtime: bool = False,
                  reward_type: str = "sparse", goal_distance_threshold: float = 0.05,
-                 control_type: str = "js", obs_type: str = "ee", show_goal_space=False, scenario: str = "cube_3_random",
+                 control_type: str = "js", obs_type: tuple =("ee",), show_goal_space=False, scenario: str = "cube_3_random",
                  joint_obstacle_observation: str = "all", show_debug_labels=False, fixed_target=None, limiter="sim",
-                 action_limiter="clip"
+                 action_limiter="clip", n_substeps=20
                  ) -> None:
-        sim = PyBullet(render=render)
+        sim = PyBullet(render=render, n_substeps=n_substeps)
         robot = Panda(sim, block_gripper=True, base_position=np.array([0.0, 0.0, 0.0]), control_type=control_type,
                       obs_type=obs_type,
                       limiter=limiter, action_limiter=action_limiter)
-        task = ReachEvadeObstacles(sim, robot, reward_type=reward_type,
+        task = ReachAO(sim, robot, reward_type=reward_type,
                                    goal_distance_threshold=goal_distance_threshold,
                                    joint_obstacle_observation=joint_obstacle_observation,
                                    scenario=scenario,

@@ -4,7 +4,7 @@ from panda_gym.envs.panda_tasks import (
     PandaPushEnv,
     PandaReachEnv,
     PandaReachCheckerEnv,
-    PandaReachEvadeObstaclesEnv,
+    PandaReachAOEnv,
     PandaSlideEnv,
     PandaStackEnv,
 

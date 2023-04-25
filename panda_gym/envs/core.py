@@ -151,17 +151,18 @@ class PyBulletRobot(ABC):
         return self.sim.get_joint_velocity(self.body_name, joint)
 
 
-    def control_joints(self, target_angles: np.ndarray) -> None:
+    def control_joints(self, action: np.ndarray, control_mode:int) -> None:
         """Control the joints of the robot.
 
         Args:
-            target_angles (np.ndarray): The target angles. The length of the array must equal to the number of joints.
+            action (np.ndarray): The target angles. The length of the array must equal to the number of joints.
         """
         self.sim.control_joints(
             body=self.body_name,
             joints=self.joint_indices,
-            target_angles=target_angles,
+            action=action,
             forces=self.joint_forces,
+            control_mode=control_mode
         )
 
     def set_joint_angles(self, angles: np.ndarray) -> None:

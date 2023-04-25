@@ -36,7 +36,7 @@ class Panda(PyBulletRobot):
             block_gripper: bool = False,
             base_position: Optional[np.ndarray] = None,
             control_type: str = "js",
-            obs_type: str = "ee",
+            obs_type:tuple=("ee",),
             limiter: str = "sim",
             action_limiter: str = "clip",
             use_robotics_toolbox=True
@@ -69,8 +69,8 @@ class Panda(PyBulletRobot):
         self.sim.set_spinning_friction(self.body_name, self.fingers_indices[1], spinning_friction=0.001)
 
         # limits
-        self.joint_position_limits_min = np.array([-166, -101, -166, -176, -166, -1, -166])
-        self.joint_position_limits_max = np.array([166, 101, 166, -4, 166, 215, 166])
+        self.joint_lim_min = np.array([-166, -101, -166, -176, -166, -1, -166])
+        self.joint_lim_max = np.array([-2.8973,-1.7628,-2.8973,-3.0718,-2.8973,-0.0175,-2.897]) # from specifications in radians
 
         self.joint_velocity_limits = np.array([150, 150, 150, 150, 180, 180, 180])  # degrees per second
         self.joint_acceleration_limits = np.array([150, 150, 150, 150, 180, 180, 180])  # degrees per second
@@ -137,10 +137,7 @@ class Panda(PyBulletRobot):
             target_arm_angles = self.ee_displacement_to_target_arm_angles(ee_displacement)
         else:
             arm_joint_ctrl = action[:7]
-            if self.use_ruckig_limiter:
-                target_arm_angles = self.arm_joint_ctrl_to_target_arm_angles_ruckig(arm_joint_ctrl)
-            else:
-                target_arm_angles = self.arm_joint_ctrl_to_target_arm_angles(arm_joint_ctrl)
+            target_arm_angles = self.arm_joint_ctrl_to_target_arm_angles(arm_joint_ctrl)
 
         if self.block_gripper:
             target_fingers_width = 0
@@ -149,8 +146,13 @@ class Panda(PyBulletRobot):
             fingers_width = self.get_fingers_width()
             target_fingers_width = fingers_width + fingers_ctrl
 
-        target_angles = np.concatenate((target_arm_angles, [target_fingers_width / 2, target_fingers_width / 2]))
-        self.control_joints(target_angles=target_angles)
+        if self.control_type == "jsd":
+            action = np.concatenate((action, np.array([0,0])))
+            self.control_joints(action=action, control_mode=self.sim.physics_client.VELOCITY_CONTROL)
+        else:
+
+            target_angles = np.concatenate((target_arm_angles, [target_fingers_width / 2, target_fingers_width / 2]))
+            self.control_joints(action=target_angles, control_mode= self.sim.physics_client.POSITION_CONTROL)
 
         if self.rtb:
             self.update_dummy_robot_link_positions()
@@ -259,7 +261,7 @@ class Panda(PyBulletRobot):
 
         inp.target_position = self.current_joint_angles + arm_joint_ctrl
 
-        inp.max_position = self.joint_position_limits_max
+        inp.max_position = self.joint_lim_max
         inp.max_velocity = self.joint_velocity_limits
         inp.max_acceleration = self.joint_acceleration_limits
         inp.max_jerk = self.joint_max_jerk
@@ -280,22 +282,27 @@ class Panda(PyBulletRobot):
         return target_joint_angles
 
     def get_obs(self) -> np.ndarray:
-        if self.obs_type == "ee":
+        observation = []
+
+        if "ee" in self.obs_type:
             # end-effector position and velocity
             position = np.array(self.get_ee_position())
             velocity = np.array(self.get_ee_velocity())
+            observation.extend([position, velocity])
 
-        else:
+
+        if "js" in self.obs_type:
             # joint angles and joint velocities
             position = np.array([self.get_joint_angle(joint=i) for i in range(7)])
             velocity = np.array([self.get_joint_velocity(joint=i) for i in range(7)])
+            observation.extend([position, velocity])
 
         # fingers opening
         if not self.block_gripper:
             fingers_width = self.get_fingers_width()
-            observation = np.concatenate((position, velocity, [fingers_width]))
-        else:
-            observation = np.concatenate((position, velocity))
+            observation.append([fingers_width])
+
+        observation = np.concatenate(observation)
 
         return observation
 

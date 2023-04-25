@@ -13,7 +13,7 @@ sys.modules["gym"] = gymnasium
 from sb3_contrib import TQC
 import panda_gym
 import os
-from run.learning_methods.curriculum_learning import learn, get_env
+from run.learning_methods.learning import learn, get_env
 
 from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
 # from stable_baselines3 import HerReplayBuffer
@@ -22,15 +22,16 @@ from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
 # hyperparameters from rl-baselines3-zoo tuned pybullet defaults
 
 config = {
-    "env_name": "PandaReachEvadeObstacles-v3",
+    "env_name": "PandaReachAO-v3",
     "algorithm": "TQC",
     "reward_type": "sparse",  # sparse; dense
     "goal_distance_threshold": 0.05,
-    "max_timesteps": 300_000,
-    "seed": 10,
+    "max_timesteps": 400_000,
+    "seed": 1,
     "render": False,  # renders the pybullet env
-    "obs_type": "ee",
-    "control_type": "js",  # "ee": end effector displacement; "js": joint space
+    "n_substeps": 20, # number of simulation steps before handing control back to agent
+    "obs_type": ("ee","js"), # Robot state to observe
+    "control_type": "jsd",  # Agent Output; js: joint velocities, ee: end effector displacements; jsd: direct joint velocities
     "limiter": "sim",
     "action_limiter": "clip",
     "show_goal_space": True,
@@ -38,12 +39,12 @@ config = {
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": True,
     "n_envs": 1,
-    "max_ep_steps": 50,
+    "max_ep_steps": [200],
     "eval_freq": 5_000,
-    "stages": ["library2"],
-    "reward_thresholds": [-20],  # [-7, -10, -12, -17, -20]
+    "stages": ["cube_4"],
+    "reward_thresholds": [-30],  # [-7, -10, -12, -17, -20]
     "joint_obstacle_observation": "closest",  # "all": closest distance to any obstacle of all joints is observed;
-    "learning_starts": 5_000,
+    "learning_starts": 10_000,
     "prior_steps": 0,
     # "closest": only closest joint distance is observed
 }
@@ -67,7 +68,7 @@ hyperparameters_sac = {
     "buffer_size": 300_000,
     "gradient_steps": config["n_envs"] * 8,
     "train_freq": config["n_envs"] * 8,
-    "ent_coed": "auto",
+    "ent_coef": "auto",
     "use_sde": True,
     "policy_kwargs": dict(log_std_init=-3, net_arch=[400, 300])
 }
@@ -77,9 +78,9 @@ if __name__ == "__main__":
     wandb.login(key=os.getenv("wandb_key"))
 
     # register envs to gymnasium
-    panda_gym.register_envs(config["max_ep_steps"])
+    panda_gym.register_envs(config["max_ep_steps"][0])
 
-    env = get_env(config, config["stages"][0])
+    # env = get_env(config, config["stages"][0])
 
     # for algorithm in "PPO":
     if config["algorithm"] in ("TD3", "DDPG"):
@@ -87,12 +88,12 @@ if __name__ == "__main__":
     elif config["algorithm"] in  ("SAC", "TQC"):
         config.update(hyperparameters_sac)
 
-    model = TQC.load(r"run_data/wandb/quiet-lion-122/files/model.zip", env=env,
-                     train_freq=config["n_envs"],
-                     gradient_steps=config["gradient_steps"])
+    # model = TQC.load(r"run_data/wandb/quiet-lion-122/files/model.zip", env=env,
+    #                  train_freq=config["n_envs"],
+    #                  gradient_steps=config["gradient_steps"])
 
 
-    model = learn(config=config, algorithm=config["algorithm"], initial_model=model)
+    model = learn(config=config, algorithm=config["algorithm"])
 
 
     # mixer.init()

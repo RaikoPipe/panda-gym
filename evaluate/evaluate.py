@@ -10,7 +10,7 @@ from stable_baselines3 import TD3
 from sb3_contrib import TQC
 
 import numpy as np
-from run.train_preo import config
+from run.train import config
 from time import sleep
 import pprint
 
@@ -69,8 +69,9 @@ def evaluate_ensemble(models, human=True, num_steps=10_000, goals_to_achieve=Non
             variances.append(distribution_variance)
             distribution_variances.append(np.sum(distribution_variance))
 
-        # trick 17: Act together
+
         if strategy == "sum_actions":
+            # trick 17: Act together
             action = np.add(actions[0], actions[1])/2
         elif strategy == "variance_only":
             min_variance = min(distribution_variances)
@@ -83,13 +84,10 @@ def evaluate_ensemble(models, human=True, num_steps=10_000, goals_to_achieve=Non
         total_index_count.append(action_sovereignty)
         episode_index_count.append(action_sovereignty)
 
-
-        env.task.sim.create_debug_text(f"Model Action 1",
-                                       f">>>Model 0 Variance: {distribution_variances[0]}<<<",
-                                       color=model_colors[0])
-        env.task.sim.create_debug_text(f"Model Action 2",
-                                       f">>>Model 1 Variance {distribution_variances[1]}<<<",
-                                       color=model_colors[1])
+        for i in range(len(models)):
+            env.task.sim.create_debug_text(f"Model Action {i}",
+                                           f">>>Model 0 Variance: {distribution_variances[i]}<<<",
+                                           color=model_colors[i])
 
         # if action_selection_strategy == "first_come":
         #     # The first to reach 5 has sovereignty for the rest of the episode
@@ -211,7 +209,8 @@ def evaluate(model, human=True, num_steps=10_000, goals_to_achieve=None, determi
             action_diff = env.task.action_diff
             manipulability = env.task.manipulability
             if human:
-                sleep(0.025)  # for human eval
+                pass
+                #sleep(0.0075)  # for human eval
             # Stats
             episode_rewards[-1] += reward
             action_diffs.append(action_diff)
@@ -351,21 +350,30 @@ panda_gym.register_envs(200)
 
 # env = get_env(config, "cube_3_random")
 if __name__ == "__main__":
-    human = False
+    human = True
 
     env = gym.make(config["env_name"], render=human, control_type=config["control_type"],
                    obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                    reward_type=config["reward_type"], limiter=config["limiter"],
-                   show_goal_space=False, scenario="box_3",
-                   show_debug_labels=True)
+                   show_goal_space=False, scenario="narrow_tunnel",
+                   show_debug_labels=True, n_substeps=config["n_substeps"])
 
     # Load Model ensemble
-    model1 = TQC.load(r"../run/run_data/wandb/quiet-lion-122/files/model.zip", env=env)
-    model2 = TQC.load(r"../run/run_data/wandb/efficient-fog-124/files/model.zip", env=env)
+    model1 = TQC.load(r"../run/run_data/wandb/amber-paper-11/files/best_model.zip", env=env)
+
+
 
     # evaluate ensemble
-    results, metrics = evaluate_ensemble([model1, model2], human=human, num_steps=50000, deterministic=True, strategy="variance_only")
-    results1, metrics1 = evaluate_ensemble([model1, model2], human=human, num_steps=50000, deterministic=True, strategy="sum_actions")
+    results, metrics = evaluate_ensemble([model1], human=human, num_steps=10000, deterministic=True, strategy="variance_only")
+
+    env = gym.make(config["env_name"], render=human, control_type=config["control_type"],
+                   obs_type=("ee",), goal_distance_threshold=config["goal_distance_threshold"],
+                   reward_type=config["reward_type"], limiter=config["limiter"],
+                   show_goal_space=False, scenario="library1",
+                   show_debug_labels=True, n_substeps=config["n_substeps"])
+    model2 = TQC.load(r"../run/run_data/wandb/quiet-lion-122/files/best_model.zip", env=env)
+
+    results1, metrics1 = evaluate_ensemble([model2], human=human, num_steps=10000, deterministic=True, strategy="variance_only", goals_to_achieve=metrics["goals"])
     # results2, metrics2 = evaluate(model1, human=human, goals_to_achieve=metrics["goals"], deterministic=True)
     # results3, metrics3 = evaluate(model2, human=human, goals_to_achieve=metrics["goals"], deterministic=True)
 
@@ -376,9 +384,9 @@ if __name__ == "__main__":
     # results, metrics = evaluate(model1, model2, human=human, num_steps=50_000, deterministic=True)
 
 
-    print("Strategy variance only:")
+    print("New Ga:")
     pprint.pprint(results)
-    print("strategy sum actions:")
+    print("Old GA:")
     pprint.pprint(results1)
     # print("library2-expert:")
     # pprint.pprint(results3)
