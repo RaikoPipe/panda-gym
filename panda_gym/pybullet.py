@@ -62,7 +62,7 @@ class PyBullet:
         """Step the simulation."""
         for _ in range(self.n_substeps):
             self.physics_client.stepSimulation()
-            #self.dummy_collision_client.stepSimulation()
+            self.dummy_collision_client.stepSimulation()
 
     def close(self) -> None:
         """Close the simulation."""

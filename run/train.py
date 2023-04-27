@@ -30,8 +30,8 @@ config = {
     "seed": 1,
     "render": False,  # renders the pybullet env
     "n_substeps": 20, # number of simulation steps before handing control back to agent
-    "obs_type": ("ee","js"), # Robot state to observe
-    "control_type": "jsd",  # Agent Output; js: joint velocities, ee: end effector displacements; jsd: direct joint velocities
+    "obs_type": ("ee",), # Robot state to observe
+    "control_type": "js",  # Agent Output; js: joint velocities, ee: end effector displacements; jsd: joint velocities (applied directly)
     "limiter": "sim",
     "action_limiter": "clip",
     "show_goal_space": True,
@@ -39,10 +39,10 @@ config = {
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": True,
     "n_envs": 1,
-    "max_ep_steps": [200],
+    "max_ep_steps": [100],
     "eval_freq": 5_000,
-    "stages": ["cube_4"],
-    "reward_thresholds": [-30],  # [-7, -10, -12, -17, -20]
+    "stages": ["cube_10"],
+    "reward_thresholds": [-1],  # [-7, -10, -12, -17, -20]
     "joint_obstacle_observation": "closest",  # "all": closest distance to any obstacle of all joints is observed;
     "learning_starts": 10_000,
     "prior_steps": 0,
@@ -80,18 +80,15 @@ if __name__ == "__main__":
     # register envs to gymnasium
     panda_gym.register_envs(config["max_ep_steps"][0])
 
-    # env = get_env(config, config["stages"][0])
-
-    # for algorithm in "PPO":
     if config["algorithm"] in ("TD3", "DDPG"):
         config.update(hyperparameters_td3)
     elif config["algorithm"] in  ("SAC", "TQC"):
         config.update(hyperparameters_sac)
 
+    # env = get_env(config, config["stages"][0])
     # model = TQC.load(r"run_data/wandb/quiet-lion-122/files/model.zip", env=env,
     #                  train_freq=config["n_envs"],
     #                  gradient_steps=config["gradient_steps"])
-
 
     model = learn(config=config, algorithm=config["algorithm"])
 

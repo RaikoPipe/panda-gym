@@ -69,8 +69,8 @@ class Panda(PyBulletRobot):
         self.sim.set_spinning_friction(self.body_name, self.fingers_indices[1], spinning_friction=0.001)
 
         # limits
-        self.joint_lim_min = np.array([-166, -101, -166, -176, -166, -1, -166])
-        self.joint_lim_max = np.array([-2.8973,-1.7628,-2.8973,-3.0718,-2.8973,-0.0175,-2.897]) # from specifications in radians
+        self.joint_lim_min = np.array([-2.7437,-1.7837,-2.9007,-3.0421,-2.8065,0.5445,-3.0159])
+        self.joint_lim_max = np.array([2.7437, 1.7837,2.9007,-0.1518,2.8065,4.5169, 3.0159]) # from specifications in radians
 
         self.joint_velocity_limits = np.array([150, 150, 150, 150, 180, 180, 180])  # degrees per second
         self.joint_acceleration_limits = np.array([150, 150, 150, 150, 180, 180, 180])  # degrees per second
@@ -150,7 +150,6 @@ class Panda(PyBulletRobot):
             action = np.concatenate((action, np.array([0,0])))
             self.control_joints(action=action, control_mode=self.sim.physics_client.VELOCITY_CONTROL)
         else:
-
             target_angles = np.concatenate((target_arm_angles, [target_fingers_width / 2, target_fingers_width / 2]))
             self.control_joints(action=target_angles, control_mode= self.sim.physics_client.POSITION_CONTROL)
 

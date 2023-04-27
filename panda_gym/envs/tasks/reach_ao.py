@@ -506,7 +506,8 @@ class ReachAO(Task):
         return ee_position
 
     def reset(self) -> None:
-        # todo: check if obstacle amount is randomized. Pick random obstacle uniformly
+        # todo: set goal first, then obstacles
+        # todo: make function to set obstacles around goal or manipulator
 
         if self.fixed_target is None:
             self.goal = self._sample_goal()
@@ -630,6 +631,15 @@ class ReachAO(Task):
         """Randomize goal."""
         goal = self.np_random.uniform(self.goal_range_low, self.goal_range_high)
         return goal
+
+    def sample_spherically_around_goal(self, goal) -> np.ndarray:
+        # todo: sample uniformly from sphere around goal (minor radius: 20cm, major radius: 60 cm)
+        #   also check if obstacle is still inside work space
+        pass
+
+    def sample_around_end_effector(self):
+        # todo:
+        pass
 
     def is_success(self, achieved_goal: np.ndarray, desired_goal: np.ndarray) -> np.ndarray:
         d = distance(achieved_goal, desired_goal)

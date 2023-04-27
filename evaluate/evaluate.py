@@ -115,9 +115,9 @@ def evaluate_ensemble(models, human=True, num_steps=10_000, goals_to_achieve=Non
         action_diffs.append(action_diff)
         manipulabilities.append(manipulability)
         end_effector_positions.append(env.robot.get_ee_position())
-        ee_velocity = env.robot.get_ee_velocity
+        ee_velocity = env.robot.get_ee_velocity()
         end_effector_velocities.append(ee_velocity)
-        # end_effector_speeds.append(np.square(np.linalg.norm(ee_velocity)))
+        end_effector_speeds.append(np.square(np.linalg.norm(ee_velocity)))
         joint_positions.append(np.array([env.robot.get_joint_angle(joint=i) for i in range(7)]))
         joint_velocities.append(np.array([env.robot.get_joint_velocity(joint=i) for i in range(7)]))
         if done or truncated:
@@ -216,8 +216,9 @@ def evaluate(model, human=True, num_steps=10_000, goals_to_achieve=None, determi
             action_diffs.append(action_diff)
             manipulabilities.append(manipulability)
             end_effector_positions.append(env.robot.get_ee_position())
-            ee_velocity = env.robot.get_ee_velocity
+            ee_velocity = env.robot.get_ee_velocity()
             end_effector_velocities.append(ee_velocity)
+            end_effector_speeds.append(np.linalg.norm(end_effector_velocities))
             # end_effector_speeds.append(np.square(np.linalg.norm(ee_velocity)))
             joint_positions.append(np.array([env.robot.get_joint_angle(joint=i) for i in range(7)]))
             joint_velocities.append(np.array([env.robot.get_joint_velocity(joint=i) for i in range(7)]))
@@ -350,30 +351,30 @@ panda_gym.register_envs(200)
 
 # env = get_env(config, "cube_3_random")
 if __name__ == "__main__":
-    human = True
+    human = False
 
     env = gym.make(config["env_name"], render=human, control_type=config["control_type"],
                    obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                    reward_type=config["reward_type"], limiter=config["limiter"],
-                   show_goal_space=False, scenario="narrow_tunnel",
+                   show_goal_space=False, scenario="library2",
                    show_debug_labels=True, n_substeps=config["n_substeps"])
 
     # Load Model ensemble
-    model1 = TQC.load(r"../run/run_data/wandb/amber-paper-11/files/best_model.zip", env=env)
+    model1 = TQC.load(r"../run/run_data/wandb/quiet-lion-122/files/best_model.zip", env=env)
 
 
 
     # evaluate ensemble
-    results, metrics = evaluate_ensemble([model1], human=human, num_steps=10000, deterministic=True, strategy="variance_only")
+    results, metrics = evaluate_ensemble([model1], human=human, num_steps=500, deterministic=True, strategy="variance_only")
 
-    env = gym.make(config["env_name"], render=human, control_type=config["control_type"],
-                   obs_type=("ee",), goal_distance_threshold=config["goal_distance_threshold"],
-                   reward_type=config["reward_type"], limiter=config["limiter"],
-                   show_goal_space=False, scenario="library1",
-                   show_debug_labels=True, n_substeps=config["n_substeps"])
-    model2 = TQC.load(r"../run/run_data/wandb/quiet-lion-122/files/best_model.zip", env=env)
-
-    results1, metrics1 = evaluate_ensemble([model2], human=human, num_steps=10000, deterministic=True, strategy="variance_only", goals_to_achieve=metrics["goals"])
+    # env = gym.make(config["env_name"], render=human, control_type=config["control_type"],
+    #                obs_type=("ee",), goal_distance_threshold=config["goal_distance_threshold"],
+    #                reward_type=config["reward_type"], limiter=config["limiter"],
+    #                show_goal_space=False, scenario="library2",
+    #                show_debug_labels=True, n_substeps=config["n_substeps"])
+    # model2 = TQC.load(r"../run/run_data/wandb/earnest-feather-1/files/best_model.zip", env=env)
+    # #
+    # results1, metrics1 = evaluate_ensemble([model2], human=human, num_steps=10000, deterministic=True, strategy="variance_only", goals_to_achieve=metrics["goals"])
     # results2, metrics2 = evaluate(model1, human=human, goals_to_achieve=metrics["goals"], deterministic=True)
     # results3, metrics3 = evaluate(model2, human=human, goals_to_achieve=metrics["goals"], deterministic=True)
 
@@ -384,26 +385,26 @@ if __name__ == "__main__":
     # results, metrics = evaluate(model1, model2, human=human, num_steps=50_000, deterministic=True)
 
 
-    print("New Ga:")
+    print("Model 1:")
     pprint.pprint(results)
-    print("Old GA:")
-    pprint.pprint(results1)
+    # print("Model 2:")
+    # pprint.pprint(results1)
     # print("library2-expert:")
     # pprint.pprint(results3)
 
-    # # Some boilerplate to initialise things
-    # sns.set()
-    # plt.figure()
-    #
-    # # This is where the actual plot gets made
-    # ax = sns.lineplot(data=results["end_effector_speeds"], saturation=0.6)
-    #
-    # # Customise some display properties
-    # ax.set_title('End Effector Speeds')
-    # ax.grid(color='#cccccc')
-    # ax.set_ylabel('Speed')
-    # ax.set_xlabel("TimeStep")
-    # # ax.set_xticklabels(df["year"].unique().astype(str), rotation='vertical')
-    #
-    # # Ask Matplotlib to show it
-    # plt.show()
+    # Some boilerplate to initialise things
+    sns.set()
+    plt.figure()
+
+    # This is where the actual plot gets made
+    ax = sns.lineplot(data=metrics["end_effector_speeds"])
+
+    # Customise some display properties
+    ax.set_title('End Effector Speeds')
+    ax.grid(color='#cccccc')
+    ax.set_ylabel('Speed')
+    ax.set_xlabel("TimeStep")
+    # ax.set_xticklabels(df["year"].unique().astype(str), rotation='vertical')
+
+    # Ask Matplotlib to show it
+    plt.show()
