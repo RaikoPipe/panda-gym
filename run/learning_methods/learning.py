@@ -128,14 +128,14 @@ def get_model(algorithm, config, run):
 
                     # hyperparameters
 
-                    # learning_rate=config["learning_rate"],
-                    # gamma=config["gamma"],
-                    # tau=config["tau"],
-                    # buffer_size=config["buffer_size"],
-                    # gradient_steps=config["gradient_steps"],
-                    # train_freq=config["train_freq"],
-                    # use_sde=config["use_sde"],
-                    # policy_kwargs=config["policy_kwargs"]
+                    learning_rate=config["learning_rate"],
+                    gamma=config["gamma"],
+                    tau=config["tau"],
+                    buffer_size=config["buffer_size"],
+                    gradient_steps=config["gradient_steps"],
+                    train_freq=config["train_freq"],
+                    use_sde=config["use_sde"],
+                    policy_kwargs=config["policy_kwargs"]
                     )
 
     return model
@@ -206,12 +206,13 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
     # model.env.close()
     # learn for each stage until reward threshold is reached
     if config["learning_starts"]:
-        # if initial_model:
-        #     model.replay_buffer = fill_replay_buffer_with_initial_model_actions(model, num_steps=config[
-        #         "learning_starts"])
+        if initial_model:
+            model.replay_buffer = fill_replay_buffer_with_initial_model_actions(model, num_steps=config[
+                "learning_starts"])
         # else:
-        model.learn(total_timesteps=config["learning_starts"])
-        model.learning_starts = 0
+        # if len(config["stages"]) > 1:
+        #     model.learn(total_timesteps=config["learning_starts"])
+        #     model.learning_starts = 0
 
     if config["prior_steps"]:
         model.replay_buffer = fill_replay_buffer_with_prior(model, config["prior_steps"])

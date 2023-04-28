@@ -23,7 +23,7 @@ class PyBullet:
     """
 
     def __init__(self, render: bool = False, n_substeps: int = 20,
-                 background_color: Optional[np.ndarray] = None, dummy_client=True, ) -> None:
+                 background_color: Optional[np.ndarray] = None, ) -> None:
         background_color = background_color if background_color is not None else np.array([0.0, 134.0, 201.0])
         self.background_color = background_color.astype(np.float32) / 255
         options = "--background_color_red={} \
@@ -35,9 +35,9 @@ class PyBullet:
         self.render_env = render
 
         self.physics_client = bc.BulletClient(connection_mode=self.connection_mode, options=options)
-        self.dummy_collision_client = None
-        if dummy_client:
-            self.dummy_collision_client = bc.BulletClient(connection_mode=p.DIRECT)
+        # self.dummy_collision_client = None
+        # if dummy_client:
+        #     self.dummy_collision_client = bc.BulletClient(connection_mode=p.DIRECT)
         # self.physics_client = bc.BulletClient(connection_mode=p.DIRECT, options=options)
         # self.dummy_collision_client = bc.BulletClient(connection_mode=p.GUI)
         self.physics_client.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
@@ -62,13 +62,14 @@ class PyBullet:
         """Step the simulation."""
         for _ in range(self.n_substeps):
             self.physics_client.stepSimulation()
-            self.dummy_collision_client.stepSimulation()
+
+            # self.dummy_collision_client.stepSimulation()
 
     def close(self) -> None:
         """Close the simulation."""
         self.physics_client.disconnect()
-        if self.dummy_collision_client is not None:
-            self.dummy_collision_client.disconnect()
+        # if self.dummy_collision_client is not None:
+        #     self.dummy_collision_client.disconnect()
 
     def save_state(self) -> int:
         """Save the current simulation state.

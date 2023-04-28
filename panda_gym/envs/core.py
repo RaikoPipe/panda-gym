@@ -34,8 +34,8 @@ class PyBulletRobot(ABC):
     ) -> None:
         self.sim = sim
         self.sim_id = self.sim.physics_client._client
-        if self.sim.dummy_collision_client:
-            self.sim_dummy_id = self.sim.dummy_collision_client._client
+        # if self.sim.dummy_collision_client:
+        #     self.sim_dummy_id = self.sim.dummy_collision_client._client
 
         self.body_name = body_name
         with self.sim.no_rendering():
@@ -315,6 +315,7 @@ class RobotTaskEnv(gym.Env):
     def step(self, action: np.ndarray) -> Tuple[Dict[str, np.ndarray], float, bool, bool, Dict[str, Any]]:
         self.robot.set_action(action)
         self.sim.step()
+
         observation = self._get_obs()
         # An episode is terminated if the agent has reached the target
         terminated = bool(self.task.is_success(observation["achieved_goal"], self.task.get_goal()))

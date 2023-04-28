@@ -106,6 +106,7 @@ def evaluate_ensemble(models, human=True, num_steps=10_000, goals_to_achieve=Non
 
 
         obs, reward, done, truncated, info, = env.step(action)
+
         action_diff = env.task.action_diff
         manipulability = env.task.manipulability
         if human:
@@ -351,7 +352,7 @@ panda_gym.register_envs(200)
 
 # env = get_env(config, "cube_3_random")
 if __name__ == "__main__":
-    human = False
+    human = True
 
     env = gym.make(config["env_name"], render=human, control_type=config["control_type"],
                    obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],

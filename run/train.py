@@ -15,7 +15,7 @@ import panda_gym
 import os
 from run.learning_methods.learning import learn, get_env
 
-from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
+from stable_baselines3.her.her_replay_buffer import HerReplayBuffer, VecHerReplayBuffer
 # from stable_baselines3 import HerReplayBuffer
 
 
@@ -26,7 +26,7 @@ config = {
     "algorithm": "TQC",
     "reward_type": "sparse",  # sparse; dense
     "goal_distance_threshold": 0.05,
-    "max_timesteps": 400_000,
+    "max_timesteps": 1_200_000,
     "seed": 1,
     "render": False,  # renders the pybullet env
     "n_substeps": 20, # number of simulation steps before handing control back to agent
@@ -39,9 +39,9 @@ config = {
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": True,
     "n_envs": 1,
-    "max_ep_steps": [100],
+    "max_ep_steps": [50],
     "eval_freq": 5_000,
-    "stages": ["cube_10"],
+    "stages": ["cube_4"],
     "reward_thresholds": [-1],  # [-7, -10, -12, -17, -20]
     "joint_obstacle_observation": "closest",  # "all": closest distance to any obstacle of all joints is observed;
     "learning_starts": 10_000,
@@ -86,7 +86,7 @@ if __name__ == "__main__":
         config.update(hyperparameters_sac)
 
     # env = get_env(config, config["stages"][0])
-    # model = TQC.load(r"run_data/wandb/quiet-lion-122/files/model.zip", env=env,
+    # model = TQC.load(r"run_data/wandb/fresh-wood-32/files/model.zip", env=env,
     #                  train_freq=config["n_envs"],
     #                  gradient_steps=config["gradient_steps"])
 

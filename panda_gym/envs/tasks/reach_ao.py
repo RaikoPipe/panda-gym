@@ -53,13 +53,13 @@ class ReachAO(Task):
         super().__init__(sim)
 
         self.sim_id = self.sim.physics_client._client
-        if self.sim.dummy_collision_client is not None:
-            self.dummy_sim_id = self.sim.dummy_collision_client._client
+        # if self.sim.dummy_collision_client is not None:
+        #     self.dummy_sim_id = self.sim.dummy_collision_client._client
 
         self.robot: Panda = robot
         self.obstacles = {}
-        self.dummy_obstacles = {}
-        self.dummy_obstacle_id = {}
+        # self.dummy_obstacles = {}
+        # self.dummy_obstacle_id = {}
         self.joint_obstacle_observation = joint_obstacle_observation
 
         # dense reward configuration
@@ -333,7 +333,10 @@ class ReachAO(Task):
 
     def create_scenario_cube(self):
         num_cubes = int(self.scenario.split(sep="_")[1])
-        self._sample_goal = self.sample_work_space_goal
+
+        self.goal_range_low = np.array([-0.7, -0.3, 0])
+        self.goal_range_high = np.array([0.7, 0.3, 0.6])
+
         self.randomize_obstacle_position = True
         self.random_num_obs = False
         self.sample_size_obs = [1,3]
@@ -407,7 +410,7 @@ class ReachAO(Task):
         # position[0] += 0.6
 
         ids = []
-        for physics_client in (self.sim.physics_client, self.sim.dummy_collision_client):
+        for physics_client in (self.sim.physics_client,):
             ids.append(self.sim.create_sphere(
                 body_name=f"{obstacle_name}_{len(self.obstacles)}",
                 radius=radius,
@@ -418,15 +421,15 @@ class ReachAO(Task):
             ))
 
         self.obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[0]
-        self.dummy_obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[1]
-        self.dummy_obstacle_id[ids[0]] = ids[1]
+        # self.dummy_obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[1]
+        # self.dummy_obstacle_id[ids[0]] = ids[1]
 
     def create_obstacle_cuboid(self, position=np.array([0.1, 0, 0.1]),
                                size=np.array([0.01, 0.01, 0.01])):
         obstacle_name = "obstacle"
         position[0] += 0.6
         ids = []
-        for physics_client in (self.sim.physics_client, self.sim.dummy_collision_client):
+        for physics_client in (self.sim.physics_client,):
             ids.append(self.sim.create_box(
                 body_name=f"{obstacle_name}_{len(self.obstacles)}",
                 half_extents=size,
@@ -437,8 +440,8 @@ class ReachAO(Task):
             ))
 
         self.obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[0]
-        self.dummy_obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[1]
-        self.dummy_obstacle_id[ids[0]] = ids[1]
+        # self.dummy_obstacles[f"{obstacle_name}_{len(self.obstacles)}"] = ids[1]
+        # self.dummy_obstacle_id[ids[0]] = ids[1]
 
     def create_robot_debug_params(self):
         """Create debug params to set the robot joint positions from the GUI."""
@@ -557,9 +560,9 @@ class ReachAO(Task):
             obstacle_id = self.obstacles[obstacle]
             # move obstacle far away from work space
             self.sim.set_base_pose(obstacle, np.array([99.9, 99.9, -99.9]), np.array([0.0, 0.0, 0.0, 1.0]))
-            self.sim.set_base_pose_dummy(self.dummy_obstacle_id[obstacle_id], np.array([99.9, 99.9, -99.9]),
-                                   np.array([0.0, 0.0, 0.0, 1.0]),
-                                   physics_client=self.sim.dummy_collision_client)
+            # self.sim.set_base_pose_dummy(self.dummy_obstacle_id[obstacle_id], np.array([99.9, 99.9, -99.9]),
+            #                        np.array([0.0, 0.0, 0.0, 1.0]),
+            #                        physics_client=self.sim.dummy_collision_client)
             obs_to_move -= 1
 
     def set_random_obs_velocity(self):
@@ -567,10 +570,10 @@ class ReachAO(Task):
             obstacle_id = self.obstacles[obstacle]
             velocity = np.random.uniform(self.velocity_range_low, self.velocity_range_high)
             self.sim.set_base_velocity(obstacle, velocity=velocity)
-            self.sim.set_base_velocity_dummy(self.dummy_obstacle_id[obstacle_id],
-                                             velocity=velocity,
-                                             physics_client=self.sim.dummy_collision_client
-                                             )
+            # self.sim.set_base_velocity_dummy(self.dummy_obstacle_id[obstacle_id],
+            #                                  velocity=velocity,
+            #                                  physics_client=self.sim.dummy_collision_client
+            #                                  )
 
     def set_coll_free_goal(self):
         collision = [True]
@@ -606,11 +609,11 @@ class ReachAO(Task):
                 collision = any([self.check_collision("robot", obstacle, margin=0.05),
                                 self.check_collision("table", obstacle, margin=0.05)])
 
-            else:
-                if pos is not None:
-                    self.sim.set_base_pose_dummy(self.dummy_obstacle_id[obstacle_id], pos,
-                                                 np.array([0.0, 0.0, 0.0, 1.0]),
-                                                 physics_client=self.sim.dummy_collision_client)
+            # else:
+            #     if pos is not None:
+            #         self.sim.set_base_pose_dummy(self.dummy_obstacle_id[obstacle_id], pos,
+            #                                      np.array([0.0, 0.0, 0.0, 1.0]),
+            #                                      physics_client=self.sim.dummy_collision_client)
 
 
     def check_collision(self, obstacle_1, obstacle_2, margin=0.0):

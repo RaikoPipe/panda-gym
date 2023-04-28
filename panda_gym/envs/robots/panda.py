@@ -110,12 +110,14 @@ class Panda(PyBulletRobot):
             # end, start, _ = self.panda_rtb._get_limit_links(start=start[0], end=end[0])
             # links, n, _ = self.panda_rtb.get_path(start=start, end=end)
             # self.panda_rtb.q = self.neutral_joint_values[:7]
-            self.init_swift_robot()
-            self.update_dummy_robot_link_positions()
+            #self.init_swift_robot()
+            #self.update_dummy_robot_link_positions()
 
     def set_action(self, action: np.ndarray, action_limiter=None) -> None:
 
         action = action.copy()  # ensure action don't change
+
+        velocity = self.get_ee_velocity()
 
         if action_limiter is None:
             action_limiter = self.action_limiter
@@ -153,8 +155,8 @@ class Panda(PyBulletRobot):
             target_angles = np.concatenate((target_arm_angles, [target_fingers_width / 2, target_fingers_width / 2]))
             self.control_joints(action=target_angles, control_mode= self.sim.physics_client.POSITION_CONTROL)
 
-        if self.rtb:
-            self.update_dummy_robot_link_positions()
+        # if self.rtb:
+        #     self.update_dummy_robot_link_positions()
 
     def update_dummy_robot_link(self, link_id, rtb_link):
         ls = p.getLinkState(bodyUniqueId=self.id, linkIndex=link_id)
@@ -307,9 +309,9 @@ class Panda(PyBulletRobot):
 
     def reset(self) -> None:
         self.set_joint_neutral()
-        if self.rtb:
-            self.update_dummy_robot_link_positions()
-            self.optimal_pose = None
+        # if self.rtb:
+        #     self.update_dummy_robot_link_positions()
+        #     self.optimal_pose = None
 
     def set_joint_neutral(self) -> None:
         """Set the robot to its neutral pose."""
