@@ -347,18 +347,22 @@ class ReachAO(Task):
 
     def create_scenario_wang(self):
         def sample_wang_obstacle():
-            if np.random.rand() > 0.5:
+
+            # if np.random.rand() > 0.5:
                 # sample near goal
                 sample = self.sample_sphere(0.2,0.6)
                 return sample + self.goal
-            else:
-                # sample near base
-                sample = self.sample_sphere(0.2,0.4, True)
-                return sample + self.robot.get_link_position(0)
+            # else:
+            #     # sample near base
+            #     sample = self.sample_sphere(0.3,0.5, True)
+            #     return sample + self.robot.get_link_position(0)
         num_spheres = int(self.scenario.split(sep="_")[1])
 
+        def sample_wang_goal():
+            return self.sample_sphere(0.4,0.95, upper_half=True)
+
         self._sample_obstacle = sample_wang_obstacle
-        self._sample_goal = self.sample_from_robot_workspace
+        self._sample_goal = sample_wang_goal
 
         self.randomize_obstacle_position = True
         self.random_num_obs = False
@@ -645,7 +649,7 @@ class ReachAO(Task):
                 # check if out of boundaries
                 self.sim.set_base_pose("dummy_sphere", np.array([0.0, 0.0, 0.0]),
                                        np.array([0.0, 0.0, 0.0, 1.0]))  # move dummy to origin
-                collision.append(not self.check_collision("dummy_sphere", obstacle, margin=0.9))
+                collision.append(not self.check_collision("dummy_sphere", obstacle, margin=1.2))
         self.sim.set_base_pose("dummy_sphere", np.array([0.0, 0.0, -5.0]),
                                np.array([0.0, 0.0, 0.0, 1.0]))  # move dummy away
 

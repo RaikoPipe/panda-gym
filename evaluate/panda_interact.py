@@ -10,6 +10,6 @@ env = gym.make(config["env_name"], render=True, show_goal_space=True, obs_type="
 env.reset()
 while True:
     observation, reward, terminated, truncated, info = env.step(np.array([0,0,0,0,0,0,0]))
-    print(env.robot.get_ee_position())
+    env.reset()
 
 
