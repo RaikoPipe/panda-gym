@@ -85,7 +85,7 @@ from algorithms.SAC_hybrid.prior_controller_neo import NEO
 # # --------------------------------------------------------- Run -------------------------------------------------------------------------------#
 # # ---------------------------------------------------------------------------------------------------------------------------------------------#
 #
-# def run(agents, env):
+# def train(agents, env):
 #     # Prepare for interaction with environment
 #     global total_steps
 #     state, ep_ret, ep_len = env.reset(), 0, 0

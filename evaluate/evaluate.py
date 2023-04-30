@@ -1,8 +1,6 @@
-import wandb
-
 import sys
-import gymnasium
 from matplotlib import pyplot as plt
+import gymnasium
 
 sys.modules["gym"] = gymnasium
 
@@ -14,7 +12,6 @@ from run.train import config
 from time import sleep
 import pprint
 
-import gym
 
 import panda_gym
 
@@ -354,19 +351,17 @@ panda_gym.register_envs(200)
 if __name__ == "__main__":
     human = True
 
-    env = gym.make(config["env_name"], render=human, control_type=config["control_type"],
+    env = gymnasium.make(config["env_name"], render=human, control_type=config["control_type"],
                    obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                    reward_type=config["reward_type"], limiter=config["limiter"],
-                   show_goal_space=False, scenario="library2",
+                   show_goal_space=False, scenario="wang_3",
                    show_debug_labels=True, n_substeps=config["n_substeps"])
 
     # Load Model ensemble
-    model1 = TQC.load(r"../run/run_data/wandb/quiet-lion-122/files/best_model.zip", env=env)
-
-
+    model1 = TQC.load(r"../run/run_data/wandb/polar-haze-42/files/best_model.zip", env=env)
 
     # evaluate ensemble
-    results, metrics = evaluate_ensemble([model1], human=human, num_steps=500, deterministic=True, strategy="variance_only")
+    results, metrics = evaluate_ensemble([model1], human=human, num_steps=50000, deterministic=True, strategy="variance_only")
 
     # env = gym.make(config["env_name"], render=human, control_type=config["control_type"],
     #                obs_type=("ee",), goal_distance_threshold=config["goal_distance_threshold"],
@@ -374,7 +369,6 @@ if __name__ == "__main__":
     #                show_goal_space=False, scenario="library2",
     #                show_debug_labels=True, n_substeps=config["n_substeps"])
     # model2 = TQC.load(r"../run/run_data/wandb/earnest-feather-1/files/best_model.zip", env=env)
-    # #
     # results1, metrics1 = evaluate_ensemble([model2], human=human, num_steps=10000, deterministic=True, strategy="variance_only", goals_to_achieve=metrics["goals"])
     # results2, metrics2 = evaluate(model1, human=human, goals_to_achieve=metrics["goals"], deterministic=True)
     # results3, metrics3 = evaluate(model2, human=human, goals_to_achieve=metrics["goals"], deterministic=True)

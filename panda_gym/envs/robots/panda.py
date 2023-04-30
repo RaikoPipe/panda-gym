@@ -17,7 +17,7 @@ from ruckig import InputParameter, Ruckig, Trajectory, Result
 import pathlib
 import ruckig
 import qpsolvers as qp
-
+from pathlib import Path
 
 class Panda(PyBulletRobot):
     """Panda robot in PyBullet.
@@ -49,7 +49,8 @@ class Panda(PyBulletRobot):
         n_action += 0 if self.block_gripper else 1
         action_space = spaces.Box(-1.0, 1.0, shape=(n_action,), dtype=np.float32)
 
-        # path_to_rtb_urdf = "C:\\Users\\eclip\\Documents\\GitHub\\panda-gym\\panda_gym\\URDF\\robots\\panda.urdf"
+        # path_to_urdf = "C:\\Users\\eclip\\Documents\\GitHub\\panda-gym\\panda_gym\\URDF\\robots\\franka_panda_custom\\panda.urdf"
+
         super().__init__(
             sim,
             body_name="panda",

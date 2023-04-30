@@ -13,7 +13,8 @@ from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.noise import NormalActionNoise, VectorizedActionNoise
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 from stable_baselines3.common.vec_env import SubprocVecEnv
-from run.learning_methods.imitation_learning import fill_replay_buffer_with_prior, fill_replay_buffer_with_initial_model_actions
+from run.learning_methods.imitation_learning import fill_replay_buffer_with_init_model, fill_replay_buffer_with_prior
+
 import panda_gym
 
 import wandb
@@ -207,7 +208,7 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
     # learn for each stage until reward threshold is reached
     if config["learning_starts"]:
         if initial_model:
-            model.replay_buffer = fill_replay_buffer_with_initial_model_actions(model, num_steps=config[
+            model.replay_buffer = fill_replay_buffer_with_init_model(model, num_steps=config[
                 "learning_starts"])
         # else:
         # if len(config["stages"]) > 1:

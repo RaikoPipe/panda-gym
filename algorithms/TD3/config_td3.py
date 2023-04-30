@@ -9,7 +9,7 @@ from wandb_utils import wandb_logging
 
 
 #
-# def run(agent):
+# def train(agent):
 #     # Prepare for interaction with environment
 #     total_steps = agent.steps_per_epoch * agent.epochs
 #     start_time = time.time()

@@ -61,7 +61,7 @@ from wandb_utils import wandb_logging
 #     print("\nTraining Time:  {:0>2}:{:0>2}:{:05.2f}".format(int(hours), int(minutes), seconds))
 #
 #
-# def run(eval_every, num_steps):
+# def train(eval_every, num_steps):
 #     """"NAF.
 #
 #     Params

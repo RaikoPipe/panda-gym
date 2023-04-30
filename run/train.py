@@ -2,8 +2,6 @@ import time
 
 import numpy as np
 
-
-import wandb
 # from pygame import mixer
 
 import sys
@@ -13,9 +11,9 @@ sys.modules["gym"] = gymnasium
 from sb3_contrib import TQC
 import panda_gym
 import os
-from run.learning_methods.learning import learn, get_env
 
-from stable_baselines3.her.her_replay_buffer import HerReplayBuffer, VecHerReplayBuffer
+
+from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
 # from stable_baselines3 import HerReplayBuffer
 
 
@@ -30,7 +28,7 @@ config = {
     "seed": 1,
     "render": False,  # renders the pybullet env
     "n_substeps": 20, # number of simulation steps before handing control back to agent
-    "obs_type": ("ee",), # Robot state to observe
+    "obs_type": ("ee","js"), # Robot state to observe
     "control_type": "js",  # Agent Output; js: joint velocities, ee: end effector displacements; jsd: joint velocities (applied directly)
     "limiter": "sim",
     "action_limiter": "clip",
@@ -74,6 +72,8 @@ hyperparameters_sac = {
 }
 
 if __name__ == "__main__":
+    from run.learning_methods.learning import learn, get_env
+    import wandb
     key = os.getenv("wandb_key")
     wandb.login(key=os.getenv("wandb_key"))
 

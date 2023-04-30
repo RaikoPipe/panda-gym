@@ -58,7 +58,7 @@ def fill_replay_buffer_with_prior(model: OffPolicyAlgorithm, num_steps=10000):
 
     return replay_buffer
 
-def fill_replay_buffer_with_initial_model_actions(model: OffPolicyAlgorithm, num_steps=10000):
+def fill_replay_buffer_with_init_model(model: OffPolicyAlgorithm, num_steps=10000):
     """
     Fill replay buffer of the given model with prior actions.
     :param prior: The prior

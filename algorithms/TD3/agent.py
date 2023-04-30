@@ -46,7 +46,7 @@ class TD3_Agent:
             seed (int): Seed for random number generators.
             steps_per_epoch (int): Number of steps of interaction (state-action pairs)
                 for the agent and the environment in each epoch.
-            epochs (int): Number of epochs to run and train agent.
+            epochs (int): Number of epochs to train and train agent.
             replay_size (int): Maximum length of replay buffer.
             gamma (float): Discount factor. (Always between 0 and 1.)
             polyak (float): Interpolation factor in polyak averaging for target
@@ -187,7 +187,7 @@ class TD3_Agent:
 
 
     def update(self, data, timer):
-        # First run one gradient descent step for Q1 and Q2
+        # First train one gradient descent step for Q1 and Q2
         self.q_optimizer.zero_grad()
         loss_q, loss_info = self.compute_loss_q(data)
         loss_q.backward()
@@ -204,7 +204,7 @@ class TD3_Agent:
             for p in self.q_params:
                 p.requires_grad = False
 
-            # Next run one gradient descent step for pi.
+            # Next train one gradient descent step for pi.
             self.pi_optimizer.zero_grad()
             loss_pi = self.compute_loss_pi(data)
             loss_pi.backward()

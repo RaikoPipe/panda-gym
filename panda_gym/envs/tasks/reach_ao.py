@@ -13,7 +13,7 @@ import gymnasium as gym
 from panda_gym.envs.core import Task
 from panda_gym.envs.robots.panda import Panda
 from panda_gym.utils import distance
-from pyb_utils.collision import NamedCollisionObject, CollisionDetector, compute_distance
+from pyb_utils.collision import NamedCollisionObject, CollisionDetector
 import pybullet as p
 import sys
 import gymnasium
@@ -86,6 +86,7 @@ class ReachAO(Task):
         self.obstacle_count = 0
 
         self._sample_goal = self.sample_from_goal_range
+        self._sample_obstacle = self.sample_from_goal_range
         # set default goal range
         self.x_offset = 0.6
         self.goal_range_low = np.array([-self.goal_range / 2.5 +self.x_offset, -self.goal_range / 1.5, 0])
@@ -179,6 +180,7 @@ class ReachAO(Task):
 
         match scenario:
             case scenario if "cube" in scenario.split(sep="_"): found_scenario = self.create_scenario_cube
+            case scenario if "wang" in scenario.split(sep="_"): found_scenario = self.create_scenario_wang
             case "narrow_tunnel": found_scenario = self.create_scenario_narrow_tunnel
             case "library": found_scenario = self.create_scenario_library
             case "library1": found_scenario = self.create_scenario_library
@@ -205,8 +207,8 @@ class ReachAO(Task):
             rgba_color=np.array([0.1, 0.9, 0.1, 0.8]),
         )
 
-        self.bodies["dummy_target"] = self.sim.create_sphere(
-            body_name="dummy_target",
+        self.bodies["dummy_sphere"] = self.sim.create_sphere(
+            body_name="dummy_sphere",
             radius=0.05,  # dummy target is intentionally bigger to ensure safety distance to obstacle
             mass=0.0,
             position=np.zeros(3),
@@ -343,7 +345,29 @@ class ReachAO(Task):
         for i in range(num_cubes):
             self.create_obstacle_cuboid(size=self.cube_size_medium)
 
-    def sample_work_space_goal(self):
+    def create_scenario_wang(self):
+        def sample_wang_obstacle():
+            if np.random.rand() > 0.5:
+                # sample near goal
+                sample = self.sample_sphere(0.2,0.6)
+                return sample + self.goal
+            else:
+                # sample near base
+                sample = self.sample_sphere(0.2,0.4, True)
+                return sample + self.robot.get_link_position(0)
+        num_spheres = int(self.scenario.split(sep="_")[1])
+
+        self._sample_obstacle = sample_wang_obstacle
+        self._sample_goal = self.sample_from_robot_workspace
+
+        self.randomize_obstacle_position = True
+        self.random_num_obs = False
+
+        for i in range(num_spheres):
+            self.create_obstacle_sphere(radius=0.025)
+
+    def \
+            sample_from_robot_workspace(self):
         random_joint_conf = self.np_random.uniform(low=np.array(self.robot.joint_lim_min),
                                             high=np.array(self.robot.joint_lim_max))
         with self.sim.no_rendering():
@@ -355,7 +379,8 @@ class ReachAO(Task):
 
     def scenario_ga_training(self):
         """1-3 randomly initialized Spheres with 8cm radius"""
-        self._sample_goal = self.sample_work_space_goal
+        self._sample_obstacle = self._sample_goal = self.sample_from_robot_workspace
+
         self.randomize_obstacle_position = True
         self.random_num_obs = False
         self.sample_size_obs = [1,3]
@@ -511,20 +536,20 @@ class ReachAO(Task):
     def reset(self) -> None:
         # todo: set goal first, then obstacles
         # todo: make function to set obstacles around goal or manipulator
+        with self.sim.no_rendering():
+            if self.fixed_target is None:
+                self.set_coll_free_goal()
+            # sample new (collision free) obstacles
+            if self.randomize_obstacle_position:
+                self.set_coll_free_obs()
 
-        if self.fixed_target is None:
-            self.goal = self._sample_goal()
-        # sample new (collision free) obstacles
-        if self.randomize_obstacle_position:
-            self.set_coll_free_obs()
+            if self.randomize_obstacle_velocity:
+                self.set_random_obs_velocity()
 
-        if self.randomize_obstacle_velocity:
-            self.set_random_obs_velocity()
+            if self.random_num_obs:
+                self.set_random_num_obs()
 
-        if self.random_num_obs:
-            self.set_random_num_obs()
 
-        self.set_coll_free_goal()
 
         # use rl policy to generate joint angles (to get final pose)
         # arrived = False
@@ -578,36 +603,51 @@ class ReachAO(Task):
     def set_coll_free_goal(self):
         collision = [True]
         # get collision free goal within goal space
+        i= 0
         while any(collision):
-            collision = []
-            self.sim.set_base_pose("dummy_target", self.goal, np.array([0.0, 0.0, 0.0, 1.0]))
-            self.sim.physics_client.performCollisionDetection()
-            collision.append(self.check_collision("dummy_target", "robot", margin=0.05))
-            collision.append(self.check_collision("dummy_target", "table", margin=0.05))
+            self.goal = self._sample_goal()
+            if i > 9999:
+                raise StopIteration("Couldn't find collision free goal!")
+            else: i += 1
 
-            for obstacle in self.obstacles:
-                collision.append(self.check_collision("dummy_target", obstacle))
-                if any(collision):
-                    self.goal = self._sample_goal()
-                    break
+            self.sim.set_base_pose("dummy_sphere", self.goal, np.array([0.0, 0.0, 0.0, 1.0]))
+            #self.sim.physics_client.performCollisionDetection()
+            collision = [self.check_collision("dummy_sphere", "robot", margin=0.05),
+                         self.check_collision("dummy_sphere", "table", margin=0.05)]
+
+            # for obstacle in self.obstacles:
+            #     collision.append(self.check_collision("dummy_sphere", obstacle))
+            #     if any(collision):
+            #         self.goal = self._sample_goal()
+            #         break
         self.sim.set_base_pose("target", self.goal, np.array([0.0, 0.0, 0.0, 1.0]))
-        self.sim.set_base_pose("dummy_target", np.array([0.0, 0.0, -5.0]),
-                               np.array([0.0, 0.0, 0.0, 1.0]))  # move dummy away
+
 
     def set_coll_free_obs(self):
         # get randomized obstacle position within goal space
         for obstacle in self.obstacles.keys():
             # get collision free obstacle position
-            collision = True
+            collision = [True]
             pos = None
             obstacle_id = self.obstacles[obstacle]
 
             # sample new obstacle position until it doesn't obstruct robot
-            while collision:
-                pos = self._sample_goal()
+            i = 0
+            while any(collision):
+                if i > 9999:
+                    raise StopIteration("Couldn't find collision free obstacle!")
+                else: i += 1
+                pos = self._sample_obstacle()
                 self.sim.set_base_pose(obstacle, pos, np.array([0.0, 0.0, 0.0, 1.0]))
-                collision = any([self.check_collision("robot", obstacle, margin=0.05),
-                                self.check_collision("table", obstacle, margin=0.05)])
+                collision = [self.check_collision("robot", obstacle, margin=0.05),
+                             self.check_collision("table", obstacle, margin=0.05),
+                             self.check_collision("dummy_sphere", obstacle, margin=0.05)]
+                # check if out of boundaries
+                self.sim.set_base_pose("dummy_sphere", np.array([0.0, 0.0, 0.0]),
+                                       np.array([0.0, 0.0, 0.0, 1.0]))  # move dummy to origin
+                collision.append(not self.check_collision("dummy_sphere", obstacle, margin=0.9))
+        self.sim.set_base_pose("dummy_sphere", np.array([0.0, 0.0, -5.0]),
+                               np.array([0.0, 0.0, 0.0, 1.0]))  # move dummy away
 
             # else:
             #     if pos is not None:
@@ -635,14 +675,26 @@ class ReachAO(Task):
         goal = self.np_random.uniform(self.goal_range_low, self.goal_range_high)
         return goal
 
-    def sample_spherically_around_goal(self, goal) -> np.ndarray:
-        # todo: sample uniformly from sphere around goal (minor radius: 20cm, major radius: 60 cm)
-        #   also check if obstacle is still inside work space
-        pass
+    def sample_sphere(self, radius_minor, radius_major, upper_half=False) -> np.ndarray:
+
+        phi = np.random.uniform(0, 2 * np.pi)
+        if upper_half:
+            theta = np.random.uniform(0, 0.5*np.pi)
+        else:
+            theta = np.random.uniform(0, np.pi)
+
+        r = np.cbrt(np.random.uniform(radius_minor ** 3, radius_major ** 3))
+
+        sample = np.array([r * np.sin(theta) * np.cos(phi), r * np.sin(theta) * np.sin(phi), r * np.cos(theta)])
+
+        return sample
+
 
     def sample_around_end_effector(self):
         # todo:
         pass
+
+
 
     def is_success(self, achieved_goal: np.ndarray, desired_goal: np.ndarray) -> np.ndarray:
         d = distance(achieved_goal, desired_goal)
