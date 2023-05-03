@@ -418,7 +418,7 @@ class PyBullet:
                     forces=forces,
                 )
 
-    def inverse_kinematics(self, body: str, link: int, position: np.ndarray, orientation: np.ndarray) -> np.ndarray:
+    def inverse_kinematics(self, body: str, link: int, position: np.ndarray, orientation: Optional[np.ndarray]) -> np.ndarray:
         """Compute the inverse kinematics and return the new joint state.
 
         Args:
@@ -430,12 +430,19 @@ class PyBullet:
         Returns:
             np.ndarray: The new joint state.
         """
-        joint_state = self.physics_client.calculateInverseKinematics(
-            bodyIndex=self._bodies_idx[body],
-            endEffectorLinkIndex=link,
-            targetPosition=position,
-            targetOrientation=orientation,
-        )
+        if orientation:
+            joint_state = self.physics_client.calculateInverseKinematics(
+                bodyIndex=self._bodies_idx[body],
+                endEffectorLinkIndex=link,
+                targetPosition=position,
+                targetOrientation=orientation,
+            )
+        else:
+            joint_state = self.physics_client.calculateInverseKinematics(
+                bodyIndex=self._bodies_idx[body],
+                endEffectorLinkIndex=link,
+                targetPosition=position,
+            )
         return np.array(joint_state)
 
     def place_visualizer(self, target_position: np.ndarray, distance: float, yaw: float, pitch: float) -> None:

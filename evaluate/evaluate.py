@@ -354,11 +354,11 @@ if __name__ == "__main__":
     env = gymnasium.make(config["env_name"], render=human, control_type=config["control_type"],
                    obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                    reward_type=config["reward_type"], limiter=config["limiter"],
-                   show_goal_space=False, scenario="wang_3",
+                   show_goal_space=False, scenario="library2",
                    show_debug_labels=True, n_substeps=config["n_substeps"])
 
     # Load Model ensemble
-    model1 = TQC.load(r"../run/run_data/wandb/polar-haze-42/files/best_model.zip", env=env)
+    model1 = TQC.load(r"../run/run_data/wandb/dry-waterfall-47/files/best_model.zip", env=env)
 
     # evaluate ensemble
     results, metrics = evaluate_ensemble([model1], human=human, num_steps=50000, deterministic=True, strategy="variance_only")

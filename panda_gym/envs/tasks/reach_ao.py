@@ -345,12 +345,28 @@ class ReachAO(Task):
         for i in range(num_cubes):
             self.create_obstacle_cuboid(size=self.cube_size_medium)
 
+    def sample_random_joint_position_within_workspace(self):
+        random_joint_conf = self.np_random.uniform(low=np.array(self.robot.joint_lim_min),
+                                            high=np.array(self.robot.joint_lim_max))
+        with self.sim.no_rendering():
+            self.robot.set_joint_angles(random_joint_conf)
+            goal = np.array(self.get_ee_position())
+            self.robot.set_joint_neutral()
+
+            return goal
+
+    def set_robot_random_joint_position(self):
+        ee_target = self.sample_random_joint_position_within_workspace()#self.sample_sphere(0.3, 0.6, upper_half=True)
+        joint_positions = self.robot.inverse_kinematics(link=11, position=ee_target)[:7]
+        self.robot.set_joint_angles(joint_positions)
+
+
     def create_scenario_wang(self):
         def sample_wang_obstacle():
 
             # if np.random.rand() > 0.5:
                 # sample near goal
-                sample = self.sample_sphere(0.2,0.6)
+                sample = self.sample_sphere(0.1,0.4)
                 return sample + self.goal
             # else:
             #     # sample near base
@@ -361,25 +377,20 @@ class ReachAO(Task):
         def sample_wang_goal():
             return self.sample_sphere(0.4,0.95, upper_half=True)
 
+
+
         self._sample_obstacle = sample_wang_obstacle
         self._sample_goal = sample_wang_goal
+        self.robot.reset = self.set_robot_random_joint_position
 
         self.randomize_obstacle_position = True
         self.random_num_obs = False
 
         for i in range(num_spheres):
-            self.create_obstacle_sphere(radius=0.025)
+            self.create_obstacle_sphere(radius=0.05)
 
-    def \
-            sample_from_robot_workspace(self):
-        random_joint_conf = self.np_random.uniform(low=np.array(self.robot.joint_lim_min),
-                                            high=np.array(self.robot.joint_lim_max))
-        with self.sim.no_rendering():
-            self.robot.set_joint_angles(random_joint_conf)
-            goal = np.array(self.get_ee_position())
-            self.robot.set_joint_neutral()
-
-        return goal
+    def sample_from_robot_workspace(self):
+        return self.sample_random_joint_position_within_workspace()
 
     def scenario_ga_training(self):
         """1-3 randomly initialized Spheres with 8cm radius"""

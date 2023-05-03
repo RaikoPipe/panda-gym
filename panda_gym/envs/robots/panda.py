@@ -77,19 +77,11 @@ class Panda(PyBulletRobot):
         self.joint_acceleration_limits = np.array([150, 150, 150, 150, 180, 180, 180])  # degrees per second
         self.joint_max_jerk = np.array([150, 150, 150, 150, 180, 180, 180])
 
-        # ruckig
-        self.use_ruckig_limiter = True if limiter == "ruckig" else False
-
         self.action_limiter = action_limiter
 
         # remember actions
         self.previous_action = None
         self.recent_action = None
-
-        # current state (ruckig)
-        self.current_joint_angles = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-        self.previous_joint_velocities = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-        self.current_joint_acceleration = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
         self.rtb = use_robotics_toolbox
         self.panda_rtb = rtb.models.Panda()
@@ -150,8 +142,13 @@ class Panda(PyBulletRobot):
             target_fingers_width = fingers_width + fingers_ctrl
 
         if self.control_type == "jsd":
+            # velocity control
             action = np.concatenate((action, np.array([0,0])))
             self.control_joints(action=action, control_mode=self.sim.physics_client.VELOCITY_CONTROL)
+        elif self.control_type == "pcc":
+            # position change control (teleporting)
+            target_angles = np.concatenate((target_arm_angles, [target_fingers_width / 2, target_fingers_width / 2]))
+            self.set_joint_angles(target_angles)
         else:
             target_angles = np.concatenate((target_arm_angles, [target_fingers_width / 2, target_fingers_width / 2]))
             self.control_joints(action=target_angles, control_mode= self.sim.physics_client.POSITION_CONTROL)
@@ -337,8 +334,9 @@ class Panda(PyBulletRobot):
         q = [self.get_joint_angle(i) for i in self.joint_indices[:7]]
         return self.panda_rtb.manipulability(q, axes="trans")
 
-    def compute_action_neo(self, target, collision_objects):
+    def compute_action_neo(self, target, collision_objects, collision_detector):
         self.panda_rtb.q = self.get_joint_angles(self.joint_indices[:7])
+        self.panda_rtb.qd = [self.get_joint_velocity(i) for i in self.joint_indices[:7]]
         # self.swift_env.step(render=True)
         # self.collision_detector.set_collision_geometries()
 
@@ -395,7 +393,7 @@ class Panda(PyBulletRobot):
 
         # The minimum angle (in radians) in which the joint is allowed to approach
         # to its limit
-        ps = 0.01
+        ps = 0.05
 
         # The influence angle (in radians) in which the velocity damper
         # becomes active
@@ -405,18 +403,18 @@ class Panda(PyBulletRobot):
         Ain[:n, :n], bin[:n] = self.panda_rtb.joint_velocity_damper(ps, pi, n)
 
         # For each collision in the scene
-        for collision in collision_objects.values():
+        for collision in collision_objects.keys():
             # Form the velocity damper inequality constraint for each collision
             # object on the robot to the collision in the scene
-            c_Ain, c_bin = self.panda_rtb.link_collision_damper_2(
+            c_Ain, c_bin = self.panda_rtb.link_collision_damper_pybullet(
                 collision,
+                collision_detector,
                 self.panda_rtb.q[:n],
-                0.3,  # influence distance in which the damper becomes active
-                0.05,  # minimum distance in which the link is allowed to approach the object shape
-                1.0,
+                0.4,  # influence distance in which the damper becomes active
+                0.1,  # minimum distance in which the link is allowed to approach the object shape
+                0.9,
                 start=self.panda_rtb.link_dict["panda_link1"],
-                end=self.panda_rtb.link_dict["panda_hand"],
-                link_collision_location_info=self.link_collision_location_info
+                end=self.panda_rtb.link_dict["panda_hand"]
             )
 
             # If there are any parts of the robot within the influence distance

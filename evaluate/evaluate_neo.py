@@ -10,7 +10,7 @@ from stable_baselines3 import TD3
 
 import gymnasium as gym
 import numpy as np
-from train_preo import config
+from run.train import config
 from time import sleep
 
 import panda_gym
@@ -30,7 +30,7 @@ def evaluate(env, num_steps=10000):
     done_events = []
     for i in range(num_steps):
         # _states are only useful when using LSTM policies
-        action = env.robot.compute_action_neo(env.task.goal, env.task.dummy_obstacles)# [0.07996564, -0.13340622, 0.02173809])
+        action = env.robot.compute_action_neo(env.task.goal, env.task.obstacles, env.task.collision_detector)# [0.07996564, -0.13340622, 0.02173809])
         # action = env.robot.compute_action_neo_pybullet(env.task.goal, env.task.obstacles, env.task.collision_detector)
         # pybullet.removeAllUserDebugItems(physicsClientId=0)
         #rl_action, _ = model.predict(obs)
@@ -55,7 +55,7 @@ def evaluate(env, num_steps=10000):
                 done_events.append(0)
             obs, _ = env.reset()
 
-            sleep(0.01)
+            #sleep(0.01/20)
 
 
             episode_rewards.append(0.0)
@@ -69,7 +69,7 @@ def evaluate(env, num_steps=10000):
     return mean_100ep_reward
 
 
-panda_gym.register_envs(100)
+panda_gym.register_envs(200)
 # instantiate reachEvadeObstacle
 # env = gym.make(config["env_name"], render=True, control_type=config["control_type"], reward_type=config["reward_type"],
 #                show_goal_space=False, obstacle_layout=1,
@@ -80,10 +80,10 @@ panda_gym.register_envs(100)
 
 
 
-env = gym.make(config["env_name"], render=True, control_type=config["control_type"],
+env = gym.make(config["env_name"], render=False, control_type="jsd",
                obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                reward_type=config["reward_type"], limiter=config["limiter"],
-               show_goal_space=False, scenario="library2",
+               show_goal_space=False, scenario="wang_3",
                show_debug_labels=True)
 
 

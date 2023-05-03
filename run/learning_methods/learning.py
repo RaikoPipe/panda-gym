@@ -1,18 +1,17 @@
-from typing import Optional, Union
-import numpy as np
-
 import sys
 import gymnasium
-
 sys.modules["gym"] = gymnasium
 
+
+from typing import Optional, Union
+import numpy as np
 from stable_baselines3 import SAC, TD3, PPO, DDPG, DQN
 from sb3_contrib import TQC
 from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnRewardThreshold
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.noise import NormalActionNoise, VectorizedActionNoise
-from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
-from stable_baselines3.common.vec_env import SubprocVecEnv
+from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm, HerReplayBuffer
+from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
 from run.learning_methods.imitation_learning import fill_replay_buffer_with_init_model, fill_replay_buffer_with_prior
 
 import panda_gym
@@ -21,50 +20,48 @@ import wandb
 from wandb.integration.sb3 import WandbCallback
 
 
-def get_env(config, stage, deactivate_render=False):
-    if config["n_envs"] > 1:
-
-        env = make_vec_env(config["env_name"], n_envs=config["n_envs"],
-                           env_kwargs={"render": False,
-                                       "control_type": config["control_type"],
-                                       "obs_type": config["obs_type"],
-                                       "reward_type": config["reward_type"],
-                                       "goal_distance_threshold": config["goal_distance_threshold"],
-                                       "limiter": config["limiter"],
-                                       "action_limiter": config["action_limiter"],
-                                       "show_goal_space": False,
-                                       "scenario": stage,
-                                       "show_debug_labels": False,
-                                       "n_substeps": config["n_substeps"]
-                                       },
-                           vec_env_cls=SubprocVecEnv
-                           )
-    else:
-        # todo: check if obsolete
-        # env = gym.make(config["env_name"],
-        #                render=config["render"] if not deactivate_render else False,
-        #                #n_envs=config["n_envs"],
-        #                control_type=config["control_type"],
-        #                obs_type=config["obs_type"],
-        #                goal_distance_threshold=config["goal_distance_threshold"],
-        #                reward_type=config["reward_type"],
-        #                limiter=config["limiter"],
-        #                show_goal_space=False,
-        #                scenario=stage,
-        #                show_debug_labels=False,)
-        env = make_vec_env(config["env_name"], n_envs=config["n_envs"],
-                           env_kwargs={"render": config["render"] if not deactivate_render else False,
-                                       "control_type": config["control_type"],
-                                       "obs_type": config["obs_type"],
-                                       "reward_type": config["reward_type"],
-                                       "goal_distance_threshold": config["goal_distance_threshold"],
-                                       "limiter": config["limiter"],
-                                       "action_limiter": config["action_limiter"],
-                                       "show_goal_space": False,
-                                       "scenario": stage,
-                                       "show_debug_labels": False,
-                                       "n_substeps": config["n_substeps"]
-                                       })
+def get_env(config, n_envs, stage, deactivate_render=False):
+    env = make_vec_env(config["env_name"], n_envs=n_envs,
+                       env_kwargs={"render": False,
+                                   "control_type": config["control_type"],
+                                   "obs_type": config["obs_type"],
+                                   "reward_type": config["reward_type"],
+                                   "goal_distance_threshold": config["goal_distance_threshold"],
+                                   "limiter": config["limiter"],
+                                   "action_limiter": config["action_limiter"],
+                                   "show_goal_space": False,
+                                   "scenario": stage,
+                                   "show_debug_labels": False,
+                                   "n_substeps": config["n_substeps"]
+                                   },
+                       vec_env_cls=SubprocVecEnv if n_envs>1 else None
+                       )
+    # else:
+    #     # todo: check if obsolete
+    #     # env = gym.make(config["env_name"],
+    #     #                render=config["render"] if not deactivate_render else False,
+    #     #                #n_envs=config["n_envs"],
+    #     #                control_type=config["control_type"],
+    #     #                obs_type=config["obs_type"],
+    #     #                goal_distance_threshold=config["goal_distance_threshold"],
+    #     #                reward_type=config["reward_type"],
+    #     #                limiter=config["limiter"],
+    #     #                show_goal_space=False,
+    #     #                scenario=stage,
+    #     #                show_debug_labels=False,)
+    #     env = make_vec_env(config["env_name"], n_envs=config["n_envs"],
+    #                        env_kwargs={"render": config["render"] if not deactivate_render else False,
+    #                                    "control_type": config["control_type"],
+    #                                    "obs_type": config["obs_type"],
+    #                                    "reward_type": config["reward_type"],
+    #                                    "goal_distance_threshold": config["goal_distance_threshold"],
+    #                                    "limiter": config["limiter"],
+    #                                    "action_limiter": config["action_limiter"],
+    #                                    "show_goal_space": False,
+    #                                    "scenario": stage,
+    #                                    "show_debug_labels": False,
+    #                                    "n_substeps": config["n_substeps"]
+    #                                    })
 
     return env
 
@@ -87,7 +84,7 @@ def get_model(algorithm, config, run):
         action_noise = None
     # todo: test train frequency
     if algorithm in ("TD3", "DDPG"):
-        model = TD3(config["policy_type"], env=get_env(config, config["stages"][0], deactivate_render=True),
+        model = TD3(config["policy_type"], env=get_env(config, config["n_envs"], config["stages"][0], deactivate_render=True),
                     verbose=1, seed=config["seed"],
                     tensorboard_log=f"runs/{run.id}", device="cuda",
                     replay_buffer_class=config["replay_buffer"],
@@ -103,7 +100,7 @@ def get_model(algorithm, config, run):
                     action_noise=action_noise
                     )
     elif algorithm == "SAC":
-        model = SAC(config["policy_type"], env=get_env(config, config["stages"][0], deactivate_render=True),
+        model = SAC(config["policy_type"], env=get_env(config, config["n_envs"], config["stages"][0], deactivate_render=True),
                     verbose=1, seed=config["seed"],
                     tensorboard_log=f"runs/{run.id}", device="cuda",
                     replay_buffer_class=config["replay_buffer"],
@@ -121,7 +118,7 @@ def get_model(algorithm, config, run):
                     policy_kwargs=config["policy_kwargs"]
                     )
     elif algorithm == "TQC":
-        model = TQC(config["policy_type"], env=get_env(config, config["stages"][0], deactivate_render=True),
+        model = TQC(config["policy_type"], env=get_env(config,config["n_envs"], config["stages"][0], deactivate_render=True),
                     verbose=1, seed=config["seed"],
                     tensorboard_log=f"runs/{run.id}", device="cuda",
                     replay_buffer_class=config["replay_buffer"],
@@ -210,17 +207,18 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
         if initial_model:
             model.replay_buffer = fill_replay_buffer_with_init_model(model, num_steps=config[
                 "learning_starts"])
-        # else:
-        # if len(config["stages"]) > 1:
-        #     model.learn(total_timesteps=config["learning_starts"])
-        #     model.learning_starts = 0
+        elif config["prior_steps"] or len(config["stages"]) > 1:
+            model.learn(total_timesteps=config["learning_starts"])
+            model.learning_starts = 0
 
     if config["prior_steps"]:
-        model.replay_buffer = fill_replay_buffer_with_prior(model, config["prior_steps"])
+        assert config["n_envs"] == 1
+        env = get_env(config, 1, config["stages"][0])
+        model.replay_buffer = fill_replay_buffer_with_prior(env, model, config["prior_steps"])
 
     for stage, reward_threshold, max_ep_steps in zip(config["stages"], config["reward_thresholds"], config["max_ep_steps"]):
         panda_gym.register_envs(max_ep_steps)
-        model.set_env(get_env(config, stage))
+        model.set_env(get_env(config, config["n_envs"], stage))
 
         eval_env = gymnasium.make(config["env_name"], render=True if not config["render"] else False, control_type=config["control_type"],
                             obs_type=config["obs_type"],

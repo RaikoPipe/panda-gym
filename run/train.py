@@ -13,7 +13,7 @@ import panda_gym
 import os
 
 
-from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
+from stable_baselines3.her.her_replay_buffer import HerReplayBuffer, VecHerReplayBuffer
 # from stable_baselines3 import HerReplayBuffer
 
 
@@ -24,7 +24,7 @@ config = {
     "algorithm": "TQC",
     "reward_type": "sparse",  # sparse; dense
     "goal_distance_threshold": 0.05,
-    "max_timesteps": 1_200_000,
+    "max_timesteps": 300_000,
     "seed": 1,
     "render": False,  # renders the pybullet env
     "n_substeps": 20, # number of simulation steps before handing control back to agent
@@ -33,19 +33,22 @@ config = {
     "limiter": "sim",
     "action_limiter": "clip",
     "show_goal_space": True,
-    "replay_buffer": HerReplayBuffer,  # HerReplayBuffer
+    "replay_buffer": VecHerReplayBuffer,  # HerReplayBuffer
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": True,
-    "n_envs": 1,
+    "n_envs": 8,
     "max_ep_steps": [50],
     "eval_freq": 5_000,
-    "stages": ["cube_4"],
+    "stages": ["wang_1"],
     "reward_thresholds": [-1],  # [-7, -10, -12, -17, -20]
     "joint_obstacle_observation": "closest",  # "all": closest distance to any obstacle of all joints is observed;
     "learning_starts": 10_000,
     "prior_steps": 0,
     # "closest": only closest joint distance is observed
 }
+
+# register envs to gymnasium
+panda_gym.register_envs(config["max_ep_steps"][0])
 
 # hyperparameters are from rl-baselines3 zoo and https://arxiv.org/pdf/2106.13687.pdf
 
@@ -64,8 +67,8 @@ hyperparameters_sac = {
     "gamma": 0.98,
     "tau": 0.02,
     "buffer_size": 300_000,
-    "gradient_steps": config["n_envs"] * 8,
-    "train_freq": config["n_envs"] * 8,
+    "gradient_steps": 8* config["n_envs"],
+    "train_freq": 8 * config["n_envs"],
     "ent_coef": "auto",
     "use_sde": True,
     "policy_kwargs": dict(log_std_init=-3, net_arch=[400, 300])
@@ -76,9 +79,6 @@ if __name__ == "__main__":
     import wandb
     key = os.getenv("wandb_key")
     wandb.login(key=os.getenv("wandb_key"))
-
-    # register envs to gymnasium
-    panda_gym.register_envs(config["max_ep_steps"][0])
 
     if config["algorithm"] in ("TD3", "DDPG"):
         config.update(hyperparameters_td3)

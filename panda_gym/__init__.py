@@ -1,5 +1,8 @@
 import os, sys
 
+import gymnasium
+sys.modules["gym"] = gymnasium
+
 from gymnasium.envs.registration import register
 
 with open(os.path.join(os.path.dirname(__file__), "version.txt"), "r") as file_handler:

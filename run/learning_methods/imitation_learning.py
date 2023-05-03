@@ -5,15 +5,14 @@ from algorithms.SAC_hybrid.prior_controller_neo import NEO
 from copy import copy
 
 
-def fill_replay_buffer_with_prior(model: OffPolicyAlgorithm, num_steps=10000):
+def fill_replay_buffer_with_prior(env, model: OffPolicyAlgorithm, num_steps=10000):
     """
     Fill replay buffer of the given model with prior actions.
     :param prior: The prior
     :param num_steps: (int) number of steps to fill the replay buffer
     :return: model with filled replay buffer
     """
-    env = model.env.envs[0]
-
+    env = env.envs[0]
     episode_rewards = [0.0]
     obs, _ = env.reset()
 
@@ -23,7 +22,7 @@ def fill_replay_buffer_with_prior(model: OffPolicyAlgorithm, num_steps=10000):
     episode_steps = 0
     for i in range(num_steps):
 
-        action = env.robot.compute_action_neo(env.task.goal, env.task.dummy_obstacles)
+        action = env.robot.compute_action_neo(env.task.goal, env.task.obstacles, env.task.collision_detector)
 
         env.robot.set_action(action, action_limiter="scale")
         env.sim.step()

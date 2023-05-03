@@ -173,7 +173,7 @@ class PyBulletRobot(ABC):
         """
         self.sim.set_joint_angles(self.body_name, joints=self.joint_indices, angles=angles)
 
-    def inverse_kinematics(self, link: int, position: np.ndarray, orientation: np.ndarray) -> np.ndarray:
+    def inverse_kinematics(self, link: int, position: np.ndarray, orientation: Optional[np.ndarray]=None) -> np.ndarray:
         """Compute the inverse kinematics and return the new joint values.
 
         Args:
