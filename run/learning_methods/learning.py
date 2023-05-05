@@ -20,7 +20,7 @@ import wandb
 from wandb.integration.sb3 import WandbCallback
 
 
-def get_env(config, n_envs, stage, deactivate_render=False):
+def get_env(config, n_envs, scenario, deactivate_render=False):
     env = make_vec_env(config["env_name"], n_envs=n_envs,
                        env_kwargs={"render": False,
                                    "control_type": config["control_type"],
@@ -30,7 +30,7 @@ def get_env(config, n_envs, stage, deactivate_render=False):
                                    "limiter": config["limiter"],
                                    "action_limiter": config["action_limiter"],
                                    "show_goal_space": False,
-                                   "scenario": stage,
+                                   "scenario": scenario,
                                    "show_debug_labels": False,
                                    "n_substeps": config["n_substeps"]
                                    },
@@ -89,15 +89,7 @@ def get_model(algorithm, config, run):
                     tensorboard_log=f"runs/{run.id}", device="cuda",
                     replay_buffer_class=config["replay_buffer"],
                     # hyperparameters
-                    train_freq=1 if config["n_envs"] > 1 else (1, "episode"),
-                    # config["n_envs"] if config["n_envs"] > 1 else (1, "episode"),
-                    gradient_steps=config["gradient_steps"],
-                    learning_starts=config["learning_starts"],
-                    learning_rate=config["learning_rate"],
-                    gamma=config["gamma"],
-                    buffer_size=config["buffer_size"],
-                    policy_kwargs=config["policy_kwargs"],
-                    action_noise=action_noise
+                    **config["hyperparams"]
                     )
     elif algorithm == "SAC":
         model = SAC(config["policy_type"], env=get_env(config, config["n_envs"], config["stages"][0], deactivate_render=True),
@@ -108,16 +100,10 @@ def get_model(algorithm, config, run):
 
                     # hyperparameters
 
-                    learning_rate=config["learning_rate"],
-                    gamma=config["gamma"],
-                    tau=config["tau"],
-                    buffer_size=config["buffer_size"],
-                    gradient_steps=config["gradient_steps"],
-                    train_freq=config["train_freq"],
-                    use_sde=config["use_sde"],
-                    policy_kwargs=config["policy_kwargs"]
+                    **config["hyperparams"]
                     )
     elif algorithm == "TQC":
+        print(config["hyperparams"])
         model = TQC(config["policy_type"], env=get_env(config,config["n_envs"], config["stages"][0], deactivate_render=True),
                     verbose=1, seed=config["seed"],
                     tensorboard_log=f"runs/{run.id}", device="cuda",
@@ -126,14 +112,16 @@ def get_model(algorithm, config, run):
 
                     # hyperparameters
 
-                    learning_rate=config["learning_rate"],
-                    gamma=config["gamma"],
-                    tau=config["tau"],
-                    buffer_size=config["buffer_size"],
-                    gradient_steps=config["gradient_steps"],
-                    train_freq=config["train_freq"],
-                    use_sde=config["use_sde"],
-                    policy_kwargs=config["policy_kwargs"]
+                    **config["hyperparams"]
+
+                    # learning_rate=config["learning_rate"],
+                    # gamma=config["gamma"],
+                    # tau=config["tau"],
+                    # buffer_size=config["buffer_size"],
+                    # gradient_steps=config["gradient_steps"],
+                    # train_freq=config["train_freq"],
+                    # use_sde=config["use_sde"],
+                    # policy_kwargs=config["policy_kwargs"]
                     )
 
     return model
@@ -220,11 +208,14 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
         panda_gym.register_envs(max_ep_steps)
         model.set_env(get_env(config, config["n_envs"], stage))
 
-        eval_env = gymnasium.make(config["env_name"], render=True if not config["render"] else False, control_type=config["control_type"],
-                            obs_type=config["obs_type"],
-                            reward_type=config["reward_type"],
-                            show_goal_space=False, scenario=stage,
-                            show_debug_labels=False)
+        if config["render"]:
+            eval_env = gymnasium.make(config["env_name"], render=True if not config["render"] else False, control_type=config["control_type"],
+                                obs_type=config["obs_type"],
+                                reward_type=config["reward_type"],
+                                show_goal_space=False, scenario=stage,
+                                show_debug_labels=False)
+        else:
+            eval_env = get_env(config, config["n_envs"], scenario=stage)
 
         stop_train_callback = StopTrainingOnRewardThreshold(reward_threshold=reward_threshold, verbose=1)
 

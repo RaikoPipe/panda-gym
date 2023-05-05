@@ -358,7 +358,7 @@ if __name__ == "__main__":
                    show_debug_labels=True, n_substeps=config["n_substeps"])
 
     # Load Model ensemble
-    model1 = TQC.load(r"../run/run_data/wandb/dry-waterfall-47/files/best_model.zip", env=env)
+    model1 = TQC.load(r"../run/run_data/wandb/elegant-admiral-112/files/best_model.zip", env=env)
 
     # evaluate ensemble
     results, metrics = evaluate_ensemble([model1], human=human, num_steps=50000, deterministic=True, strategy="variance_only")

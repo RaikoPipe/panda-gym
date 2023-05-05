@@ -24,7 +24,7 @@ config = {
     "algorithm": "TQC",
     "reward_type": "sparse",  # sparse; dense
     "goal_distance_threshold": 0.05,
-    "max_timesteps": 300_000,
+    "max_timesteps": 500_000,
     "seed": 1,
     "render": False,  # renders the pybullet env
     "n_substeps": 20, # number of simulation steps before handing control back to agent
@@ -33,17 +33,18 @@ config = {
     "limiter": "sim",
     "action_limiter": "clip",
     "show_goal_space": True,
-    "replay_buffer": VecHerReplayBuffer,  # HerReplayBuffer
+    "replay_buffer": HerReplayBuffer,  # HerReplayBuffer
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": True,
-    "n_envs": 8,
-    "max_ep_steps": [50],
+    "n_envs": 1,
+    "max_ep_steps": [70],
     "eval_freq": 5_000,
-    "stages": ["wang_1"],
+    "stages": ["wang_2"],
     "reward_thresholds": [-1],  # [-7, -10, -12, -17, -20]
     "joint_obstacle_observation": "closest",  # "all": closest distance to any obstacle of all joints is observed;
-    "learning_starts": 10_000,
+    "learning_starts": 0,
     "prior_steps": 0,
+    "randomize_robot_pose": False
     # "closest": only closest joint distance is observed
 }
 
@@ -67,12 +68,30 @@ hyperparameters_sac = {
     "gamma": 0.98,
     "tau": 0.02,
     "buffer_size": 300_000,
-    "gradient_steps": 8* config["n_envs"],
-    "train_freq": 8 * config["n_envs"],
+    "gradient_steps": 8,
+    "train_freq": 8 ,
     "ent_coef": "auto",
     "use_sde": True,
+
     "policy_kwargs": dict(log_std_init=-3, net_arch=[400, 300])
 }
+
+hyperparameters_tqc = {
+    "learning_rate": 0.001,
+    "batch_size": 256,
+    "buffer_size": int(1e6),
+    "replay_buffer_kwargs": dict(
+        goal_selection_strategy='future', n_sampled_goal=4),
+    "gamma": 0.95,
+    "policy_kwargs": dict(net_arch=[64, 64], n_critics=1),
+}
+
+if config["algorithm"] in ("TD3", "DDPG"):
+    config["hyperparams"] = hyperparameters_td3
+elif config["algorithm"] == "SAC":
+    config["hyperparams"] = hyperparameters_sac
+elif config["algorithm"] == "TQC":
+    config["hyperparams"] = hyperparameters_sac
 
 if __name__ == "__main__":
     from run.learning_methods.learning import learn, get_env
@@ -80,17 +99,10 @@ if __name__ == "__main__":
     key = os.getenv("wandb_key")
     wandb.login(key=os.getenv("wandb_key"))
 
-    if config["algorithm"] in ("TD3", "DDPG"):
-        config.update(hyperparameters_td3)
-    elif config["algorithm"] in  ("SAC", "TQC"):
-        config.update(hyperparameters_sac)
+    env = get_env(config, config["n_envs"], config["stages"][0])
+    model = TQC.load(r"run_data/wandb/elegant-admiral-112/files/best_model.zip", env=env)
 
-    # env = get_env(config, config["stages"][0])
-    # model = TQC.load(r"run_data/wandb/fresh-wood-32/files/model.zip", env=env,
-    #                  train_freq=config["n_envs"],
-    #                  gradient_steps=config["gradient_steps"])
-
-    model = learn(config=config, algorithm=config["algorithm"])
+    model = learn(config=config, algorithm=config["algorithm"], initial_model=model)
 
 
     # mixer.init()

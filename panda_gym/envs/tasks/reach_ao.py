@@ -40,6 +40,7 @@ class ReachAO(Task):
             show_goal_space=False,
             joint_obstacle_observation="all",
             scenario="cube_3",
+            randomize_start_pose=False,
             show_debug_labels=True,
             fixed_target=None,
             # adjustment factors for dense rewards
@@ -73,6 +74,7 @@ class ReachAO(Task):
         self.fixed_target = fixed_target
 
         self.scenario = scenario
+        self.randomize_start_pose = randomize_start_pose
 
         # self.robot_params = self.create_robot_debug_params()
         self.cube_size_medium = np.array([0.03, 0.03, 0.03])
@@ -128,6 +130,9 @@ class ReachAO(Task):
 
             if self.scenario:
                 self._create_scenario(scenario)()
+
+                if self.randomize_start_pose:
+                    self.robot.reset = self.set_robot_random_joint_position
 
                 # register collision objects for collision detector
                 for obstacle_name, obstacle_id in self.obstacles.items():
@@ -186,6 +191,8 @@ class ReachAO(Task):
             case "library1": found_scenario = self.create_scenario_library
             case "library2": found_scenario = self.create_scenario_library
             case "ga_training": found_scenario = self.scenario_ga_training
+            case "wall": found_scenario = self.create_stage_wall
+            case "box": found_scenario = self.create_stage_box
 
         if not found_scenario:
             logging.warning("Scenario not found. Defaulting to narrow_tunnel.")
@@ -254,19 +261,19 @@ class ReachAO(Task):
                 "basePosition": [-1.0, -0.5, 0.0], #v1: [-0.8,-0.6,0.0]
                 "useFixedBase": True
             },
-            "table": {
-                "bodyName": "table",
-                "fileName": f"{LIBRARY_DIR}\\table.urdf",
-                "basePosition": [-0.7, -0.45, 0.1], #v1: [-0.7,-0.6,0.1]
-                "useFixedBase": True
-            },
+            # "table": {
+            #     "bodyName": "table",
+            #     "fileName": f"{LIBRARY_DIR}\\table.urdf",
+            #     "basePosition": [-0.7, -0.45, 0.1], #v1: [-0.7,-0.6,0.1]
+            #     "useFixedBase": True
+            # },
         }
         self.sim.load_scenario(urdfs)
 
 
         indexes = self.sim.load_scenario(urdfs)
 
-        for idx, body in zip(indexes, [urdfs["shelf"], urdfs["table"]]):
+        for idx, body in zip(indexes, [urdfs["shelf"], ]):
             name = body["bodyName"]
             self.obstacles[f"{name}_{len(self.obstacles)}"] = idx
 
@@ -306,7 +313,7 @@ class ReachAO(Task):
             np.array([0.2, 0.0, 0.25]),
             size=np.array([0.1, 0.4, 0.001]))
 
-    def create_stage_wall_parkour_1(self):
+    def create_stage_wall(self):
         """wall parkour."""
         self.goal_range = 0.4
 
@@ -321,7 +328,7 @@ class ReachAO(Task):
         #     np.array([0.2, 0.0, 0.25]),
         #     size=np.array([0.1, 0.4, 0.001]))
 
-    def create_stage_box_3(self):
+    def create_stage_box(self):
         """box."""
         self.goal_range = 0.4
 
@@ -364,10 +371,12 @@ class ReachAO(Task):
     def create_scenario_wang(self):
         def sample_wang_obstacle():
 
-            # if np.random.rand() > 0.5:
-                # sample near goal
-                sample = self.sample_sphere(0.1,0.4)
+            if np.random.rand() > 0.8:
+                # move to goal
+                sample = self.sample_sphere(0.15, 0.4)
                 return sample + self.goal
+            else:
+                return self.sample_sphere(0.4,0.95, upper_half=True)
             # else:
             #     # sample near base
             #     sample = self.sample_sphere(0.3,0.5, True)
@@ -381,13 +390,13 @@ class ReachAO(Task):
 
         self._sample_obstacle = sample_wang_obstacle
         self._sample_goal = sample_wang_goal
-        self.robot.reset = self.set_robot_random_joint_position
+
 
         self.randomize_obstacle_position = True
         self.random_num_obs = False
 
         for i in range(num_spheres):
-            self.create_obstacle_sphere(radius=0.05)
+            self.create_obstacle_sphere(radius=0.03)
 
     def sample_from_robot_workspace(self):
         return self.sample_random_joint_position_within_workspace()
@@ -557,6 +566,8 @@ class ReachAO(Task):
             # sample new (collision free) obstacles
             if self.randomize_obstacle_position:
                 self.set_coll_free_obs()
+            self.sim.set_base_pose("dummy_sphere", np.array([0.0, 0.0, -5.0]),
+                                   np.array([0.0, 0.0, 0.0, 1.0]))  # move dummy away
 
             if self.randomize_obstacle_velocity:
                 self.set_random_obs_velocity()
@@ -661,8 +672,6 @@ class ReachAO(Task):
                 self.sim.set_base_pose("dummy_sphere", np.array([0.0, 0.0, 0.0]),
                                        np.array([0.0, 0.0, 0.0, 1.0]))  # move dummy to origin
                 collision.append(not self.check_collision("dummy_sphere", obstacle, margin=1.2))
-        self.sim.set_base_pose("dummy_sphere", np.array([0.0, 0.0, -5.0]),
-                               np.array([0.0, 0.0, 0.0, 1.0]))  # move dummy away
 
             # else:
             #     if pos is not None:
