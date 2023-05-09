@@ -354,14 +354,38 @@ if __name__ == "__main__":
     env = gymnasium.make(config["env_name"], render=human, control_type=config["control_type"],
                    obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                    reward_type=config["reward_type"], limiter=config["limiter"],
-                   show_goal_space=False, scenario="library2",
+                   show_goal_space=False, scenario="wang_4", randomize_robot_pose = config["randomize_robot_pose"],
+                         joint_obstacle_observation=config["joint_obstacle_observation"],
+                         truncate_episode_on_collision=config["truncate_episode_on_collision"],
                    show_debug_labels=True, n_substeps=config["n_substeps"])
 
     # Load Model ensemble
-    model1 = TQC.load(r"../run/run_data/wandb/elegant-admiral-112/files/best_model.zip", env=env)
+    model = TQC.load(r"../run/run_data/wandb/cerulean_sky/files/best_model.zip", env=env)
+    model.env.close()
+
+    evaluation_results = {}
+    for evaluation_scenario in ["workshop", "library2", "narrow_tunnel", "workshop"]:
+        env = gymnasium.make(config["env_name"], render=human, control_type=config["control_type"],
+                             obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
+                             reward_type=config["reward_type"], limiter=config["limiter"],
+                             show_goal_space=False, scenario=evaluation_scenario,
+                             randomize_robot_pose=config["randomize_robot_pose"], joint_obstacle_observation=config["joint_obstacle_observation"],
+                             truncate_episode_on_collision=config["truncate_episode_on_collision"],
+                             show_debug_labels=True, n_substeps=config["n_substeps"])
+        print(f"Evaluating {evaluation_scenario}")
+        model.set_env(env)
+        results, metrics = evaluate_ensemble([model], human=human, num_steps=5000, deterministic=True,
+                                             strategy="variance_only")
+        evaluation_results[evaluation_scenario] = {"results": results, "metrics" : metrics}
+        env.close()
+
+    for key, value in evaluation_results.values():
+        results = value["results"]
+        print(f"{key}: {results}")
+
 
     # evaluate ensemble
-    results, metrics = evaluate_ensemble([model1], human=human, num_steps=50000, deterministic=True, strategy="variance_only")
+
 
     # env = gym.make(config["env_name"], render=human, control_type=config["control_type"],
     #                obs_type=("ee",), goal_distance_threshold=config["goal_distance_threshold"],
@@ -380,26 +404,26 @@ if __name__ == "__main__":
     # results, metrics = evaluate(model1, model2, human=human, num_steps=50_000, deterministic=True)
 
 
-    print("Model 1:")
-    pprint.pprint(results)
-    # print("Model 2:")
-    # pprint.pprint(results1)
-    # print("library2-expert:")
-    # pprint.pprint(results3)
-
-    # Some boilerplate to initialise things
-    sns.set()
-    plt.figure()
-
-    # This is where the actual plot gets made
-    ax = sns.lineplot(data=metrics["end_effector_speeds"])
-
-    # Customise some display properties
-    ax.set_title('End Effector Speeds')
-    ax.grid(color='#cccccc')
-    ax.set_ylabel('Speed')
-    ax.set_xlabel("TimeStep")
-    # ax.set_xticklabels(df["year"].unique().astype(str), rotation='vertical')
-
-    # Ask Matplotlib to show it
-    plt.show()
+    # print("Model 1:")
+    # pprint.pprint(results)
+    # # print("Model 2:")
+    # # pprint.pprint(results1)
+    # # print("library2-expert:")
+    # # pprint.pprint(results3)
+    #
+    # # Some boilerplate to initialise things
+    # sns.set()
+    # plt.figure()
+    #
+    # # This is where the actual plot gets made
+    # ax = sns.lineplot(data=metrics["end_effector_speeds"])
+    #
+    # # Customise some display properties
+    # ax.set_title('End Effector Speeds')
+    # ax.grid(color='#cccccc')
+    # ax.set_ylabel('Speed')
+    # ax.set_xlabel("TimeStep")
+    # # ax.set_xticklabels(df["year"].unique().astype(str), rotation='vertical')
+    #
+    # # Ask Matplotlib to show it
+    # plt.show()

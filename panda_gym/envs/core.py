@@ -241,7 +241,7 @@ class RobotTaskEnv(gym.Env):
 
     metadata = {"render_modes": ["human", "rgb_array"]}
 
-    def __init__(self, robot: PyBulletRobot, task: Task) -> None:
+    def __init__(self, robot: PyBulletRobot, task: Task, reward_type:str) -> None:
         assert robot.sim == task.sim, "The robot and the task must belong to the same simulation."
         self.sim = robot.sim
         self.robot = robot
@@ -259,6 +259,7 @@ class RobotTaskEnv(gym.Env):
         )
         self.action_space = self.robot.action_space
         self.compute_reward = self.task.compute_reward
+        self.reward_type = reward_type
         self._saved_goal = dict()  # For state saving and restoring
 
     def _get_obs(self) -> Dict[str, np.ndarray]:
@@ -318,10 +319,14 @@ class RobotTaskEnv(gym.Env):
 
         observation = self._get_obs()
         # An episode is terminated if the agent has reached the target
-        terminated = bool(self.task.is_success(observation["achieved_goal"], self.task.get_goal()))
+        is_success = self.task.is_success(observation["achieved_goal"], self.task.get_goal())
+        if self.reward_type == "sparse":
+            terminated= is_success
+        else:
+            terminated=False
         truncated = bool(self.task.is_truncated())
 
-        info = {"is_success": terminated, "is_truncated": truncated}
+        info = {"is_success": is_success, "is_truncated": truncated}
         reward = float(self.task.compute_reward(observation["achieved_goal"], self.task.get_goal(), info))
 
         return observation, reward, terminated, truncated, info

@@ -20,9 +20,9 @@ import wandb
 from wandb.integration.sb3 import WandbCallback
 
 
-def get_env(config, n_envs, scenario, deactivate_render=False):
+def get_env(config, n_envs, scenario, force_render=False):
     env = make_vec_env(config["env_name"], n_envs=n_envs,
-                       env_kwargs={"render": False,
+                       env_kwargs={"render": config["render"] if force_render else False,
                                    "control_type": config["control_type"],
                                    "obs_type": config["obs_type"],
                                    "reward_type": config["reward_type"],
@@ -32,7 +32,9 @@ def get_env(config, n_envs, scenario, deactivate_render=False):
                                    "show_goal_space": False,
                                    "scenario": scenario,
                                    "show_debug_labels": False,
-                                   "n_substeps": config["n_substeps"]
+                                   "n_substeps": config["n_substeps"],
+                                   "joint_obstacle_observation": config["joint_obstacle_observation"],
+                                   "truncate_episode_on_collision" : config["truncate_episode_on_collision"]
                                    },
                        vec_env_cls=SubprocVecEnv if n_envs>1 else None
                        )
@@ -84,7 +86,7 @@ def get_model(algorithm, config, run):
         action_noise = None
     # todo: test train frequency
     if algorithm in ("TD3", "DDPG"):
-        model = TD3(config["policy_type"], env=get_env(config, config["n_envs"], config["stages"][0], deactivate_render=True),
+        model = TD3(config["policy_type"], env=get_env(config, config["n_envs"], config["stages"][0]),
                     verbose=1, seed=config["seed"],
                     tensorboard_log=f"runs/{run.id}", device="cuda",
                     replay_buffer_class=config["replay_buffer"],
@@ -92,7 +94,7 @@ def get_model(algorithm, config, run):
                     **config["hyperparams"]
                     )
     elif algorithm == "SAC":
-        model = SAC(config["policy_type"], env=get_env(config, config["n_envs"], config["stages"][0], deactivate_render=True),
+        model = SAC(config["policy_type"], env=get_env(config, config["n_envs"], config["stages"][0]),
                     verbose=1, seed=config["seed"],
                     tensorboard_log=f"runs/{run.id}", device="cuda",
                     replay_buffer_class=config["replay_buffer"],
@@ -104,7 +106,7 @@ def get_model(algorithm, config, run):
                     )
     elif algorithm == "TQC":
         print(config["hyperparams"])
-        model = TQC(config["policy_type"], env=get_env(config,config["n_envs"], config["stages"][0], deactivate_render=True),
+        model = TQC(config["policy_type"], env=get_env(config,config["n_envs"], config["stages"][0]),
                     verbose=1, seed=config["seed"],
                     tensorboard_log=f"runs/{run.id}", device="cuda",
                     replay_buffer_class=config["replay_buffer"],
@@ -209,11 +211,12 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
         model.set_env(get_env(config, config["n_envs"], stage))
 
         if config["render"]:
-            eval_env = gymnasium.make(config["env_name"], render=True if not config["render"] else False, control_type=config["control_type"],
-                                obs_type=config["obs_type"],
-                                reward_type=config["reward_type"],
-                                show_goal_space=False, scenario=stage,
-                                show_debug_labels=False)
+            # eval_env = gymnasium.make(config["env_name"], render=True if not config["render"] else False, control_type=config["control_type"],
+            #                     obs_type=config["obs_type"],
+            #                     reward_type=config["reward_type"],
+            #                     show_goal_space=False, scenario=stage,
+            #                     show_debug_labels=False, )
+            eval_env = get_env(config, 1, scenario=stage, force_render=True)
         else:
             eval_env = get_env(config, config["n_envs"], scenario=stage)
 
@@ -229,8 +232,7 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
             callback=[WandbCallback(
                 model_save_path=wandb.run.dir,
                 model_save_freq=20_000
-            ), eval_callback],
-            progress_bar=True
+            ), eval_callback]
         )
 
         eval_env.close()

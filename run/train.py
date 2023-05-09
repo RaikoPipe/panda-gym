@@ -13,8 +13,8 @@ import panda_gym
 import os
 
 
-from stable_baselines3.her.her_replay_buffer import HerReplayBuffer, VecHerReplayBuffer
-# from stable_baselines3 import HerReplayBuffer
+from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
+from stable_baselines3.common.buffers import ReplayBuffer, DictReplayBuffer
 
 
 # hyperparameters from rl-baselines3-zoo tuned pybullet defaults
@@ -24,9 +24,9 @@ config = {
     "algorithm": "TQC",
     "reward_type": "sparse",  # sparse; dense
     "goal_distance_threshold": 0.05,
-    "max_timesteps": 500_000,
+    "max_timesteps": 300_000,
     "seed": 1,
-    "render": False,  # renders the pybullet env
+    "render": True,  # renders the pybullet env
     "n_substeps": 20, # number of simulation steps before handing control back to agent
     "obs_type": ("ee","js"), # Robot state to observe
     "control_type": "js",  # Agent Output; js: joint velocities, ee: end effector displacements; jsd: joint velocities (applied directly)
@@ -37,14 +37,15 @@ config = {
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": True,
     "n_envs": 1,
-    "max_ep_steps": [70],
+    "max_ep_steps": [100],
     "eval_freq": 5_000,
-    "stages": ["wang_2"],
+    "stages": ["wang_4"],
     "reward_thresholds": [-1],  # [-7, -10, -12, -17, -20]
-    "joint_obstacle_observation": "closest",  # "all": closest distance to any obstacle of all joints is observed;
-    "learning_starts": 0,
+    "joint_obstacle_observation": "all3",  # "all": closest distance to any obstacle of all joints is observed;
+    "learning_starts": 10_000,
     "prior_steps": 0,
-    "randomize_robot_pose": False
+    "randomize_robot_pose": False,
+    "truncate_episode_on_collision": True
     # "closest": only closest joint distance is observed
 }
 
@@ -99,10 +100,10 @@ if __name__ == "__main__":
     key = os.getenv("wandb_key")
     wandb.login(key=os.getenv("wandb_key"))
 
-    env = get_env(config, config["n_envs"], config["stages"][0])
-    model = TQC.load(r"run_data/wandb/elegant-admiral-112/files/best_model.zip", env=env)
+    # env = get_env(config, config["n_envs"], config["stages"][0])
+    # model = TQC.load(r"run_data/wandb/cerulean_sky/files/best_model.zip", env=env, replay_buffer_class=config["replay_buffer"])
 
-    model = learn(config=config, algorithm=config["algorithm"], initial_model=model)
+    model = learn(config=config, algorithm=config["algorithm"])
 
 
     # mixer.init()
