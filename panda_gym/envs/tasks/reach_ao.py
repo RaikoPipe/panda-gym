@@ -262,7 +262,7 @@ class ReachAO(Task):
     def create_scenario_workshop(self):
 
         self.robot.neutral_joint_values = np.array(
-            [-2.13728387, - 0.02008786,  0.55133245, - 1.28430162,  0.07185752,  1.35811325,
+            [-2.13728387, - 0.02008786,  0.55133245, - 1.18430162,  0.07185752,  1.35811325,
              0.79608991]
             )
         self.robot.set_joint_neutral()
@@ -389,24 +389,34 @@ class ReachAO(Task):
             return goal
 
     def set_robot_random_joint_position(self):
-        return np.random.uniform(low=np.array(self.robot.joint_lim_min),
+        joint_positions = np.random.uniform(low=np.array(self.robot.joint_lim_min),
                                             high=np.array(self.robot.joint_lim_max))
+        self.robot.set_joint_angles(joint_positions)
+
 
     def set_robot_random_joint_position_ik(self):
         ee_target = self.sample_random_joint_position_within_workspace()#self.sample_sphere(0.3, 0.6, upper_half=True)
         joint_positions = self.robot.inverse_kinematics(link=11, position=ee_target)[:7]
         self.robot.set_joint_angles(joint_positions)
 
+    def set_robot_random_joint_position_ik_sphere(self, radius_minor, radius_major):
+        ee_target = self.sample_sphere(radius_minor, radius_major, upper_half=True)
+        joint_positions = self.robot.inverse_kinematics(link=11, position=ee_target)[:7]
+        self.robot.set_joint_angles(joint_positions)
+
 
     def create_scenario_wang(self):
+        goal_radius_minor = 0.5
+        goal_radius_major = 0.8
         def sample_wang_obstacle():
+
 
             if np.random.rand() > 0.8:
                 # move to goal
                 sample = self.sample_sphere(0.15, 0.4)
                 return sample + self.goal
             else:
-                return self.sample_sphere(0.3,0.6, upper_half=True)
+                return self.sample_sphere(0.4,0.8, upper_half=True)
             # else:
             #     # sample near base
             #     sample = self.sample_sphere(0.3,0.5, True)
@@ -414,9 +424,9 @@ class ReachAO(Task):
         num_spheres = int(self.scenario.split(sep="_")[1])
 
         def sample_wang_goal():
-            return self.sample_sphere(0.4,0.75, upper_half=True)
+            return self.sample_sphere(goal_radius_minor, goal_radius_major, upper_half=True)
 
-        self.robot_pose_randomizer = self.set_robot_random_joint_position_ik
+        self.robot_pose_randomizer = lambda : self.set_robot_random_joint_position_ik()
 
         self._sample_obstacle = sample_wang_obstacle
         self._sample_goal = sample_wang_goal
@@ -580,6 +590,8 @@ class ReachAO(Task):
             elif self.joint_obstacle_observation == "all3":
                 sorted_obs_per_link = [sorted(i) for i in obs_per_link.values()]
                 closest_distances = np.array([i[:3] for i in sorted_obs_per_link]).flatten()
+            elif self.joint_obstacle_observation == "all_close":
+                closest_distances = np.array([i if i < 0.4 else 1.0 for i in self.distances_links_to_closest_obstacle ])
             elif self.joint_obstacle_observation == "closest":
                 closest_distances = np.array(min(obs_per_link.values()))
 

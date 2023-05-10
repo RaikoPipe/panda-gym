@@ -24,7 +24,7 @@ config = {
     "algorithm": "TQC",
     "reward_type": "sparse",  # sparse; dense
     "goal_distance_threshold": 0.05,
-    "max_timesteps": 300_000,
+    "max_timesteps": 500_000,
     "seed": 1,
     "render": True,  # renders the pybullet env
     "n_substeps": 20, # number of simulation steps before handing control back to agent
@@ -39,9 +39,9 @@ config = {
     "n_envs": 1,
     "max_ep_steps": [100],
     "eval_freq": 5_000,
-    "stages": ["wang_4"],
+    "stages": ["workshop"],
     "reward_thresholds": [-1],  # [-7, -10, -12, -17, -20]
-    "joint_obstacle_observation": "all3",  # "all": closest distance to any obstacle of all joints is observed;
+    "joint_obstacle_observation": "all",  # "all": closest distance to any obstacle of all joints is observed;
     "learning_starts": 10_000,
     "prior_steps": 0,
     "randomize_robot_pose": False,

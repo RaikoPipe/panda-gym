@@ -34,6 +34,7 @@ def get_env(config, n_envs, scenario, force_render=False):
                                    "show_debug_labels": False,
                                    "n_substeps": config["n_substeps"],
                                    "joint_obstacle_observation": config["joint_obstacle_observation"],
+                                   "randomize_robot_pose": config["randomize_robot_pose"],
                                    "truncate_episode_on_collision" : config["truncate_episode_on_collision"]
                                    },
                        vec_env_cls=SubprocVecEnv if n_envs>1 else None
