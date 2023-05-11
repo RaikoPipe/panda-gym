@@ -261,12 +261,9 @@ class ReachAO(Task):
 
     def create_scenario_workshop(self):
 
-        self.robot.neutral_joint_values = np.array(
-            [-2.13728387, - 0.02008786,  0.55133245, - 1.28430162,  0.07185752,  1.35811325,
-             0.79608991]
-            )
+        self.robot.neutral_joint_values = np.array([np.pi/2, -0.3, 0, -2.2, 0, 2.0, np.pi / 4, 0.00, 0.00])
         self.robot.set_joint_neutral()
-        self.goal_range_low = np.array([0.5, -0.15, 0.4])
+        self.goal_range_low = np.array([0.4, -0.15, 0.4])
         self.goal_range_high = np.array([0.7, 0.12, 0.55])
         self.goal = self.fixed_target
 
@@ -397,13 +394,14 @@ class ReachAO(Task):
         joint_positions = self.robot.inverse_kinematics(link=11, position=ee_target)[:7]
         self.robot.set_joint_angles(joint_positions)
 
-
+    def create_scenario_empty(self):
+        pass
     def create_scenario_wang(self):
         def sample_wang_obstacle():
 
             if np.random.rand() > 0.8:
                 # move to goal
-                sample = self.sample_sphere(0.15, 0.4)
+                sample = self.sample_sphere(0.15, 0.3)
                 return sample + self.goal
             else:
                 return self.sample_sphere(0.3,0.6, upper_half=True)
@@ -414,7 +412,7 @@ class ReachAO(Task):
         num_spheres = int(self.scenario.split(sep="_")[1])
 
         def sample_wang_goal():
-            return self.sample_sphere(0.4,0.75, upper_half=True)
+            return self.sample_sphere(0.4,0.8, upper_half=True)
 
         self.robot_pose_randomizer = self.set_robot_random_joint_position_ik
 
@@ -561,7 +559,7 @@ class ReachAO(Task):
         closest_distances = np.zeros(9)
         if self.obstacles:
             # q = self.robot.get_joint_angles(self.robot.joint_indices[:7])
-            obs_per_link, vectors = self.collision_detector.compute_distances_per_link(max_distance=99.0)
+            obs_per_link = self.collision_detector.compute_distances_per_link(max_distance=99.0)
 
             # for debugging;
             # for vector in vectors.values():
@@ -812,7 +810,7 @@ class ReachAO(Task):
         action_magnitude = self.get_reward_small_actions()
 
         if self.reward_type == "sparse":
-            reward = -np.array((d > self.distance_threshold) + (min(obs_d) <= 0) * 100, dtype=np.float32)
+            reward = -np.array((d > self.distance_threshold) + (min(obs_d) <= 0) * 200, dtype=np.float32)
         else:
             # calculate dense rewards
 

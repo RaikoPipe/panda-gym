@@ -24,24 +24,24 @@ config = {
     "algorithm": "TQC",
     "reward_type": "sparse",  # sparse; dense
     "goal_distance_threshold": 0.05,
-    "max_timesteps": 300_000,
+    "max_timesteps": 600_000,
     "seed": 1,
     "render": True,  # renders the pybullet env
     "n_substeps": 20, # number of simulation steps before handing control back to agent
-    "obs_type": ("ee","js"), # Robot state to observe
+    "obs_type": ["ee", "js"], # Robot state to observe
     "control_type": "js",  # Agent Output; js: joint velocities, ee: end effector displacements; jsd: joint velocities (applied directly)
     "limiter": "sim",
     "action_limiter": "clip",
     "show_goal_space": True,
-    "replay_buffer": HerReplayBuffer,  # HerReplayBuffer
+    "replay_buffer_class": HerReplayBuffer,  # HerReplayBuffer
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": True,
     "n_envs": 1,
-    "max_ep_steps": [100],
-    "eval_freq": 5_000,
+    "max_ep_steps": [50],
+    "eval_freq": 20_000,
     "stages": ["wang_4"],
     "reward_thresholds": [-1],  # [-7, -10, -12, -17, -20]
-    "joint_obstacle_observation": "all3",  # "all": closest distance to any obstacle of all joints is observed;
+    "joint_obstacle_observation": "all2",  # "all": closest distance to any obstacle of all joints is observed;
     "learning_starts": 10_000,
     "prior_steps": 0,
     "randomize_robot_pose": False,
@@ -84,7 +84,7 @@ hyperparameters_tqc = {
     "replay_buffer_kwargs": dict(
         goal_selection_strategy='future', n_sampled_goal=4),
     "gamma": 0.95,
-    "policy_kwargs": dict(net_arch=[64, 64], n_critics=1),
+    "policy_kwargs": dict(net_arch=[400, 300], n_critics=1),
 }
 
 if config["algorithm"] in ("TD3", "DDPG"):
@@ -94,16 +94,24 @@ elif config["algorithm"] == "SAC":
 elif config["algorithm"] == "TQC":
     config["hyperparams"] = hyperparameters_sac
 
-if __name__ == "__main__":
+def main():
     from run.learning_methods.learning import learn, get_env
     import wandb
-    key = os.getenv("wandb_key")
+
     wandb.login(key=os.getenv("wandb_key"))
 
     # env = get_env(config, config["n_envs"], config["stages"][0])
-    # model = TQC.load(r"run_data/wandb/cerulean_sky/files/best_model.zip", env=env, replay_buffer_class=config["replay_buffer"])
+    # model = TQC.load(r"run_data/wandb/cerulean-sky/files/best_model.zip", env=env, replay_buffer_class=config["replay_buffer"],
+    #                  custom_objects={"action_space":gymnasium.spaces.Box(-1.0, 1.0, shape=(7,), dtype=np.float32),}
+    #                  )
+
+    # todo: Customize observation space while loading? will this adjust the policy?
 
     model = learn(config=config, algorithm=config["algorithm"])
+
+
+if __name__ == "__main__":
+    main()
 
 
     # mixer.init()

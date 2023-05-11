@@ -289,7 +289,6 @@ class Panda(PyBulletRobot):
             velocity = np.array(self.get_ee_velocity())
             observation.extend([position, velocity])
 
-
         if "js" in self.obs_type:
             # joint angles and joint velocities
             position = np.array([self.get_joint_angle(joint=i) for i in range(7)])

@@ -34,6 +34,7 @@ def get_env(config, n_envs, scenario, force_render=False):
                                    "show_debug_labels": False,
                                    "n_substeps": config["n_substeps"],
                                    "joint_obstacle_observation": config["joint_obstacle_observation"],
+                                   "randomize_robot_pose": config["randomize_robot_pose"],
                                    "truncate_episode_on_collision" : config["truncate_episode_on_collision"]
                                    },
                        vec_env_cls=SubprocVecEnv if n_envs>1 else None
@@ -89,15 +90,16 @@ def get_model(algorithm, config, run):
         model = TD3(config["policy_type"], env=get_env(config, config["n_envs"], config["stages"][0]),
                     verbose=1, seed=config["seed"],
                     tensorboard_log=f"runs/{run.id}", device="cuda",
-                    replay_buffer_class=config["replay_buffer"],
+                    replay_buffer_class=config["replay_buffer_class"],
                     # hyperparameters
                     **config["hyperparams"]
+
                     )
     elif algorithm == "SAC":
         model = SAC(config["policy_type"], env=get_env(config, config["n_envs"], config["stages"][0]),
                     verbose=1, seed=config["seed"],
                     tensorboard_log=f"runs/{run.id}", device="cuda",
-                    replay_buffer_class=config["replay_buffer"],
+                    replay_buffer_class=config["replay_buffer_class"],
                     learning_starts=config["learning_starts"],
 
                     # hyperparameters
@@ -105,11 +107,10 @@ def get_model(algorithm, config, run):
                     **config["hyperparams"]
                     )
     elif algorithm == "TQC":
-        print(config["hyperparams"])
         model = TQC(config["policy_type"], env=get_env(config,config["n_envs"], config["stages"][0]),
-                    verbose=1, seed=config["seed"],
+                    verbose=1,
                     tensorboard_log=f"runs/{run.id}", device="cuda",
-                    replay_buffer_class=config["replay_buffer"],
+                    replay_buffer_class=config["replay_buffer_class"],
                     learning_starts=config["learning_starts"],
 
                     # hyperparameters
@@ -165,6 +166,7 @@ def init_wandb(config, tags):
 
 def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
           starting_stage: Optional[str] = None, algorithm: str = "TD3"):
+    panda_gym.register_envs(config["max_ep_steps"][0])
 
     tags = get_tags(config)
     if initial_model:
