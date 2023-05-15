@@ -9,6 +9,7 @@ import gymnasium
 sys.modules["gym"] = gymnasium
 
 from sb3_contrib import TQC
+from stable_baselines3 import PPO
 import panda_gym
 import os
 
@@ -22,9 +23,9 @@ from stable_baselines3.common.buffers import ReplayBuffer, DictReplayBuffer
 config = {
     "env_name": "PandaReachAO-v3",
     "algorithm": "TQC",
-    "reward_type": "sparse",  # sparse; dense
+    "reward_type": "kumar",  # sparse; dense
     "goal_distance_threshold": 0.05,
-    "max_timesteps": 600_000,
+    "max_timesteps": 1_200_000,
     "seed": 1,
     "render": True,  # renders the pybullet env
     "n_substeps": 20, # number of simulation steps before handing control back to agent
@@ -33,14 +34,14 @@ config = {
     "limiter": "sim",
     "action_limiter": "clip",
     "show_goal_space": True,
-    "replay_buffer_class": HerReplayBuffer,  # HerReplayBuffer
+    "replay_buffer_class": DictReplayBuffer,  # HerReplayBuffer
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": True,
     "n_envs": 1,
     "max_ep_steps": [50],
-    "eval_freq": 20_000,
-    "stages": ["wang_4"],
-    "reward_thresholds": [-1],  # [-7, -10, -12, -17, -20]
+    "eval_freq": 10_000,
+    "stages": ["wang_3"],
+    "success_thresholds": [0.99],  # [-7, -10, -12, -17, -20]
     "joint_obstacle_observation": "all2",  # "all": closest distance to any obstacle of all joints is observed;
     "learning_starts": 10_000,
     "prior_steps": 0,
@@ -74,7 +75,7 @@ hyperparameters_sac = {
     "ent_coef": "auto",
     "use_sde": True,
 
-    "policy_kwargs": dict(log_std_init=-3, net_arch=[400, 300])
+    "policy_kwargs": dict(log_std_init=-3, net_arch=[256, 256])
 }
 
 hyperparameters_tqc = {
@@ -100,14 +101,14 @@ def main():
 
     wandb.login(key=os.getenv("wandb_key"))
 
-    # env = get_env(config, config["n_envs"], config["stages"][0])
-    # model = TQC.load(r"run_data/wandb/cerulean-sky/files/best_model.zip", env=env, replay_buffer_class=config["replay_buffer"],
-    #                  custom_objects={"action_space":gymnasium.spaces.Box(-1.0, 1.0, shape=(7,), dtype=np.float32),}
-    #                  )
+    env = get_env(config, config["n_envs"], config["stages"][0])
+    model = TQC.load(r"run_data/wandb/visionary-water/files/best_model.zip", env=env, replay_buffer_class=config["replay_buffer"],
+                     custom_objects={"action_space":gymnasium.spaces.Box(-1.0, 1.0, shape=(7,), dtype=np.float32),}
+                     )
 
     # todo: Customize observation space while loading? will this adjust the policy?
 
-    model = learn(config=config, algorithm=config["algorithm"])
+    model = learn(config=config, algorithm=config["algorithm"], initial_model=model)
 
 
 if __name__ == "__main__":

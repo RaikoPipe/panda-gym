@@ -25,6 +25,10 @@ def main():
 
     config["replay_buffer_class"] = HerReplayBuffer
     config["reward_thresholds"] = [-1]
+    config["limiter"] = "sim"
+    config["success_thresholds"] = [0.99]
+    config["render"] = True
+    config["eval_freq"] = 20_000
 
 
     # env = get_env(config, config["n_envs"], config["stages"][0])

@@ -353,7 +353,7 @@ panda_gym.register_envs(200)
 
 # env = get_env(config, "cube_3_random")
 if __name__ == "__main__":
-    human = False
+    human = True
 
     env = gymnasium.make(config["env_name"], render=human, control_type=config["control_type"],
                    obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
@@ -364,12 +364,12 @@ if __name__ == "__main__":
                    show_debug_labels=True, n_substeps=config["n_substeps"])
 
     # Load Model ensemble
-    model = TQC.load(r"../run/run_data/wandb/ruby-eon-67/files/best_model.zip", env=env,
+    model = TQC.load(r"../run/run_data/wandb/soft-eon-270/files/best_model.zip", env=env,
                      custom_objects={"action_space":gymnasium.spaces.Box(-1.0, 1.0, shape=(7,), dtype=np.float32)}) # for some reason it won't read action space sometimes
     model.env.close()
 
     evaluation_results = {}
-    for evaluation_scenario in ["wang_4", "library2", "workshop"]: # "wang_4", "library2", "narrow_tunnel", "workshop"
+    for evaluation_scenario in ["wang_3", "library2", "workshop"]: # "wang_4", "library2", "narrow_tunnel", "workshop"
         env = gymnasium.make(config["env_name"], render=human, control_type=config["control_type"],
                              obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                              reward_type=config["reward_type"], limiter=config["limiter"],
