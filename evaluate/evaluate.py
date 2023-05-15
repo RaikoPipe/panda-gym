@@ -360,7 +360,7 @@ if __name__ == "__main__":
                    show_debug_labels=True, n_substeps=config["n_substeps"])
 
     # Load Model ensemble
-    model = TQC.load(r"../run/run_data/wandb/cerulean_sky/files/best_model.zip", env=env)
+    model = TQC.load(r"../run/run_data/wandb/dainty-snowball/files/best_model.zip", env=env)
     model.env.close()
 
     evaluation_results = {}

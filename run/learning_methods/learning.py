@@ -7,10 +7,10 @@ from typing import Optional, Union
 import numpy as np
 from stable_baselines3 import SAC, TD3, PPO, DDPG, DQN
 from sb3_contrib import TQC
-from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnRewardThreshold
+from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnSuccessThreshold,EvalSuccessCallback
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.noise import NormalActionNoise, VectorizedActionNoise
-from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm, HerReplayBuffer
+from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm, HerReplayBuffer, VecHerReplayBuffer
 from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
 from run.learning_methods.imitation_learning import fill_replay_buffer_with_init_model, fill_replay_buffer_with_prior
 
@@ -106,7 +106,6 @@ def get_model(algorithm, config, run):
                     **config["hyperparams"]
                     )
     elif algorithm == "TQC":
-        print(config["hyperparams"])
         model = TQC(config["policy_type"], env=get_env(config,config["n_envs"], config["stages"][0]),
                     verbose=1, seed=config["seed"],
                     tensorboard_log=f"runs/{run.id}", device="cuda",
@@ -179,20 +178,20 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
     else:
         model = initial_model
         stages: list = config["stages"]
-        reward_thresholds = config["reward_thresholds"]
+        success_thresholds = config["success_thresholds"]
         if starting_stage:
             assert starting_stage in stages
 
             idx = stages.index(starting_stage)
             config["stages"] = stages[idx:]
-            config["reward_thresholds"] = reward_thresholds[idx:]
+            config["reward_thresholds"] = success_thresholds[idx:]
 
     # model = TD3.load(r"run_data/wandb/run_panda_reach_evade_obstacle_stage_2_best_run/files/model.zip", env=env,
     #                  device="cuda", train_freq=n_envs, gradient_steps=2, replay_buffer=replay_buffer)
 
-    assert len(config["stages"]) == len(config["reward_thresholds"]) ==len(config["max_ep_steps"])
+    assert len(config["stages"]) == len(config["success_thresholds"]) ==len(config["max_ep_steps"])
 
-    # model.env.close()
+
     # learn for each stage until reward threshold is reached
     if config["learning_starts"]:
         if initial_model:
@@ -207,9 +206,12 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
         env = get_env(config, 1, config["stages"][0])
         model.replay_buffer = fill_replay_buffer_with_prior(env, model, config["prior_steps"])
 
-    for stage, reward_threshold, max_ep_steps in zip(config["stages"], config["reward_thresholds"], config["max_ep_steps"]):
+    for stage, success_threshold, max_ep_steps in zip(config["stages"], config["success_thresholds"], config["max_ep_steps"]):
         panda_gym.register_envs(max_ep_steps)
+        #model.env.close()
         model.set_env(get_env(config, config["n_envs"], stage))
+        if model.replay_buffer_class in (HerReplayBuffer, VecHerReplayBuffer):
+            model.replay_buffer.env = model.env
 
         if config["render"]:
             # eval_env = gymnasium.make(config["env_name"], render=True if not config["render"] else False, control_type=config["control_type"],
@@ -221,9 +223,9 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
         else:
             eval_env = get_env(config, config["n_envs"], scenario=stage)
 
-        stop_train_callback = StopTrainingOnRewardThreshold(reward_threshold=reward_threshold, verbose=1)
+        stop_train_callback = StopTrainingOnSuccessThreshold(success_threshold=success_threshold, verbose=1)
 
-        eval_callback = EvalCallback(eval_env, eval_freq=max(config["eval_freq"] // config["n_envs"], 1),
+        eval_callback = EvalSuccessCallback(eval_env, eval_freq=max(config["eval_freq"] // config["n_envs"], 1),
                                      callback_after_eval=stop_train_callback, verbose=1, n_eval_episodes=100,
                                      best_model_save_path=wandb.run.dir)
 

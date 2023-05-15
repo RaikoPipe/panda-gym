@@ -11,9 +11,9 @@ env = gym.make(config["env_name"], render=True, show_goal_space=True, obs_type="
 env.reset()
 while True:
     observation, reward, terminated, truncated, info = env.step(np.array([0,0,0,0,0,0,0]))
-    time.sleep(1)
-    env.reset()
-    # print(np.array([env.robot.get_joint_angle(joint=i) for i in range(7)]))
+    # time.sleep(1)
+    # env.reset()
+    print(np.array([env.robot.get_joint_angle(joint=i) for i in range(7)]))
 
 
 

@@ -1,7 +1,7 @@
 <robot name="table2">
   <link name="table2_base_link">
     <visual>
-      <origin rpy="0 0 3.14159" xyz="0.2 -0.52 -0.08"/>
+      <origin rpy="0 0 3.14159" xyz="0.2 -0.52 0.0"/>
       <geometry>
         <mesh filename="../meshes/table2.obj"  scale="0.0004 0.0004 0.0004"/>
       </geometry>
@@ -10,7 +10,7 @@
       </material>
     </visual>
     <collision>
-      <origin rpy="0 0 3.14159" xyz="0.2 -0.52 -0.08"/>
+      <origin rpy="0 0 3.14159" xyz="0.2 -0.52 0.0"/>
       <geometry>
         <mesh filename="../meshes/table2.obj" scale="0.0004 0.0004 0.0004"/>
       </geometry>
