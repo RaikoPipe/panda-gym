@@ -7,10 +7,10 @@ from typing import Optional, Union
 import numpy as np
 from stable_baselines3 import SAC, TD3, PPO, DDPG, DQN
 from sb3_contrib import TQC
-from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnSuccessThreshold,EvalSuccessCallback
+from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnRewardThreshold, EvalSuccessCallback, StopTrainingOnSuccessThreshold
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.noise import NormalActionNoise, VectorizedActionNoise
-from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm, HerReplayBuffer, VecHerReplayBuffer
+from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm, HerReplayBuffer
 from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
 from run.learning_methods.imitation_learning import fill_replay_buffer_with_init_model, fill_replay_buffer_with_prior
 
@@ -90,15 +90,16 @@ def get_model(algorithm, config, run):
         model = TD3(config["policy_type"], env=get_env(config, config["n_envs"], config["stages"][0]),
                     verbose=1, seed=config["seed"],
                     tensorboard_log=f"runs/{run.id}", device="cuda",
-                    replay_buffer_class=config["replay_buffer"],
+                    replay_buffer_class=config["replay_buffer_class"],
                     # hyperparameters
                     **config["hyperparams"]
+
                     )
     elif algorithm == "SAC":
         model = SAC(config["policy_type"], env=get_env(config, config["n_envs"], config["stages"][0]),
                     verbose=1, seed=config["seed"],
                     tensorboard_log=f"runs/{run.id}", device="cuda",
-                    replay_buffer_class=config["replay_buffer"],
+                    replay_buffer_class=config["replay_buffer_class"],
                     learning_starts=config["learning_starts"],
 
                     # hyperparameters
@@ -107,9 +108,9 @@ def get_model(algorithm, config, run):
                     )
     elif algorithm == "TQC":
         model = TQC(config["policy_type"], env=get_env(config,config["n_envs"], config["stages"][0]),
-                    verbose=1, seed=config["seed"],
+                    verbose=1,
                     tensorboard_log=f"runs/{run.id}", device="cuda",
-                    replay_buffer_class=config["replay_buffer"],
+                    replay_buffer_class=config["replay_buffer_class"],
                     learning_starts=config["learning_starts"],
 
                     # hyperparameters
@@ -165,6 +166,7 @@ def init_wandb(config, tags):
 
 def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
           starting_stage: Optional[str] = None, algorithm: str = "TD3"):
+    panda_gym.register_envs(config["max_ep_steps"][0])
 
     tags = get_tags(config)
     if initial_model:
@@ -184,14 +186,14 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
 
             idx = stages.index(starting_stage)
             config["stages"] = stages[idx:]
-            config["reward_thresholds"] = success_thresholds[idx:]
+            config["success_thresholds"] = success_thresholds[idx:]
 
     # model = TD3.load(r"run_data/wandb/run_panda_reach_evade_obstacle_stage_2_best_run/files/model.zip", env=env,
     #                  device="cuda", train_freq=n_envs, gradient_steps=2, replay_buffer=replay_buffer)
 
     assert len(config["stages"]) == len(config["success_thresholds"]) ==len(config["max_ep_steps"])
 
-
+    # model.env.close()
     # learn for each stage until reward threshold is reached
     if config["learning_starts"]:
         if initial_model:
@@ -208,10 +210,7 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
 
     for stage, success_threshold, max_ep_steps in zip(config["stages"], config["success_thresholds"], config["max_ep_steps"]):
         panda_gym.register_envs(max_ep_steps)
-        #model.env.close()
         model.set_env(get_env(config, config["n_envs"], stage))
-        if model.replay_buffer_class in (HerReplayBuffer, VecHerReplayBuffer):
-            model.replay_buffer.env = model.env
 
         if config["render"]:
             # eval_env = gymnasium.make(config["env_name"], render=True if not config["render"] else False, control_type=config["control_type"],
@@ -225,7 +224,7 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
 
         stop_train_callback = StopTrainingOnSuccessThreshold(success_threshold=success_threshold, verbose=1)
 
-        eval_callback = EvalSuccessCallback(eval_env, eval_freq=max(config["eval_freq"] // config["n_envs"], 1),
+        eval_callback = EvalSuccessCallback(eval_env = eval_env, eval_freq=max(config["eval_freq"] // config["n_envs"], 1),
                                      callback_after_eval=stop_train_callback, verbose=1, n_eval_episodes=100,
                                      best_model_save_path=wandb.run.dir)
 

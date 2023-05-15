@@ -1,4 +1,6 @@
 import sys
+import time
+
 from matplotlib import pyplot as plt
 import gymnasium
 
@@ -126,6 +128,8 @@ def evaluate_ensemble(models, human=True, num_steps=10_000, goals_to_achieve=Non
             elif info["is_truncated"]:
                 print("Collision...")
                 done_events.append(-1)
+                if human:
+                    sleep(1)  # for human eval
             else:
                 print("Timeout...")
                 done_events.append(0)
@@ -249,8 +253,6 @@ def evaluate(model, human=True, num_steps=10_000, goals_to_achieve=None, determi
             obs, reward, done, truncated, info, = env.step(action)
             action_diff = env.task.action_diff
             manipulability = env.task.manipulability
-            if human:
-                sleep(0.025)  # for human eval
             # Stats
             episode_rewards[-1] += reward
             action_diffs.append(action_diff)
@@ -268,6 +270,8 @@ def evaluate(model, human=True, num_steps=10_000, goals_to_achieve=None, determi
                     done_events.append(1)
                 elif info["is_truncated"]:
                     print("Collision...")
+                    if human:
+                        time.sleep((1))
                     done_events.append(-1)
                 else:
                     print("Timeout...")
@@ -360,11 +364,12 @@ if __name__ == "__main__":
                    show_debug_labels=True, n_substeps=config["n_substeps"])
 
     # Load Model ensemble
-    model = TQC.load(r"../run/run_data/wandb/dainty-snowball/files/best_model.zip", env=env)
+    model = TQC.load(r"../run/run_data/wandb/soft-eon-270/files/best_model.zip", env=env,
+                     custom_objects={"action_space":gymnasium.spaces.Box(-1.0, 1.0, shape=(7,), dtype=np.float32)}) # for some reason it won't read action space sometimes
     model.env.close()
 
     evaluation_results = {}
-    for evaluation_scenario in ["workshop", "library2", "narrow_tunnel", "workshop"]:
+    for evaluation_scenario in ["wang_3", "library2", "workshop"]: # "wang_4", "library2", "narrow_tunnel", "workshop"
         env = gymnasium.make(config["env_name"], render=human, control_type=config["control_type"],
                              obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                              reward_type=config["reward_type"], limiter=config["limiter"],
@@ -379,7 +384,7 @@ if __name__ == "__main__":
         evaluation_results[evaluation_scenario] = {"results": results, "metrics" : metrics}
         env.close()
 
-    for key, value in evaluation_results.values():
+    for key, value in evaluation_results.items():
         results = value["results"]
         print(f"{key}: {results}")
 

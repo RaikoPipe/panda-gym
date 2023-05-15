@@ -1,0 +1,160 @@
+program: wandb_train.py
+method: bayes
+metric:
+  name: global_step
+  goal: minimize
+parameters:
+  tau:
+    distribution: uniform
+    min: 0.01
+    max: 0.04
+  gamma:
+    distribution: uniform
+    min: 0.49
+    max: 1.96
+  use_sde:
+    distribution: categorical
+    values:
+      - True
+      - False
+  ent_coef:
+    distribution: categorical
+    values:
+      - auto
+  env_name:
+    distribution: categorical
+    values:
+      - PandaReachAO-v3
+  algorithm:
+    distribution: categorical
+    values:
+      - TQC
+  batch_size:
+    distribution: int_uniform
+    min: 64
+    max: 512
+  n_substeps:
+    distribution: int_uniform
+    min: 10
+    max: 100
+  train_freq:
+    distribution: int_uniform
+    min: 4
+    max: 128
+  buffer_size:
+    distribution: int_uniform
+    min: 150000
+    max: 600000
+  policy_type:
+    distribution: categorical
+    values:
+      - MultiInputPolicy
+  reward_type:
+    distribution: categorical
+    values:
+      - sparse
+  action_noise:
+    distribution: categorical
+    values:
+      - None
+  control_type:
+    distribution: categorical
+    values:
+      - js
+  policy_class:
+    distribution: categorical
+    values:
+      - <class 'sb3_contrib.tqc.policies.MultiInputPolicy'>
+  learning_rate:
+    distribution: uniform
+    min: 0.00035
+    max: 0.0015
+  max_timesteps:
+    distribution: categorical
+    values:
+      - 300000
+  max_ep_steps:
+    distribution: categorical
+    values:
+      - [50]
+      - [100]
+      - [200]
+  policy_kwargs.log_std_init:
+    distribution: int_uniform
+    min: -6
+    max: -1
+  action_limiter:
+    distribution: categorical
+    values:
+      - clip
+  gradient_steps:
+    distribution: int_uniform
+    min: 4
+    max: 128
+  target_entropy:
+    distribution: categorical
+    values:
+      - "auto"
+  learning_starts:
+    distribution: categorical
+    values:
+      - 10000
+  show_goal_space:
+    distribution: categorical
+    values:
+      - False
+  n_envs:
+    distribution: categorical
+    values:
+      - 1
+  goal_distance_threshold:
+    distribution: categorical
+    values:
+      - 0.05
+  show_debug_labels:
+    distribution: categorical
+    values:
+      - False
+  joint_obstacle_observation:
+    distribution: categorical
+    values:
+      - all
+      - all2
+  top_quantiles_to_drop_per_net:
+    distribution: int_uniform
+    min: 1
+    max: 4
+  stages:
+    distribution: categorical
+    values:
+      - ["wang_4"]
+  prior_steps:
+    distribution: categorical
+    values:
+      - 0
+  obs_type:
+    distribution: categorical
+    values:
+      - [ "ee","js" ]
+  randomize_robot_pose:
+    distribution: categorical
+    values:
+      - False
+      - True
+  truncate_episode_on_collision:
+    distribution: categorical
+    values:
+      - True
+  policy_kwargs:
+    distribution: categorical
+    values:
+      - {net_arch: [400, 300]}
+      - {net_arch: [256, 256]}
+      - {net_arch: [256, 128]}
+      - {net_arch: [512, 256]}
+
+command:
+  - ${env}
+  - venv/Scripts/python
+  - ${program}
+  - ${args}

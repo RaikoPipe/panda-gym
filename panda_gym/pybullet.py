@@ -292,6 +292,19 @@ class PyBullet:
         """
         return self.physics_client.getJointState(self._bodies_idx[body], joint)[0]
 
+    def get_joint_angles(self, body: str, joints: np.ndarray) -> np.ndarray:
+        """Get the angle of the joint of the body.
+
+        Args:
+            body (str): Body unique name.
+            joint (int): Joint index in the body
+
+        Returns:
+            float: The angle.
+        """
+
+        return np.array([i[0] for i in self.physics_client.getJointStates(self._bodies_idx[body], joints)])
+
     def get_joint_velocity(self, body: str, joint: int) -> float:
         """Get the velocity of the joint of the body.
 
@@ -303,6 +316,18 @@ class PyBullet:
             float: The velocity.
         """
         return self.physics_client.getJointState(self._bodies_idx[body], joint)[1]
+
+    def get_joint_velocities(self, body: str, joints: np.ndarray) -> np.ndarray:
+        """Get the velocity of the joint of the body.
+
+        Args:
+            body (str): Body unique name.
+            joints (np.ndarray): Joint index in the body
+
+        Returns:
+            float: The velocity.
+        """
+        return np.array([i[1] for i in self.physics_client.getJointStates(self._bodies_idx[body], joints)])
 
     def set_base_pose(self, body: str, position: np.ndarray, orientation: np.ndarray,
                       physics_client=None) -> None:

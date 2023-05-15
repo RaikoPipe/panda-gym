@@ -289,11 +289,12 @@ class Panda(PyBulletRobot):
             velocity = np.array(self.get_ee_velocity())
             observation.extend([position, velocity])
 
-
         if "js" in self.obs_type:
             # joint angles and joint velocities
-            position = np.array([self.get_joint_angle(joint=i) for i in range(7)])
-            velocity = np.array([self.get_joint_velocity(joint=i) for i in range(7)])
+            # position = np.array([self.get_joint_angle(joint=i) for i in range(7)])
+            # velocity = np.array([self.get_joint_velocity(joint=i) for i in range(7)])
+            position = np.array([self.get_joint_angles(joints=np.array([i for i in range(7)]))]).flatten()
+            velocity = np.array([self.get_joint_velocities(joints=np.array([i for i in range(7)]))]).flatten()
             observation.extend([position, velocity])
 
         # fingers opening
