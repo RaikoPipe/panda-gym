@@ -1,0 +1,20 @@
+{
+            "wall1": {
+                "bodyName": "wall1",
+                "fileName": "wall1.urdf",
+                "basePosition": [1.1, 0.2, 0.0], 
+                "useFixedBase": true
+            },
+            "wall2": {
+                "bodyName": "wall2",
+                "fileName": "wall2.urdf",
+                "basePosition": [1.1, 0.2, 0.0], 
+                "useFixedBase": true
+            },
+            "wall3": {
+                "bodyName": "wall3",
+                "fileName": "wall3.urdf",
+                "basePosition": [1.1, 0.2, 0.0],
+                "useFixedBase": true
+            }
+        }

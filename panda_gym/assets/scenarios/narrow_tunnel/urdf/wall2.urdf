@@ -1,0 +1,19 @@
+<robot name="narrow_tunnel">
+  <link name="narrow_tunnel_base_link">
+    <visual>
+      <origin rpy="0 0 3.14159" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="../meshes/wall2.obj"  scale="0.0008 0.0008 0.0008"/>
+      </geometry>
+      <material name="tray_material">
+        <color rgba="0.7 0.7 0.7 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 3.14159" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="../meshes/wall2.obj" scale="0.0008 0.0008 0.0008"/>
+      </geometry>
+    </collision>
+  </link>
+</robot>

@@ -38,7 +38,7 @@
             "table": {
                 "bodyName": "table",
                 "fileName": "table.urdf",
-                "basePosition": [-0.7, -0.45, 0.1],
+                "basePosition": [-0.5, -0.45, 0.15],
                 "useFixedBase": true
             }
         }

@@ -68,7 +68,7 @@ class ReachAO(Task):
         # dense reward configuration
         self.factor_punish_distance = factor_punish_distance
         self.factor_punish_collision = factor_punish_collision
-        self.factor_punish_action_magnitude = factor_punish_action_magnitude
+        self.factor_punish_effort = factor_punish_action_magnitude
         self.factor_punish_action_difference_magnitude = factor_punish_action_difference_magnitude
         self.factor_punish_obstacle_proximity = factor_punish_obstacle_proximity
 
@@ -97,8 +97,8 @@ class ReachAO(Task):
         self.goal_range_high = np.array([self.goal_range / 2.5 +self.x_offset, self.goal_range / 1.5, self.goal_range])
 
 
-
-        if not truncate_episode_on_collision:
+        self.truncate_episode_on_collision = truncate_episode_on_collision
+        if not self.truncate_episode_on_collision:
             def no_truncation():
                 pass
             self.is_truncated = no_truncation
@@ -174,8 +174,8 @@ class ReachAO(Task):
             self.debug_obs_label_base_text = "Closest Obstacle Distance:"
             self.debug_action_difference_label_name = "action_diff"
             self.debug_action_difference_base_text = "Action Difference:"
-            self.debug_action_magnitude_label_name = "action_magnitude"
-            self.debug_action_magnitude_base_text = "Action Magnitude:"
+            self.debug_effort_label_name = "effort"
+            self.debug_effort_base_text = "Effort:"
 
             self.debug_reward_label_name = "reward"
             self.debug_reward_base_text = "Reward:"
@@ -252,35 +252,38 @@ class ReachAO(Task):
 
     def create_scenario_narrow_tunnel(self):
 
-        self.robot.neutral_joint_values = np.array(
-            [-2.34477029,  1.69617261,  1.81619755, - 1.98816377, - 1.58805049,  1.2963265,
-             0.41092735]
-            )
+        # self.robot.neutral_joint_values = np.array(
+        #     [-2.34477029,  1.69617261,  1.81619755, - 1.98816377, - 1.58805049,  1.2963265,
+        #      0.41092735]
+        #     )
+
+        self.robot.neutral_joint_values = np.array([-1.0, -0.3, 0, -2.2, 0, 2.0, np.pi / 4, 0.00, 0.00])
+
         self.robot.set_joint_neutral()
         self.goal_range_low = np.array([0.2, 0.2, 0])
-        self.goal_range_high = np.array([0.7, 0.3, 0.6])
-        self.goal = self.fixed_target
-        urdfs = {
-            "tunnel": {
-                "bodyName": "narrow_tunnel",
-                "fileName": f"{NARROW_TUNNEL_DIR}\\narrow_tunnel.urdf",
-                "basePosition": [0.8, -0.15, 0.0],
-                "useFixedBase": True
-            }
-        }
+        self.goal_range_high = np.array([0.5, 0.4, 0.6])
+
+        with open(f"{NARROW_TUNNEL_DIR}\\narrow_tunnel.json") as t:
+            urdfs = json.load(t)
+
+        # append path
+        for urdf in urdfs.values():
+            fileName = urdf["fileName"]
+            urdf["fileName"] = f"{NARROW_TUNNEL_DIR}\\urdf\\{fileName}"
 
         indexes = self.sim.load_scenario(urdfs)
-
-        for idx, body in zip(indexes, [urdfs["tunnel"]]):
-            name = body["bodyName"]
-            self.obstacles[f"{name}_{len(self.obstacles)}"] = idx
+        for idx, urdf in zip(indexes, urdfs.values()):
+            body_name = urdf["bodyName"]
+            name = f"narrow_tunnel_obj_{body_name}"
+            self.obstacles[f"{name}"] = idx
 
     def create_scenario_workshop(self):
 
-        self.robot.neutral_joint_values = np.array([np.pi/2, -0.3, 0, -2.2, 0, 2.0, np.pi / 4, 0.00, 0.00])
+        self.robot.neutral_joint_values = np.array([-2.13931332e+00,  4.29384413e-02,  5.40467273e-01, -9.74630432e-01,
+  9.40181158e-02,  1.27046119e+00, -7.44667607e-04])
         self.robot.set_joint_neutral()
-        self.goal_range_low = np.array([0.4, -0.15, 0.4])
-        self.goal_range_high = np.array([0.7, 0.12, 0.55])
+        self.goal_range_low = np.array([0.4, -0.15, 0.45])
+        self.goal_range_high = np.array([0.7, 0.12, 0.6])
         self.goal = self.fixed_target
 
         with open(f"{WORKSHOP_DIR}\\workshop.json") as t:
@@ -320,11 +323,19 @@ class ReachAO(Task):
 
         # Create custom goal space
         if self.scenario == "library1":
-            self.goal_range_low = np.array([0.2, -0.3, 0])
-            self.goal_range_high = np.array([0.7, 0.3, 0.6])
+            self.robot.neutral_joint_values = [-2.96090532, -0.0434537,  -0.20340835, -1.62954942,  0.02795931,  3.08670391,
+  0.77425641]
+            self.goal_range_low = np.array([0.5, -0.3, 0])
+            self.goal_range_high = np.array([0.85, 0.3, 0.3])
+        elif self.scenario == "library1.5":
+            self.robot.neutral_joint_values = [-2.96090532, -0.0434537, -0.20340835, -1.62954942, 0.02795931,
+                                               3.08670391,
+                                               0.77425641]
+            self.goal_range_low = np.array([0.5, -0.3, 0])
+            self.goal_range_high = np.array([0.85, 0.3, 0.3])
         elif self.scenario == "library2":
             self.goal_range_low = np.array([-0.7, -0.4, 0.4])
-            self.goal_range_high = np.array([-0.4, 0.4, 0.8])
+            self.goal_range_high = np.array([-0.55, 0.4, 0.85])
         else:
             self.goal_range_low = np.array([0.2, -0.3, 0])
             self.goal_range_high = np.array([0.7, 0.3, 0.6])
@@ -410,6 +421,7 @@ class ReachAO(Task):
     def set_robot_random_joint_position_ik(self):
         ee_target = self.sample_random_joint_position_within_workspace()#self.sample_sphere(0.3, 0.6, upper_half=True)
         joint_positions = self.robot.inverse_kinematics(link=11, position=ee_target)[:7]
+
         self.robot.set_joint_angles(joint_positions)
 
     def set_robot_random_joint_position_ik_sphere(self, radius_minor, radius_major):
@@ -477,7 +489,7 @@ class ReachAO(Task):
 
             if np.random.rand() > 0.2:
                 # move to goal
-                sample = self.sample_sphere(0.15, 0.4)
+                sample = self.sample_sphere(0.1, 0.4)
                 return sample + self.goal
             else:
                 return self.sample_sphere(0.4,0.8, upper_half=True, )
@@ -500,7 +512,7 @@ class ReachAO(Task):
         self.random_num_obs = False
 
         for i in range(num_spheres):
-            self.create_obstacle_sphere(radius=0.04)
+            self.create_obstacle_sphere(radius=0.05)
 
     def sample_from_robot_workspace(self):
         return self.sample_random_joint_position_within_workspace()
@@ -626,7 +638,7 @@ class ReachAO(Task):
         closest_distances = np.zeros(9)
         if self.obstacles:
             # q = self.robot.get_joint_angles(self.robot.joint_indices[:7])
-            obs_per_link = self.collision_detector.compute_distances_per_link(max_distance=99.0)
+            obs_per_link, info = self.collision_detector.compute_distances_per_link(max_distance=99.0)
 
             # for debugging;
             # for vector in vectors.values():
@@ -649,6 +661,12 @@ class ReachAO(Task):
                 closest_distances = np.array([i if i < 0.4 else 1.0 for i in self.distances_links_to_closest_obstacle ])
             elif self.joint_obstacle_observation == "closest":
                 closest_distances = np.array(min(obs_per_link.values()))
+            elif self.joint_obstacle_observation == "vectors":
+                closest_points = list(info["closest_points"].values())
+                obs_distances = list(obs_per_link.values())
+                closest_per_obstacle = [sorted(zip(i,y)) for i,y in zip(obs_distances, closest_points)]
+                closest_pairs = np.array([x[0][1] for x in closest_per_obstacle])
+                closest_distances = np.array([i[0] - i[1] for i in closest_pairs]).flatten()
 
             self.is_collided = min(self.distances_links_to_closest_obstacle) <= 0.0
 
@@ -853,8 +871,8 @@ class ReachAO(Task):
                                            f"{self.debug_obs_label_base_text} {np.round(np.min(obstacle_distances), 5)}")
                 self.sim.create_debug_text(self.debug_action_difference_label_name,
                                            f"{self.debug_action_difference_base_text} {np.round(action_difference, 5)}")
-                self.sim.create_debug_text(self.debug_action_magnitude_label_name,
-                                           f"{self.debug_action_magnitude_base_text} {np.round(action_magnitude, 5)}")
+                self.sim.create_debug_text(self.debug_effort_label_name,
+                                           f"{self.debug_effort_base_text} {np.round(action_magnitude, 5)}")
                 self.sim.create_debug_text(self.debug_reward_label_name,
                                            f"{self.debug_reward_base_text} {np.round(reward, 5)}")
                 pass
@@ -876,7 +894,7 @@ class ReachAO(Task):
             # There has not been any recorded action yet
             return 0.0
 
-        return np.linalg.norm(self.robot.recent_action)
+        return np.linalg.norm(self.robot.current_acceleration)
 
     def compute_reward(self, achieved_goal, desired_goal, info: Dict[str, Any]) -> np.ndarray:
         euclidean_distance = distance(achieved_goal, desired_goal)
@@ -885,8 +903,10 @@ class ReachAO(Task):
         action_diff = self.get_norm_action_difference()
         effort = self.get_norm_effort()
 
+        collision_reward = 100
+
         if self.reward_type == "sparse":
-            reward = -np.array((euclidean_distance > self.distance_threshold) + (min(obs_distance) <= 0) * 100, dtype=np.float32)
+            reward = -np.array((euclidean_distance > self.distance_threshold), dtype=np.float32)
         elif self.reward_type == "wang":
             weight_distance = 10e-3
             weight_obs = 0.1
@@ -907,7 +927,7 @@ class ReachAO(Task):
 
         else:
             # calculate dense rewards
-            reward = -np.array(effort * self.factor_punish_action_magnitude, dtype=np.float32)
+            reward = -np.array(effort * self.factor_punish_effort, dtype=np.float32)
 
 
             collision = min(obs_distance) <= 0.0
@@ -921,6 +941,9 @@ class ReachAO(Task):
 
         if self.sim.render_env and self.show_debug_labels:
             self.update_labels(manipulability, euclidean_distance, obs_distance, action_diff, effort, reward)
+
+        if self.truncate_episode_on_collision:
+            reward -= (min(obs_distance) <= 0) * collision_reward
 
         self.action_diff = action_diff
         self.action_magnitude = effort

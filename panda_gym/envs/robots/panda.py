@@ -83,6 +83,10 @@ class Panda(PyBulletRobot):
         self.previous_action = None
         self.recent_action = None
 
+        self.current_joint_velocity = np.zeros(7)
+        self.previous_joint_velocity = np.zeros(7)
+        self.current_acceleration = None # pybullet doesn't allow for getting acceleration
+
         self.rtb = use_robotics_toolbox
         self.panda_rtb = rtb.models.Panda()
 
@@ -152,6 +156,11 @@ class Panda(PyBulletRobot):
         else:
             target_angles = np.concatenate((target_arm_angles, [target_fingers_width / 2, target_fingers_width / 2]))
             self.control_joints(action=target_angles, control_mode= self.sim.physics_client.POSITION_CONTROL)
+
+        # save current state
+        self.previous_joint_velocity = self.current_joint_velocity
+        self.current_joint_velocity = np.array([self.get_joint_velocity(joint=i) for i in range(7)])
+        self.current_acceleration = self.previous_joint_velocity - self.current_joint_velocity
 
         # if self.rtb:
         #     self.update_dummy_robot_link_positions()
@@ -335,7 +344,7 @@ class Panda(PyBulletRobot):
         q = [self.get_joint_angle(i) for i in self.joint_indices[:7]]
         return self.panda_rtb.manipulability(q, axes="trans")
 
-    def compute_action_neo(self, target, collision_objects, collision_detector):
+    def compute_action_neo(self, target, collision_objects, collision_detector, target_pose=""):
         self.panda_rtb.q = self.get_joint_angles(self.joint_indices[:7])
         self.panda_rtb.qd = [self.get_joint_velocity(i) for i in self.joint_indices[:7]]
         # self.swift_env.step(render=True)
@@ -344,15 +353,26 @@ class Panda(PyBulletRobot):
         n = self.panda_rtb.n
 
         # Transform the goal into an SE3 pose
-        if self.optimal_pose is not None:
-            Tep = self.panda_rtb.fkine(self.optimal_pose)
+        # if target_pose == "ik":
+        #     Tep = self.panda_rtb.fkine(self.inverse_kinematics(link=11, position=target))
+        #
+        if target_pose == "left":
+            Tep = SE3().RPY(np.array([135, 0,0]), unit="deg")
+        elif target_pose == "right":
+            Tep = SE3().RPY(np.array([-135, 0,0]), unit="deg")
         else:
-            # TODO: Figure out to how to get more natural poses
-            if target[1] < 0:
-                Tep = SE3().Rx(135, unit="deg")
-            else:
-                Tep = SE3().Rx(-135, unit="deg")
-            # Tep = self.panda_rtb.fkine(self.panda_rtb.q)
+            Tep = self.panda_rtb.fkine(self.panda_rtb.q)
+        # else:
+        #     Tep = SE3()
+        #     if target[1] < 0:
+        #         Tep.Rx(135, unit="deg")
+        #     else:
+        #         Tep.Rx(-135, unit="deg")
+
+            # if target[0] > 0.5:
+            #     Tep.Ry(-135, unit="deg")
+
+
         # Tep = SE3.OA([0, 1, 0], [0, 0, -1])
         Tep.A[:3, 3] = target
 

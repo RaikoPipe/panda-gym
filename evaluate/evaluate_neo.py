@@ -30,7 +30,7 @@ def evaluate(env, num_steps=10000):
     done_events = []
     for i in range(num_steps):
         # _states are only useful when using LSTM policies
-        action = env.robot.compute_action_neo(env.task.goal, env.task.obstacles, env.task.collision_detector)# [0.07996564, -0.13340622, 0.02173809])
+        action = env.robot.compute_action_neo(env.task.goal, env.task.obstacles, env.task.collision_detector, "left")# [0.07996564, -0.13340622, 0.02173809])
         # action = env.robot.compute_action_neo_pybullet(env.task.goal, env.task.obstacles, env.task.collision_detector)
         # pybullet.removeAllUserDebugItems(physicsClientId=0)
         #rl_action, _ = model.predict(obs)
@@ -79,12 +79,12 @@ panda_gym.register_envs(200)
 # test the pyb_utils function
 
 
-
-env = gym.make(config["env_name"], render=False, control_type="jsd",
+panda_gym.register_envs(800)
+env = gym.make(config["env_name"], render=True, control_type="jsd",
                obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                reward_type=config["reward_type"], limiter=config["limiter"],
-               show_goal_space=False, scenario="wang_3",
-               show_debug_labels=True)
+               show_goal_space=False, scenario="narrow_tunnel",
+               show_debug_labels=True, n_substeps=5, )
 
 
 #rrmc_neo = NEO(env)
