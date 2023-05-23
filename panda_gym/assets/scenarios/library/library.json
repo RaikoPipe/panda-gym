@@ -2,13 +2,13 @@
             "left": {
                 "bodyName": "left",
                 "fileName": "left.urdf",
-                "basePosition": [-1.0, -0.5, 0.0], 
+                "basePosition": [-1.0, -0.5, 0.0],
                 "useFixedBase": true
             },
             "right": {
                 "bodyName": "right",
                 "fileName": "right.urdf",
-                "basePosition": [-1.0, -0.5, 0.0], 
+                "basePosition": [-1.0, -0.5, 0.0],
                 "useFixedBase": true
             },
             "row1": {

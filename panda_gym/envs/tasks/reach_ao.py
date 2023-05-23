@@ -28,6 +28,7 @@ SCENARIO_DIR = f"{ROOT_DIR}\\assets\\scenarios"
 NARROW_TUNNEL_DIR = f"{SCENARIO_DIR}\\narrow_tunnel"
 LIBRARY_DIR = f"{SCENARIO_DIR}\\library"
 WORKSHOP_DIR = f"{SCENARIO_DIR}\\workshop"
+KASYS_DIR = f"{SCENARIO_DIR}\\kasys"
 
 
 class ReachAO(Task):
@@ -50,7 +51,8 @@ class ReachAO(Task):
             factor_punish_collision=1.0,  # def: 1.0
             factor_punish_action_magnitude=0.000,  # def: 0.005
             factor_punish_action_difference_magnitude=0.0,  # def: ?
-            factor_punish_obstacle_proximity=0.0  # def: ?
+            factor_punish_obstacle_proximity=0.0,  # def: ?
+            collision_reward = -100
 
     ) -> None:
         super().__init__(sim)
@@ -65,6 +67,9 @@ class ReachAO(Task):
         # self.dummy_obstacle_id = {}
         self.joint_obstacle_observation = joint_obstacle_observation
 
+        # general reward configuration
+        self.collision_reward = collision_reward
+
         # dense reward configuration
         self.factor_punish_distance = factor_punish_distance
         self.factor_punish_collision = factor_punish_collision
@@ -77,9 +82,10 @@ class ReachAO(Task):
 
         self.scenario = scenario
         self.randomize_robot_pose = randomize_robot_pose
-        self.robot_pose_randomizer = None
+        self.robot_pose_randomizer = self.set_robot_random_joint_position_ik
 
         # self.robot_params = self.create_robot_debug_params()
+        self.cube_size_large = np.array([0.05, 0.05, 0.05])
         self.cube_size_medium = np.array([0.03, 0.03, 0.03])
         self.cube_size_small = np.array([0.02, 0.02, 0.02])
         self.cube_size_mini = np.array([0.01, 0.01, 0.01])
@@ -197,6 +203,8 @@ class ReachAO(Task):
                 found_scenario = self.create_scenario_cube
             case scenario if "wang" in scenario.split(sep="_"):
                 found_scenario = self.create_scenario_wang
+            case scenario if "wangexp" in scenario.split(sep="_"):
+                found_scenario = self.create_scenario_wang_experimental
             case "narrow_tunnel":
                 found_scenario = self.create_scenario_narrow_tunnel
             case "library":
@@ -207,6 +215,8 @@ class ReachAO(Task):
                 found_scenario = self.create_scenario_library
             case "workshop":
                 found_scenario = self.create_scenario_workshop
+            case "kasys":
+                found_scenario = self.create_scenario_kasys
             case "wall":
                 found_scenario = self.create_stage_wall
             case "box":
@@ -217,14 +227,15 @@ class ReachAO(Task):
                 found_scenario = self.create_scenario_base2
             case "base3":
                 found_scenario = self.create_scenario_base3
+            case "base3_randshape":
+                found_scenario = self.create_scenario_base3_randshape
             case "base4":
                 found_scenario = self.create_scenario_base4
 
 
-
         if not found_scenario:
-            logging.warning("Scenario not found. Defaulting to narrow_tunnel.")
-            found_scenario = self.create_scenario_library
+            logging.warning("Scenario not found. Aborting")
+            raise Exception("Scenario not found!")
 
         return found_scenario
 
@@ -279,8 +290,11 @@ class ReachAO(Task):
 
     def create_scenario_workshop(self):
 
-        self.robot.neutral_joint_values = np.array([-2.13931332e+00,  4.29384413e-02,  5.40467273e-01, -9.74630432e-01,
-  9.40181158e-02,  1.27046119e+00, -7.44667607e-04])
+        # self.robot.neutral_joint_values = np.array([-2.13728387, - 0.02008786,  0.55133245, - 1.18430162,  0.07185752,  1.35811325,
+        #      0.79608991])
+
+        self.robot.neutral_joint_values[0] = -1.5
+
         self.robot.set_joint_neutral()
         self.goal_range_low = np.array([0.4, -0.15, 0.45])
         self.goal_range_high = np.array([0.7, 0.12, 0.6])
@@ -298,6 +312,32 @@ class ReachAO(Task):
         for idx, urdf in zip(indexes, urdfs.values()):
             body_name = urdf["bodyName"]
             name = f"workshop_obj_{body_name}"
+            self.obstacles[f"{name}"] = idx
+
+    def create_scenario_kasys(self):
+
+        # self.robot.neutral_joint_values = np.array([-2.13728387, - 0.02008786,  0.55133245, - 1.18430162,  0.07185752,  1.35811325,
+        #      0.79608991])
+
+        # self.robot.neutral_joint_values[0] = -1.5
+
+        self.robot.set_joint_neutral()
+        self.goal_range_low = np.array([1.4, -0.15, 0.45])
+        self.goal_range_high = np.array([1.7, 0.12, 0.6])
+        self.goal = self.fixed_target
+
+        with open(f"{KASYS_DIR}\\kasys.json") as t:
+            urdfs = json.load(t)
+
+        # append path
+        for urdf in urdfs.values():
+            fileName = urdf["fileName"]
+            urdf["fileName"] = f"{KASYS_DIR}\\urdf\\{fileName}"
+
+        indexes = self.sim.load_scenario(urdfs)
+        for idx, urdf in zip(indexes, urdfs.values()):
+            body_name = urdf["bodyName"]
+            name = f"kasys_obj_{body_name}"
             self.obstacles[f"{name}"] = idx
 
     def create_scenario_library(self):
@@ -323,8 +363,8 @@ class ReachAO(Task):
 
         # Create custom goal space
         if self.scenario == "library1":
-            self.robot.neutral_joint_values = [-2.96090532, -0.0434537,  -0.20340835, -1.62954942,  0.02795931,  3.08670391,
-  0.77425641]
+            self.robot.neutral_joint_values = [-2.9595587,  -0.51728982, -0.0226481,  -2.07870811,  0.05155275,  3.09642384,
+  0.82259363]
             self.goal_range_low = np.array([0.5, -0.3, 0])
             self.goal_range_high = np.array([0.85, 0.3, 0.3])
         elif self.scenario == "library1.5":
@@ -365,11 +405,16 @@ class ReachAO(Task):
 
     def create_stage_wall(self):
         """wall parkour."""
-        self.goal_range = 0.4
+
+        self.goal_range_low = np.array([0.6, -0.3, 0.1])
+        self.goal_range_high = np.array([0.7, -0.1, 0.3])
+
+        self.robot.neutral_joint_values = [ 0.94551719,  0.65262327,  0.12742699, -1.74347465, -0.16996126,  1.97424632,
+  0.88058222]
 
         self.create_obstacle_cuboid(
             np.array([0.0, -0.05, 0.1]),
-            size=np.array([0.1, 0.001, 0.1]))
+            size=np.array([0.2, 0.05, 0.3]))
 
         # self.create_obstacle_cuboid(
         #     np.array([0.2, 0.0, 0.25]),
@@ -440,7 +485,7 @@ class ReachAO(Task):
         self.goal_range_low = np.array([-0.4 / 2+0.6, -0.4 / 2, 0])
         self.goal_range_high = np.array([0.4 / 2+0.6, 0.4 / 2, 0.4])
 
-        self.create_obstacle_sphere(radius=0.04)
+        self.create_obstacle_cuboid(size=self.cube_size_medium)
 
     def create_scenario_base2(self):
         self.randomize_obstacle_position = True
@@ -455,7 +500,22 @@ class ReachAO(Task):
         self._sample_obstacle = sample_base_2_goal
 
         for i in range(2):
-            self.create_obstacle_sphere(radius=0.04)
+            self.create_obstacle_cuboid(self.cube_size_large)
+
+    def create_scenario_base2_5(self):
+        self.randomize_obstacle_position = True
+        self.random_num_obs = False
+        goal_radius_minor = 0.5
+        goal_radius_major = 0.8
+        # PandaReach with 1 obstacle
+        def sample_base_2_goal():
+            return self.sample_sphere(goal_radius_minor, goal_radius_major, upper_half=True, three_quarter_front_half=True)
+
+        self._sample_goal = sample_base_2_goal
+        self._sample_obstacle = sample_base_2_goal
+
+        for i in range(3):
+            self.create_obstacle_cuboid(self.cube_size_large)
 
     def create_scenario_base3(self):
         self.randomize_obstacle_position = True
@@ -466,21 +526,40 @@ class ReachAO(Task):
         def sample_base_3_goal():
             return self.sample_sphere(goal_radius_minor, goal_radius_major, upper_half=True)
         def sample_base_3_obstacle():
-            sample = self.sample_sphere(0.1, 0.4)
+            sample = self.sample_sphere(0.1, 0.5)
             return sample + self.goal
 
         self._sample_goal = sample_base_3_goal
         self._sample_obstacle = sample_base_3_obstacle
         for i in range(3):
-            self.create_obstacle_sphere(radius=0.04)
+            self.create_obstacle_cuboid(size=self.cube_size_large)
+
+    def create_scenario_base3_randshape(self):
+        self.randomize_obstacle_position = True
+        self.random_num_obs = True
+        goal_radius_minor = 0.5
+        goal_radius_major = 0.8
+        # PandaReach with 1 obstacle
+        def sample_base_3_goal():
+            return self.sample_sphere(goal_radius_minor, goal_radius_major, upper_half=True)
+        def sample_base_3_obstacle():
+            sample = self.sample_sphere(0.1, 0.5)
+            return sample + self.goal
+
+        self._sample_goal = sample_base_3_goal
+        self._sample_obstacle = sample_base_3_obstacle
+        for i in range(3):
+            self.create_obstacle_cuboid(size=self.cube_size_large)
+            self.create_obstacle_sphere(radius=0.05)
+
+        self.sample_size_obs = [3, 3]
+
 
     def create_scenario_base4(self):
-        self.create_scenario_base3()
+        self.scenario = "wang_3"
+        self.create_scenario_wang()
         self.randomize_robot_pose = True
         self.robot_pose_randomizer = lambda : self.set_robot_random_joint_position_ik()
-
-        for i in range(4):
-            self.create_obstacle_sphere(radius=0.05)
 
     def create_scenario_wang(self):
         goal_radius_minor = 0.5
@@ -492,7 +571,7 @@ class ReachAO(Task):
                 sample = self.sample_sphere(0.1, 0.4)
                 return sample + self.goal
             else:
-                return self.sample_sphere(0.4,0.8, upper_half=True, )
+                return self.sample_sphere(0.4,0.8, upper_half=True)
             # else:
             #     # sample near base
             #     sample = self.sample_sphere(0.3,0.5, True)
@@ -512,6 +591,44 @@ class ReachAO(Task):
         self.random_num_obs = False
 
         for i in range(num_spheres):
+            self.create_obstacle_sphere(radius=0.05)
+
+    def create_scenario_wang_experimental(self):
+        """Scenario for trying out different variations of wang"""
+        goal_radius_minor = 0.5
+        goal_radius_major = 0.8
+        def sample_wang_obstacle():
+            rand = np.random.rand()
+            if rand > 0.3:
+                # move to goal
+                sample = self.sample_sphere(0.1, 0.5)
+                return sample + self.goal
+            elif rand > 0.1:
+                sample= self.sample_sphere(0.05,0.4)
+                return self.robot.get_ee_position() + sample
+            # else:
+            #     return self.sample_sphere(0.3,0.5)
+            else:
+                # sample near base
+                sample = self.sample_sphere(0.3,0.6, True)
+                return sample + self.robot.get_link_position(0)
+        num_obstacles = int(self.scenario.split(sep="_")[1])
+
+        def sample_wang_goal():
+            return self.sample_sphere(goal_radius_minor, goal_radius_major, upper_half=True)
+
+        self.robot_pose_randomizer = lambda : self.set_robot_random_joint_position_ik()
+
+        self._sample_obstacle = lambda : sample_wang_obstacle()
+        self._sample_goal = sample_wang_goal
+
+
+        self.randomize_obstacle_position = True
+        self.sample_size_obs = [num_obstacles, num_obstacles]
+        self.random_num_obs = True
+
+        for i in range(num_obstacles):
+            self.create_obstacle_cuboid(size=self.cube_size_large)
             self.create_obstacle_sphere(radius=0.05)
 
     def sample_from_robot_workspace(self):
@@ -638,7 +755,7 @@ class ReachAO(Task):
         closest_distances = np.zeros(9)
         if self.obstacles:
             # q = self.robot.get_joint_angles(self.robot.joint_indices[:7])
-            obs_per_link, info = self.collision_detector.compute_distances_per_link(max_distance=99.0)
+            obs_per_link, info = self.collision_detector.compute_distances_per_link(max_distance=999.0)
 
             # for debugging;
             # for vector in vectors.values():
@@ -667,6 +784,9 @@ class ReachAO(Task):
                 closest_per_obstacle = [sorted(zip(i,y)) for i,y in zip(obs_distances, closest_points)]
                 closest_pairs = np.array([x[0][1] for x in closest_per_obstacle])
                 closest_distances = np.array([i[0] - i[1] for i in closest_pairs]).flatten()
+                # for a,b in closest_pairs:
+                #     p.addUserDebugLine(a, b, physicsClientId=0, lineColorRGB=np.array([0,1,0]))
+                # p.removeAllUserDebugItems(physicsClientId=0)
 
             self.is_collided = min(self.distances_links_to_closest_obstacle) <= 0.0
 
@@ -729,7 +849,11 @@ class ReachAO(Task):
     def set_random_num_obs(self):
         num_obs = random.randint(self.sample_size_obs[0], self.sample_size_obs[1])
         obs_to_move = abs(num_obs - len(self.obstacles))
-        for obstacle in self.obstacles.keys():
+        # shuffle obstacle order
+        keys = list(self.obstacles.keys())
+        np.random.shuffle(keys)
+
+        for obstacle in keys:
             if obs_to_move <= 0:
                 break
             obstacle_id = self.obstacles[obstacle]
@@ -794,9 +918,9 @@ class ReachAO(Task):
                              self.check_collision("table", obstacle, margin=0.05),
                              self.check_collision("dummy_sphere", obstacle, margin=0.05)]
                 # avoid collision with other obstacles
-                obs_collision = [self.check_collision(i, obstacle) if i is not obstacle else False
-                                 for i in self.obstacles.keys()]
-                collision.extend(obs_collision)
+                # obs_collision = [self.check_collision(i, obstacle) if i is not obstacle else False
+                #                  for i in self.obstacles.keys()]
+                # collision.extend(obs_collision)
                 # check if out of boundaries
                 self.sim.set_base_pose("dummy_sphere", np.array([0.0, 0.0, 0.0]),
                                        np.array([0.0, 0.0, 0.0, 1.0]))  # move dummy to origin
@@ -828,7 +952,7 @@ class ReachAO(Task):
         goal = self.np_random.uniform(self.goal_range_low, self.goal_range_high)
         return goal
 
-    def sample_sphere(self, radius_minor, radius_major, upper_half=False, front_half=False) -> np.ndarray:
+    def sample_sphere(self, radius_minor, radius_major, upper_half=False, front_half=False, three_quarter_front_half=False) -> np.ndarray:
 
         phi = np.random.uniform(0, 2 * np.pi)
         if upper_half:
@@ -839,6 +963,9 @@ class ReachAO(Task):
         if front_half:
             phi = np.random.uniform(-0.5* np.pi, 0.5* np.pi)
 
+        if three_quarter_front_half:
+            phi = np.random.uniform(-0.75 * np.pi, 0.75 * np.pi)
+
         r = np.cbrt(np.random.uniform(radius_minor ** 3, radius_major ** 3))
 
         sample = np.array([r * np.sin(theta) * np.cos(phi), r * np.sin(theta) * np.sin(phi), r * np.cos(theta)])
@@ -846,12 +973,8 @@ class ReachAO(Task):
         return sample
 
     def is_success(self, achieved_goal: np.ndarray, desired_goal: np.ndarray) -> np.ndarray:
-        if self.reward_type == "sparse":
-            d = distance(achieved_goal, desired_goal)
-            return np.array(d < self.distance_threshold, dtype=np.bool8)
-        else:
-            # dense reward; no truncation on success
-            return np.array(False, dtype=np.bool8)
+        d = distance(achieved_goal, desired_goal)
+        return np.array(d < self.distance_threshold, dtype=np.bool8)
 
     def is_truncated(self) -> np.ndarray:
         return np.array(self.is_collided, dtype=np.bool8)
@@ -890,9 +1013,6 @@ class ReachAO(Task):
 
     def get_norm_effort(self) -> float:
         """Calculate the magnitude of the action, i.e. calculate the square of the norm of the action."""
-        if self.robot.recent_action is None:
-            # There has not been any recorded action yet
-            return 0.0
 
         return np.linalg.norm(self.robot.current_acceleration)
 
@@ -902,8 +1022,6 @@ class ReachAO(Task):
         obs_distance = self.distances_links_to_closest_obstacle
         action_diff = self.get_norm_action_difference()
         effort = self.get_norm_effort()
-
-        collision_reward = 100
 
         if self.reward_type == "sparse":
             reward = -np.array((euclidean_distance > self.distance_threshold), dtype=np.float32)
@@ -943,7 +1061,7 @@ class ReachAO(Task):
             self.update_labels(manipulability, euclidean_distance, obs_distance, action_diff, effort, reward)
 
         if self.truncate_episode_on_collision:
-            reward -= (min(obs_distance) <= 0) * collision_reward
+            reward -= (min(obs_distance) <= 0) * -self.collision_reward # prevent double negative in collision reward
 
         self.action_diff = action_diff
         self.action_magnitude = effort

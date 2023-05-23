@@ -344,9 +344,9 @@ class RobotTaskEnv(gym.Env):
         # An episode is terminated if the agent has reached the target
         is_success = self.task.is_success(observation["achieved_goal"], self.task.get_goal())
         if self.reward_type == "sparse":
-            terminated= is_success
+            terminated = is_success
         else:
-            terminated=False
+            terminated = False
         truncated = bool(self.task.is_truncated())
 
         info = {"is_success": is_success, "is_truncated": truncated}

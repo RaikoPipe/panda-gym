@@ -1,0 +1,45 @@
+<robot name="kasys">
+    <material name="grey">
+        <color rgba="0.8 0.8 0.8 1"/>
+    </material>
+    <link name="world"/>
+    <link name="trolley">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="../meshes/trolley.obj" scale="0.001 0.001 0.001" />
+            </geometry>
+            <material name="grey"/>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="../meshes/trolley.obj" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <link name="wall">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <mesh filename="../meshes/wall.obj" scale="0.001 0.001 0.001" />
+            </geometry>
+            <material name="grey"/>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <geometry>
+                <mesh filename="../meshes/wall.obj" scale="0.001 0.001 0.001" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="world_trolley" type="fixed">
+        <parent link="world"/>
+        <child link="trolley"/>
+    </joint>
+    <joint name="trolley_wall" type="fixed">
+        <parent link="trolley"/>
+        <child link="wall"/>
+        <origin xyz="-1.0 0.7 0" rpy="0 0 -1.57"/>
+    </joint>
+</robot>

@@ -39,7 +39,8 @@ class Panda(PyBulletRobot):
             obs_type:tuple=("ee",),
             limiter: str = "sim",
             action_limiter: str = "clip",
-            use_robotics_toolbox=True
+            use_robotics_toolbox=True,
+            n_substeps = 20
     ) -> None:
         base_position = base_position if base_position is not None else np.zeros(3)
         self.block_gripper = block_gripper
@@ -68,6 +69,8 @@ class Panda(PyBulletRobot):
         self.sim.set_lateral_friction(self.body_name, self.fingers_indices[1], lateral_friction=1.0)
         self.sim.set_spinning_friction(self.body_name, self.fingers_indices[0], spinning_friction=0.001)
         self.sim.set_spinning_friction(self.body_name, self.fingers_indices[1], spinning_friction=0.001)
+
+        self.max_change_position = 0.0025 * n_substeps
 
         # limits
         self.joint_lim_min = np.array([-2.7437,-1.7837,-2.9007,-3.0421,-2.8065,0.5445,-3.0159])
@@ -126,6 +129,7 @@ class Panda(PyBulletRobot):
                 action = np.array([x / max_value for x in action])
         elif action_limiter == "clip":
             action = np.clip(action, self.action_space.low, self.action_space.high)
+
 
         # save action
         self.previous_action = self.recent_action
@@ -239,7 +243,7 @@ class Panda(PyBulletRobot):
         Returns:
             np.ndarray: Target arm angles, as the angles of the 7 arm joints.
         """
-        arm_joint_ctrl = arm_joint_ctrl * 0.05  # limit maximum change in position
+        arm_joint_ctrl = arm_joint_ctrl * self.max_change_position # default: * 0.05  # limit maximum change in position
 
         # get the current position and the target position
         current_arm_joint_angles = np.array([self.get_joint_angle(joint=i) for i in range(7)])
@@ -360,8 +364,16 @@ class Panda(PyBulletRobot):
             Tep = SE3().RPY(np.array([135, 0,0]), unit="deg")
         elif target_pose == "right":
             Tep = SE3().RPY(np.array([-135, 0,0]), unit="deg")
+        elif target_pose == "front":
+            Tep = SE3().RPY(np.array([0, 90,0]), unit="deg")
+        elif target_pose == "back":
+            Tep = SE3().RPY(np.array([0, -135, 0]), unit="deg")
+        elif target_pose == "neg_neutral":
+            Tep = self.panda_rtb.fkine(np.negative(self.neutral_joint_values[:7]))
+        elif target_pose == "current":
+            Tep = self.get_joint_angles(self.joint_indices[:7])
         else:
-            Tep = self.panda_rtb.fkine(self.panda_rtb.q)
+            Tep = self.panda_rtb.fkine(self.neutral_joint_values[:7])
         # else:
         #     Tep = SE3()
         #     if target[1] < 0:
@@ -376,8 +388,6 @@ class Panda(PyBulletRobot):
         # Tep = SE3.OA([0, 1, 0], [0, 0, -1])
         Tep.A[:3, 3] = target
 
-        # sol = self.panda_rtb.ik_lm_chan(Tep)
-        # Tep = self.panda_rtb.fkine(sol.q)
 
         # The se3 pose of the Panda's end-effector
         Te = self.panda_rtb.fkine(self.panda_rtb.q)
@@ -431,9 +441,9 @@ class Panda(PyBulletRobot):
                 collision,
                 collision_detector,
                 self.panda_rtb.q[:n],
-                0.4,  # influence distance in which the damper becomes active
-                0.1,  # minimum distance in which the link is allowed to approach the object shape
-                0.9,
+                0.3,  # influence distance in which the damper becomes active
+                0.05,  # minimum distance in which the link is allowed to approach the object shape
+                1.0,
                 start=self.panda_rtb.link_dict["panda_link1"],
                 end=self.panda_rtb.link_dict["panda_hand"]
             )
