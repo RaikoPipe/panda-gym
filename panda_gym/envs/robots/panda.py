@@ -212,6 +212,12 @@ class Panda(PyBulletRobot):
             for shape in col.data:
                 shape.init_pybullet(self.sim_dummy_id)
 
+    def rtb_ik(self, target):
+        Tep = self.panda_rtb.fkine(self.neutral_joint_values[:7])
+        Tep.A[:3, 3] = target
+        sol = self.panda_rtb.ik_lm_chan(Tep)
+        return sol[0]
+
     def ee_displacement_to_target_arm_angles(self, ee_displacement: np.ndarray) -> np.ndarray:
         """Compute the target arm angles from the end-effector displacement.
 

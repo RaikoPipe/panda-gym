@@ -286,10 +286,11 @@ class RobotTaskEnv(gym.Env):
         self._saved_goal = dict()  # For state saving and restoring
 
     def _get_obs(self) -> Dict[str, np.ndarray]:
+        achieved_goal = self.task.get_achieved_goal().astype(np.float32)
         robot_obs = self.robot.get_obs().astype(np.float32)  # robot state
         task_obs = self.task.get_obs().astype(np.float32)  # object position, velocity, etc...
         observation = np.concatenate([robot_obs, task_obs])
-        achieved_goal = self.task.get_achieved_goal().astype(np.float32)
+
         return {
             "observation": observation,
             "achieved_goal": achieved_goal,

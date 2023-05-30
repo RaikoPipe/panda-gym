@@ -241,16 +241,18 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
             ), eval_callback]
         )
 
+        model.save_replay_buffer(wandb.run.dir)
+
         eval_env.close()
 
-    # evaluate env
+    # evaluate trained model
     evaluation_results = {}
     for evaluation_scenario in ["wang_3", "library2", "library1", "narrow_tunnel", "wall"]: # "wang_3", "library2", "library1", "narrow_tunnel"
         env = gymnasium.make(config["env_name"], render=False, control_type=config["control_type"],
                              obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                              reward_type=config["reward_type"], limiter=config["limiter"],
                              show_goal_space=False, scenario=evaluation_scenario,
-                             randomize_robot_pose=config["randomize_robot_pose"], joint_obstacle_observation=config["joint_obstacle_observation"],
+                             randomize_robot_pose=False if evaluation_scenario != "wang_3" else True, joint_obstacle_observation=config["joint_obstacle_observation"],
                              truncate_episode_on_collision=config["truncate_episode_on_collision"],
                              show_debug_labels=True, n_substeps=config["n_substeps"])
         print(f"Evaluating {evaluation_scenario}")

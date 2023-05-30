@@ -18,31 +18,40 @@ from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
 from stable_baselines3.common.buffers import ReplayBuffer, DictReplayBuffer
 from typing import Callable
 
+reach_stages = ["reach1", "reach2", "reach3", "reach4"]
+reach_max_ep_steps = [50,50,50,50]
+reach_succ_thresholds = [1.0,1.0,1.0,1.0]
+
+reach_ao_stages = ["base1", "base2", "wangexp_3"]
+reach_ao_max_ep_steps = [50,75,100]
+reach_ao_succ_thresholds = [0.9,0.9,0.99]
+
+
 
 # hyperparameters from rl-baselines3-zoo tuned pybullet defaults
 
 config = {
     "env_name": "PandaReachAO-v3",
     "algorithm": "TQC",
-    "reward_type": "kumar",  # sparse; dense
+    "reward_type": "sparse",  # sparse; dense
     "goal_distance_threshold": 0.05,
-    "max_timesteps": 2_000_000,
+    "max_timesteps": 300_000,
     "seed": 1,
     "render": False,  # renders the eval env
-    "n_substeps": 5, # number of simulation steps before handing control back to agent
+    "n_substeps": 20, # number of simulation steps before handing control back to agent
     "obs_type": ["ee","js"], # Robot state to observe
     "control_type": "js",  # Agent Output; js: joint velocities, ee: end effector displacements; jsd: joint velocities (applied directly)
     "limiter": "sim",
     "action_limiter": "clip",
     "show_goal_space": False,
-    "replay_buffer_class": DictReplayBuffer,  # HerReplayBuffer
+    "replay_buffer_class": HerReplayBuffer,  # HerReplayBuffer
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": False,
     "n_envs": 1,
-    "max_ep_steps": [200,280,400],
-    "eval_freq": 10_000,
-    "stages": ["base1", "base2", "wangexp_3"],
-    "success_thresholds": [0.90,0.90,0.99],  # [-7, -10, -12, -17, -20]
+    "eval_freq": 5_000,
+    "stages": reach_ao_stages,
+    "success_thresholds": reach_ao_succ_thresholds,  # [-7, -10, -12, -17, -20]
+    "max_ep_steps": reach_ao_max_ep_steps,
     "joint_obstacle_observation": "vectors",  # "all": closest distance to any obstacle of all joints is observed;
     "learning_starts": 10_000,
     "prior_steps": 0,
@@ -97,7 +106,7 @@ hyperparameters_sac = {
     "ent_coef": "auto",
     "use_sde": True,
 
-    "policy_kwargs": dict(log_std_init=-3, net_arch=[256, 256]) # 256, 256
+    "policy_kwargs": dict(log_std_init=-3, net_arch=[256,256]) # 256, 256
 }
 
 hyperparameters_fetch = {
@@ -127,7 +136,7 @@ hyperparameters_pybullet_defaults = {
     "ent_coef": "auto",
     "use_sde": True,
 
-    "policy_kwargs": dict(log_std_init=-3, net_arch=[400, 300])  # 256, 256
+    "policy_kwargs": dict(log_std_init=-3, net_arch=[256, 256])  # 400, 300
 
 }
 
@@ -157,15 +166,20 @@ def main():
     wandb.login(key=os.getenv("wandb_key"))
 
     env = get_env(config, config["n_envs"], config["stages"][0])
-    model = TQC.load(r"run_data/wandb/morning-grass/files/best_model.zip", env=env, replay_buffer_class=config["replay_buffer_class"],
-                     custom_objects={"action_space":gymnasium.spaces.Box(-1.0, 1.0, shape=(7,), dtype=np.float32),}
-                     )
+    # model = TQC.load(r"run_data/wandb/morning-grass/files/best_model.zip", env=env, replay_buffer_class=config["replay_buffer_class"],
+    #                  custom_objects={"action_space":gymnasium.spaces.Box(-1.0, 1.0, shape=(7,), dtype=np.float32),} # workaround
+    #                  )
 
     model = learn(config=config, algorithm=config["algorithm"])
 
 
 if __name__ == "__main__":
     main()
+
+    # training mode
+    # for i in range(5):
+    #     config["random_seed"] = i
+    #     main()
 
 
     # mixer.init()

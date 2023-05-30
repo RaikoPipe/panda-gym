@@ -83,7 +83,7 @@ panda_gym.register_envs(200)
 env = gym.make(config["env_name"], render=True, control_type="jsd",
                obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                reward_type=config["reward_type"], limiter=config["limiter"],
-               show_goal_space=False, scenario="workshop",
+               show_goal_space=False, scenario="wall",
                show_debug_labels=True, n_substeps=20, )
 
 # workshop: front; library: neg_neutral; narrow_tunnel:

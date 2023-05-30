@@ -455,7 +455,7 @@ class PyBullet:
         Returns:
             np.ndarray: The new joint state.
         """
-        if orientation:
+        if orientation is not None:
             joint_state = self.physics_client.calculateInverseKinematics(
                 bodyIndex=self._bodies_idx[body],
                 endEffectorLinkIndex=link,

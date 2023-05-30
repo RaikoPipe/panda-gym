@@ -399,32 +399,33 @@ def evaluate_ensemble(models, env, human=True, num_steps=10_000, goals_to_achiev
 #         episode_rewards.append(0.0)
 
 
-panda_gym.register_envs(200)
+panda_gym.register_envs(800)
 
 # env = get_env(config, "cube_3_random")
 if __name__ == "__main__":
-    human = False
+    human = True
 
     env = gymnasium.make(config["env_name"], render=human, control_type=config["control_type"],
                    obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                    reward_type="sparse", limiter=config["limiter"],
                    show_goal_space=False, scenario="wang_4", randomize_robot_pose = config["randomize_robot_pose"],
-                         joint_obstacle_observation=config["joint_obstacle_observation"],
+                         joint_obstacle_observation="all",
                          truncate_episode_on_collision=config["truncate_episode_on_collision"],
                    show_debug_labels=True, n_substeps=config["n_substeps"])
 
     # Load Model ensemble
-    model = TQC.load(r"../run/run_data/wandb/distinctive-shape-35/files/best_model.zip", env=env,
+    model = TQC.load(r"../run/run_data/wandb/gallant-hill-75/files/best_model.zip", env=env,
                      custom_objects={"action_space":gymnasium.spaces.Box(-1.0, 1.0, shape=(7,), dtype=np.float32)}) # for some reason it won't read action space sometimes
     model.env.close()
 
     evaluation_results = {}
-    for evaluation_scenario in ["wang_3", "library2", "library1", "narrow_tunnel", "wall"]: # "wang_3", "library2", "library1", "narrow_tunnel", "wall"
+    for evaluation_scenario in [ "wall"]: # "wang_3", "library2", "library1", "narrow_tunnel", "wall"
         env = gymnasium.make(config["env_name"], render=human, control_type=config["control_type"],
                              obs_type=config["obs_type"], goal_distance_threshold=0.05,
                              reward_type="sparse", limiter=config["limiter"],
                              show_goal_space=False, scenario=evaluation_scenario,
-                             randomize_robot_pose=config["randomize_robot_pose"], joint_obstacle_observation="vectors",
+                             randomize_robot_pose=False,# if evaluation_scenario != "wang_3" else True,
+                             joint_obstacle_observation="all",
                              truncate_episode_on_collision=True,
                              show_debug_labels=True, n_substeps=20)
         print(f"Evaluating {evaluation_scenario}")
