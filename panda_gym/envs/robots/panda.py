@@ -70,7 +70,7 @@ class Panda(PyBulletRobot):
         self.sim.set_spinning_friction(self.body_name, self.fingers_indices[0], spinning_friction=0.001)
         self.sim.set_spinning_friction(self.body_name, self.fingers_indices[1], spinning_friction=0.001)
 
-        self.max_change_position = 0.0025 * n_substeps
+        self.max_change_position = 0.05#0.0025 * n_substeps
 
         # limits
         self.joint_lim_min = np.array([-2.7437,-1.7837,-2.9007,-3.0421,-2.8065,0.5445,-3.0159])

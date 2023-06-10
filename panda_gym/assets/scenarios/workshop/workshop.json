@@ -2,37 +2,37 @@
             "box1": {
                 "bodyName": "box1",
                 "fileName": "box1.urdf",
-                "basePosition": [0.8, -0.15, 0.0], 
+                "basePosition": [0.8, -0.3, 0.0], 
                 "useFixedBase": true
             },
             "box2": {
                 "bodyName": "box2",
                 "fileName": "box2.urdf",
-                "basePosition": [0.8, -0.15, 0.0], 
+                "basePosition": [0.8, -0.3, 0.0], 
                 "useFixedBase": true
             },
             "box3": {
                 "bodyName": "box3",
                 "fileName": "box3.urdf",
-                "basePosition": [0.8, -0.15, 0.0],
+                "basePosition": [0.8, -0.3, 0.0],
                 "useFixedBase": true
             },
             "part_box1": {
                 "bodyName": "part_box",
                 "fileName": "part_box.urdf",
-                "basePosition": [0.8, -0.15, 0.0],
+                "basePosition": [0.8, -0.3, -0.2],
                 "useFixedBase": true
             },
             "table1": {
                 "bodyName": "table1",
                 "fileName": "table1.urdf",
-                "basePosition": [0.8, -0.15, 0.0],
+                "basePosition": [0.8, -0.3, 0.0],
                 "useFixedBase": true
             },
               "table2": {
                 "bodyName": "table2",
                 "fileName": "table2.urdf",
-                "basePosition": [0.8, -0.15, 0.0],
+                "basePosition": [0.8, -0.3, 0.0],
                 "useFixedBase": true
             }
 

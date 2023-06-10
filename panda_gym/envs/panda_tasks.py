@@ -115,7 +115,7 @@ class PandaReachAOEnv(RobotTaskEnv):
     """
 
     def __init__(self, render: bool = False, realtime: bool = False,
-                 reward_type: str = "sparse", goal_distance_threshold: float = 0.05,
+                 reward_type: str = "sparse", goal_distance_threshold: float = 0.05, goal_condition="reach",
                  control_type: str = "js", obs_type: tuple =("ee",), show_goal_space=False, scenario: str = "cube_3_random",
                  randomize_robot_pose:bool=False, truncate_episode_on_collision=True,
                  joint_obstacle_observation: str = "all", show_debug_labels=False, fixed_target=None, limiter="sim",
@@ -127,6 +127,7 @@ class PandaReachAOEnv(RobotTaskEnv):
                       limiter=limiter, action_limiter=action_limiter, n_substeps=n_substeps)
         task = ReachAO(sim, robot, reward_type=reward_type,
                                    goal_distance_threshold=goal_distance_threshold,
+                                    goal_condition=goal_condition,
                                    joint_obstacle_observation=joint_obstacle_observation,
                                    scenario=scenario,
                                     randomize_robot_pose=randomize_robot_pose,

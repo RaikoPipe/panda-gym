@@ -1,23 +1,24 @@
 import sys
+from copy import deepcopy
+
 import gymnasium
+
 sys.modules["gym"] = gymnasium
 
-
-from typing import Optional, Union
+from typing import Optional
 import numpy as np
-from stable_baselines3 import SAC, TD3, PPO, DDPG, DQN
+from stable_baselines3 import SAC, TD3, DDPG, PPO
+from stable_baselines3.her.her_replay_buffer import HerReplayBuffer, VecHerReplayBuffer
 from sb3_contrib import TQC
-from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnRewardThreshold, EvalSuccessCallback, StopTrainingOnSuccessThreshold
+from stable_baselines3.common.callbacks import EvalSuccessCallback, StopTrainingOnSuccessThreshold, EvalCallback, StopTrainingOnRewardThreshold
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.noise import NormalActionNoise, VectorizedActionNoise
-from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm, HerReplayBuffer
-from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
+from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
+from stable_baselines3.common.vec_env import SubprocVecEnv
 from run.learning_methods.imitation_learning import fill_replay_buffer_with_init_model, fill_replay_buffer_with_prior
 from evaluate.evaluate import evaluate_ensemble
 import pandas as pd
-
-import panda_gym
-
+from gymnasium.envs.registration import register
 import wandb
 from wandb.integration.sb3 import WandbCallback
 
@@ -29,6 +30,7 @@ def get_env(config, n_envs, scenario, force_render=False):
                                    "obs_type": config["obs_type"],
                                    "reward_type": config["reward_type"],
                                    "goal_distance_threshold": config["goal_distance_threshold"],
+                                   "goal_condition": config["goal_condition"],
                                    "limiter": config["limiter"],
                                    "action_limiter": config["action_limiter"],
                                    "show_goal_space": False,
@@ -37,10 +39,10 @@ def get_env(config, n_envs, scenario, force_render=False):
                                    "n_substeps": config["n_substeps"],
                                    "joint_obstacle_observation": config["joint_obstacle_observation"],
                                    "randomize_robot_pose": config["randomize_robot_pose"],
-                                   "truncate_episode_on_collision" : config["truncate_episode_on_collision"],
+                                   "truncate_episode_on_collision": config["truncate_episode_on_collision"],
                                    "collision_reward": config["collision_reward"]
                                    },
-                       vec_env_cls=SubprocVecEnv if n_envs>1 else None
+                       vec_env_cls=SubprocVecEnv if n_envs > 1 else None
                        )
     # else:
     #     # todo: check if obsolete
@@ -73,9 +75,8 @@ def get_env(config, n_envs, scenario, force_render=False):
 
 
 def get_model(algorithm, config, run):
-
-    #env = get_env(config, config["stages"][0], deactivate_render=True)
-    #n_actions = env.action_space.shape[0]
+    # env = get_env(config, config["stages"][0], deactivate_render=True)
+    # n_actions = env.action_space.shape[0]
     # env.close()
     # env = get_env(config, config["stages"][0], deactivate_render=True)
     n_actions = 7 if config["control_type"] == "js" else 3
@@ -94,6 +95,7 @@ def get_model(algorithm, config, run):
                     verbose=1, seed=config["seed"],
                     tensorboard_log=f"runs/{run.id}", device="cuda",
                     replay_buffer_class=config["replay_buffer_class"],
+                    learning_starts=config["learning_starts"],
                     # hyperparameters
                     **config["hyperparams"]
 
@@ -110,10 +112,10 @@ def get_model(algorithm, config, run):
                     **config["hyperparams"]
                     )
     elif algorithm == "TQC":
-        model = TQC(config["policy_type"], env=get_env(config,config["n_envs"], config["stages"][0]),
-                    verbose=1,
+        model = TQC(config["policy_type"], env=get_env(config, config["n_envs"], config["stages"][0]),
+                    verbose=1, seed=config["seed"],
                     tensorboard_log=f"runs/{run.id}", device="cuda",
-                    replay_buffer_class= config["replay_buffer_class"],
+                    replay_buffer_class=config["replay_buffer_class"],
                     learning_starts=config["learning_starts"],
 
                     # hyperparameters
@@ -166,10 +168,17 @@ def init_wandb(config, tags):
     )
     return run
 
+def register_reach_ao(max_ep_steps):
+    register(
+        id="PandaReachAO-v3",
+        entry_point="panda_gym.envs:PandaReachAOEnv",
+        max_episode_steps=max_ep_steps,  # default: 50
+    )
 
 def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
-          starting_stage: Optional[str] = None, algorithm: str = "TD3"):
-    panda_gym.register_envs(config["max_ep_steps"][0])
+          starting_stage: Optional[str] = None, algorithm: str = "TD3", ):
+
+    register_reach_ao(config["max_ep_steps"][0])
 
     tags = get_tags(config)
     if initial_model:
@@ -178,7 +187,7 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
 
     if not initial_model:
 
-        model= get_model(algorithm, config, run)
+        model = get_model(algorithm, config, run)
 
     else:
         model = initial_model
@@ -191,17 +200,17 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
             config["stages"] = stages[idx:]
             config["success_thresholds"] = success_thresholds[idx:]
 
-    # model = TD3.load(r"run_data/wandb/run_panda_reach_evade_obstacle_stage_2_best_run/files/model.zip", env=env,
-    #                  device="cuda", train_freq=n_envs, gradient_steps=2, replay_buffer=replay_buffer)
+    assert len(config["stages"]) == len(config["success_thresholds"]) == len(config["max_ep_steps"])
 
-    assert len(config["stages"]) == len(config["success_thresholds"]) ==len(config["max_ep_steps"])
-
-    # model.env.close()
     # learn for each stage until reward threshold is reached
     if config["learning_starts"]:
         if initial_model:
-            model.replay_buffer = fill_replay_buffer_with_init_model(model, num_steps=config[
-                "learning_starts"])
+            pass
+            # model.replay_buffer = fill_replay_buffer_with_init_model(model,
+            #                                                          env=get_env(config,
+            #                                                                      1,
+            #                                                                      scenario=config["stages"][0]),
+            #                                                          num_steps=config["learning_starts"])
         elif config["prior_steps"] or len(config["stages"]) > 1:
             model.learn(total_timesteps=config["learning_starts"])
             model.learning_starts = 0
@@ -211,27 +220,34 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
         env = get_env(config, 1, config["stages"][0])
         model.replay_buffer = fill_replay_buffer_with_prior(env, model, config["prior_steps"])
 
-    for stage, success_threshold, max_ep_steps in zip(config["stages"], config["success_thresholds"], config["max_ep_steps"]):
-        panda_gym.register_envs(max_ep_steps)
-        if len(config["stages"]) > 1:
-            model.set_env(get_env(config, config["n_envs"], stage))
+    for stage, success_threshold, max_ep_steps in zip(config["stages"], config["success_thresholds"],
+                                                      config["max_ep_steps"]):
+        register_reach_ao(max_ep_steps)
 
-        if config["render"]:
-            # eval_env = gymnasium.make(config["env_name"], render=True if not config["render"] else False, control_type=config["control_type"],
-            #                     obs_type=config["obs_type"],
-            #                     reward_type=config["reward_type"],
-            #                     show_goal_space=False, scenario=stage,
-            #                     show_debug_labels=False, )
-            eval_env = get_env(config, 1, scenario=stage, force_render=False)
+        if config["n_envs"] > 1:
+            model.env.close() # for some reason closing environments for single agent will cause error
+
+        env = get_env(config, config["n_envs"], stage)
+        model.set_env(env)
+
+        if config["replay_buffer_class"] == VecHerReplayBuffer:
+            model.replay_buffer.close_env()
+            model.replay_buffer.set_env(env)
+
+        eval_env = get_eval_env(config, stage)
+        if success_threshold > 1.0:
+            stop_train_callback = StopTrainingOnRewardThreshold(reward_threshold=success_threshold, verbose=1)
+            eval_callback = EvalCallback(eval_env=eval_env,
+                                            eval_freq=max(config["eval_freq"] // config["n_envs"], 1),
+                                            callback_after_eval=stop_train_callback, verbose=1, n_eval_episodes=100,
+                                            best_model_save_path=wandb.run.dir)
         else:
-            eval_env = get_env(config, config["n_envs"], scenario=stage)
+            stop_train_callback = StopTrainingOnSuccessThreshold(success_threshold=success_threshold, verbose=1)
 
-        stop_train_callback = StopTrainingOnSuccessThreshold(success_threshold=success_threshold, verbose=1)
-
-        eval_callback = EvalSuccessCallback(eval_env = eval_env, eval_freq=max(config["eval_freq"] // config["n_envs"], 1),
-                                     callback_after_eval=stop_train_callback, verbose=1, n_eval_episodes=100,
-                                     best_model_save_path=wandb.run.dir)
-
+            eval_callback = EvalSuccessCallback(eval_env=eval_env,
+                                                eval_freq=max(config["eval_freq"] // config["n_envs"], 1),
+                                                callback_after_eval=stop_train_callback, verbose=1, n_eval_episodes=100,
+                                                best_model_save_path=wandb.run.dir)
 
         model.learn(
             total_timesteps=config["max_timesteps"],
@@ -241,39 +257,95 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
             ), eval_callback]
         )
 
-        model.save_replay_buffer(wandb.run.dir)
+        model.save_replay_buffer(f"{wandb.run.dir}/replay_buffer")
 
         eval_env.close()
 
+
     # evaluate trained model
+    benchmark_model(config, model, run)
+
+    return model, run
+
+
+def get_eval_env(config, stage):
+    if config["render"]:
+        # eval_env = gymnasium.make(config["env_name"], render=True if not config["render"] else False, control_type=config["control_type"],
+        #                     obs_type=config["obs_type"],
+        #                     reward_type=config["reward_type"],
+        #                     show_goal_space=False, scenario=stage,
+        #                     show_debug_labels=False, )
+        eval_env = get_env(config, 1, scenario=stage, force_render=False)
+    else:
+        eval_env = get_env(config, config["n_envs"], scenario=stage)
+    return eval_env
+
+
+def benchmark_model(config, model, run):
     evaluation_results = {}
-    for evaluation_scenario in ["wang_3", "library2", "library1", "narrow_tunnel", "wall"]: # "wang_3", "library2", "library1", "narrow_tunnel"
+    for evaluation_scenario in ["wang_3", "wangexp_3", "library2", "library1", "narrow_tunnel", "wall",
+                                "workshop"]:  # "wang_3", "library2", "library1", "narrow_tunnel"
         env = gymnasium.make(config["env_name"], render=False, control_type=config["control_type"],
                              obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                              reward_type=config["reward_type"], limiter=config["limiter"],
                              show_goal_space=False, scenario=evaluation_scenario,
-                             randomize_robot_pose=False if evaluation_scenario != "wang_3" else True, joint_obstacle_observation=config["joint_obstacle_observation"],
+                             randomize_robot_pose=False,
+                             joint_obstacle_observation=config["joint_obstacle_observation"],
                              truncate_episode_on_collision=config["truncate_episode_on_collision"],
                              show_debug_labels=True, n_substeps=config["n_substeps"])
         print(f"Evaluating {evaluation_scenario}")
-        model.set_env(env)
-        results, metrics = evaluate_ensemble([model], env, human=False, num_steps=10000, deterministic=True,
+        best_model = model.load(path=f"{wandb.run.dir}\\best_model.zip", env=env)
+        results, metrics = evaluate_ensemble([best_model], env, human=False, num_episodes=1000, deterministic=True,
                                              strategy="variance_only")
-        evaluation_results[evaluation_scenario] = {"results": results, "metrics" : metrics}
+        evaluation_results[evaluation_scenario] = {"results": results, "metrics": metrics}
         env.close()
-
     results = {}
     for key, value in evaluation_results.items():
         results[key] = value["results"]
-
     table = pd.DataFrame(results)
     table.index.name = "Criterias"
     print(table.to_markdown())
     table["Criterias"] = list(results["library2"].keys())
     table = wandb.Table(dataframe=table)
+
     run.log({"results": table})
     for key, value in results.items():
         run.log({key: value["success_rate"]})
 
-    run.finish()
-    return model
+
+def continue_learning(model, config, run):
+    if run is None:
+        tags = get_tags(config)
+        tags.append("pre-trained")
+        run = init_wandb(config, tags)
+
+    register_reach_ao(config["max_ep_steps"][0])
+    eval_env = get_eval_env(config, stage=config["stages"][0])
+
+    stop_train_callback = StopTrainingOnRewardThreshold(reward_threshold=config["success_thresholds"][0], verbose=1)
+
+    eval_callback = EvalCallback(eval_env=eval_env,
+                                        eval_freq=max(config["eval_freq"] // config["n_envs"], 1),
+                                        callback_after_eval=stop_train_callback, verbose=1, n_eval_episodes=100,
+                                        best_model_save_path=wandb.run.dir)
+
+    model.env.close()
+
+    env = get_env(config, config["n_envs"], config["stages"][0])
+    model.set_env(env)
+
+    if config["replay_buffer_class"] == VecHerReplayBuffer:
+        model.replay_buffer.close_env()
+        model.replay_buffer.set_env(env)
+
+    model.learn(
+        total_timesteps=config["max_timesteps"],
+        callback=[WandbCallback(
+            model_save_path=wandb.run.dir,
+            model_save_freq=20_000
+        ), eval_callback]
+    )
+
+    benchmark_model(config, model, run)
+
+    return model, run

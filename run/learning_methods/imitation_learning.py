@@ -57,17 +57,16 @@ def fill_replay_buffer_with_prior(env, model: OffPolicyAlgorithm, num_steps=1000
 
     return replay_buffer
 
-def fill_replay_buffer_with_init_model(model: OffPolicyAlgorithm, num_steps=10000):
+def fill_replay_buffer_with_init_model(model: OffPolicyAlgorithm, env, num_steps=10000):
     """
     Fill replay buffer of the given model with prior actions.
     :param prior: The prior
     :param num_steps: (int) number of steps to fill the replay buffer
     :return: model with filled replay buffer
     """
-    env = model.env.envs[0]
 
     episode_rewards = [0.0]
-    obs, _ = env.reset()
+    obs = env.reset()
 
     replay_buffer = model.replay_buffer
 
@@ -76,25 +75,26 @@ def fill_replay_buffer_with_init_model(model: OffPolicyAlgorithm, num_steps=1000
     for i in range(num_steps):
 
         action, _states = model.predict(obs)
-        next_obs, reward, done, truncated, info = env.step(action)
-        replay_buffer.add(obs, next_obs, action, reward, done, [info])
+        next_obs, reward, done,  info = env.step(action)
+        replay_buffer.add(obs, next_obs, action, reward, done, info)
 
         obs = next_obs
 
         # Stats
         episode_rewards[-1] += reward
-        if done or truncated:
-            if info["is_success"]:
+        if done:
+            if info[0]["is_success"]:
                 print("Success!")
                 done_events.append(1)
-            elif info["is_truncated"]:
-                print("Collision...")
-                done_events.append(-1)
-            else:
+            elif info[0]["TimeLimit.truncated"]:
                 print("Timeout...")
                 done_events.append(0)
+            elif info[0]["is_truncated"]:
+                print("Collision...")
+                done_events.append(-1)
 
-            obs, _ = env.reset()
+
+            obs = env.reset()
 
             episode_rewards.append(0.0)
             episode_steps = 0

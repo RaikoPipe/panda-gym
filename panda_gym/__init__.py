@@ -27,11 +27,11 @@ def register_envs(max_ep_steps):
                 id="PandaReachChecker{}{}-v3".format(control_suffix, reward_suffix),
                 entry_point="panda_gym.envs:PandaReachCheckerEnv",
                 kwargs=kwargs,
-                max_episode_steps=50,  # default: 50
+                max_episode_steps=max_ep_steps,  # default: 50
             )
 
             register(
-                id="PandaReachAO{}{}-v3".format(control_suffix, reward_suffix),
+                id="PandaReachAO-v3",
                 entry_point="panda_gym.envs:PandaReachAOEnv",
                 kwargs=kwargs,
                 max_episode_steps=max_ep_steps,  # default: 50

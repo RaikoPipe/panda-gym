@@ -1,18 +1,18 @@
 <robot name="table1">
   <link name="table1_base_link">
     <visual>
-      <origin rpy="0 0 3.14159" xyz="0.2 -0.52 -0.08"/>
+      <origin rpy="0 0 3.14159" xyz="0.2 -0.52 -0.16"/>
       <geometry>
-        <mesh filename="../meshes/table1.obj"  scale="0.0004 0.0004 0.0004"/>
+        <mesh filename="../meshes/table1.obj"  scale="0.0005 0.0005 0.0005"/>
       </geometry>
       <material name="tray_material">
         <color rgba="0.7 0.7 0.7 1"/>
       </material>
     </visual>
     <collision>
-      <origin rpy="0 0 3.14159" xyz="0.2 -0.52 -0.08"/>
+      <origin rpy="0 0 3.14159" xyz="0.2 -0.52 -0.16"/>
       <geometry>
-        <mesh filename="../meshes/table1.obj" scale="0.0004 0.0004 0.0004"/>
+        <mesh filename="../meshes/table1.obj" scale="0.0005 0.0005 0.0005"/>
       </geometry>
     </collision>
   </link>

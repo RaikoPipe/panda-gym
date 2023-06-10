@@ -337,17 +337,31 @@ class RobotTaskEnv(gym.Env):
         self._saved_goal.pop(state_id)
         self.sim.remove_state(state_id)
 
+    # def step(self, action: np.ndarray) -> Tuple[Dict[str, np.ndarray], float, bool, bool, Dict[str, Any]]:
+    #     self.robot.set_action(action)
+    #     self.sim.step()
+    #     observation = self._get_obs()
+    #
+    #     # An episode is terminated if the agent has reached the target
+    #     terminated = bool(self.task.is_success(observation["achieved_goal"], self.task.get_goal()))
+    #     truncated = bool(self.task.is_truncated())
+    #
+    #     info = {"is_success": terminated, "is_truncated": truncated}
+    #     reward = float(self.task.compute_reward(observation["achieved_goal"], self.task.get_goal(), info))
+    #
+    #     return observation, reward, terminated, truncated, info
+
     def step(self, action: np.ndarray) -> Tuple[Dict[str, np.ndarray], float, bool, bool, Dict[str, Any]]:
         self.robot.set_action(action)
         self.sim.step()
-
         observation = self._get_obs()
+
         # An episode is terminated if the agent has reached the target
-        is_success = self.task.is_success(observation["achieved_goal"], self.task.get_goal())
+        is_success = bool(self.task.is_success(observation["achieved_goal"], self.task.get_goal()))
+        terminated= False
         if self.reward_type == "sparse":
             terminated = is_success
-        else:
-            terminated = False
+
         truncated = bool(self.task.is_truncated())
 
         info = {"is_success": is_success, "is_truncated": truncated}

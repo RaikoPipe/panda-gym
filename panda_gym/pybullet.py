@@ -840,7 +840,7 @@ class PyBullet:
         return idx
 
     def create_debug_line(self, start, end):
-        p.addUserDebugLine(lineFromXYZ=start, lineToXYZ=end, lineColorRGB=np.array([1,0,0]))
+        p.addUserDebugLine(lineFromXYZ=start, lineToXYZ=end, lineColorRGB=np.array([0,1,0]))
 
     def remove_debug_text(self, text_name):
 
