@@ -295,7 +295,7 @@ def benchmark_model(config, model, run):
                              show_debug_labels=True, n_substeps=config["n_substeps"])
         print(f"Evaluating {evaluation_scenario}")
         best_model = model.load(path=f"{wandb.run.dir}\\best_model.zip", env=env)
-        results, metrics = evaluate_ensemble([best_model], env, human=False, num_episodes=1000, deterministic=True,
+        results, metrics = evaluate_ensemble([best_model], env, human=False, num_episodes=500, deterministic=True,
                                              strategy="variance_only")
         evaluation_results[evaluation_scenario] = {"results": results, "metrics": metrics}
         env.close()
@@ -329,23 +329,24 @@ def continue_learning(model, config, run):
                                         callback_after_eval=stop_train_callback, verbose=1, n_eval_episodes=100,
                                         best_model_save_path=wandb.run.dir)
 
-    model.env.close()
+    # model.env.close()
 
-    env = get_env(config, config["n_envs"], config["stages"][0])
-    model.set_env(env)
-
-    if config["replay_buffer_class"] == VecHerReplayBuffer:
-        model.replay_buffer.close_env()
-        model.replay_buffer.set_env(env)
+    # env = get_env(config, config["n_envs"], config["stages"][0])
+    # model.set_env(env)
+    #
+    # if config["replay_buffer_class"] == VecHerReplayBuffer:
+    #     model.replay_buffer.close_env()
+    #     model.replay_buffer.set_env(env)
 
     model.learn(
         total_timesteps=config["max_timesteps"],
         callback=[WandbCallback(
             model_save_path=wandb.run.dir,
             model_save_freq=20_000
-        ), eval_callback]
+        ), eval_callback],
+
     )
 
-    benchmark_model(config, model, run)
+    #benchmark_model(config, model, run)
 
     return model, run

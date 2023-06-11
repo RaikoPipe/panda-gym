@@ -20,6 +20,8 @@ from tabulate import tabulate
 
 import panda_gym
 from tqdm import tqdm
+import json
+from copy import copy
 
 import seaborn as sns
 
@@ -52,14 +54,16 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, goals_to_achie
         env.task.goal = goals_to_achieve.pop(0)
 
     done_events = []
-    effort = 0.0
-    manipulabilities = []
+
     goals = []
     goals.append(env.task.goal)
 
     end_effector_positions = []
     end_effector_velocities = []
     end_effector_speeds = []
+
+    efforts = []
+    manipulabilities = []
 
     total_index_count = []
     episode_index_count = []
@@ -76,14 +80,11 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, goals_to_achie
         episode_reward = 0.0
         ee_pos = []
         ee_speed = []
-        effort = []
-        manipulability = []
+        total_effort = 0.0
+        total_manipulability = 0.0
 
-        if goals_to_achieve is None:
-            goals.append(env.task.goal)
-        else:
-            # get next goal
-            env.task.goal = goals_to_achieve.pop(0)
+        # get next goal
+        env.task.goal = np.array(goals_to_achieve.pop(0))
 
 
         while True:
@@ -91,8 +92,6 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, goals_to_achie
             distribution_stds = []
             distribution_variances = []
             variances = []
-
-
 
             for model in models:
                 action, _states = model.predict(obs, deterministic=deterministic)
@@ -167,11 +166,13 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, goals_to_achie
 
             # add results and metrics
             episode_reward += reward
-            current_effort = env.task.get_norm_effort()
-            manipulability.append(env.task.manipulability)
+
+            total_effort += env.task.get_norm_effort()
+            total_manipulability += env.task.manipulability
             ee_pos.append(env.robot.get_ee_position())
             ee_speed.append(np.linalg.norm(env.robot.get_ee_velocity()))
             ep_length += 1
+
 
             if done or truncated:
                 # sleep(2)
@@ -195,8 +196,8 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, goals_to_achie
                 ep_lengths.append(ep_length)
                 end_effector_speeds.append(ee_speed)
                 end_effector_positions.append(ee_pos)
-                effort += current_effort
-                manipulabilities.append(manipulability)
+                efforts.append(total_effort/ep_length)
+                manipulabilities.append(total_manipulability/ep_length)
 
                 # finish episode
                 break
@@ -213,7 +214,7 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, goals_to_achie
                "num_episodes": np.round(len(done_events), 3),
                "mean_ep_length": np.round(np.mean(ep_length), 3),
                "mean_num_sim_steps": np.round(np.mean([i * configuration["n_substeps"] for i in ep_lengths]), 3),
-               "mean_action_difference": np.round(np.mean(effort), 4),
+               "mean_effort": np.round(np.mean(efforts), 4),
                "mean_manipulability": np.round(np.mean(manipulabilities), 4),
                }
 
@@ -410,10 +411,21 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, goals_to_achie
 panda_gym.register_envs(100)
 
 # env = get_env(config, "cube_3_random")
+
+mt_cc_agents = ["gallant-serenity-299", "deep-frog-298", "solar-microwave-297", "revived-serenity-296",
+                          "glamorous-resonance-295"]
+
+cc_agents = ["firm-pond-79", "confused-firebrand-91", "rare-moon-92", "gallant-shape-95", "silver-hill-96"]
+
+mt_agents = ["solar-disco-133", "stellar-river-132", "snowy-pine-131", "comic-frost-130", "giddy-darkness-129"]
+
+simple_agents = ["dulcet-plant-105", "restful-bird-103", "graceful-dream-100", "noble-field-99", "easy-lion-98"]
+
 if __name__ == "__main__":
     human = False
 
-    env = gymnasium.make(configuration["env_name"], render=human, control_type=configuration["control_type"],
+    # workaround
+    init_env = gymnasium.make(configuration["env_name"], render=human, control_type=configuration["control_type"],
                          obs_type=configuration["obs_type"],
                          goal_distance_threshold=configuration["goal_distance_threshold"],
                          reward_type="sparse", limiter=configuration["limiter"],
@@ -423,20 +435,16 @@ if __name__ == "__main__":
                          truncate_episode_on_collision=configuration["truncate_episode_on_collision"],
                          show_debug_labels=True, n_substeps=configuration["n_substeps"])
 
-    path_names = []
-    for path_to_model in ["gallant-serenity-299", "deep-frog-298", "solar-microwave-297", "revived-serenity-296",
-                          "glamorous-resonance-295"]:
-        path_names.append(fr"../run/run_data/wandb/{path_to_model}")
+    with open("scenario_goals", "r") as file:
+        scenario_goals = json.load(file)
 
-    goals_to_achieve = None
+    for model_name in cc_agents:
 
-    for path in path_names:
 
-        # Load Model ensemble
-        model = TQC.load(fr"{path}/files/best_model.zip", env=env,
+        # Load model
+        model = TQC.load(fr"../run/run_data/wandb/{model_name}/files/best_model.zip", env=init_env,
                          custom_objects={"action_space": gymnasium.spaces.Box(-1.0, 1.0, shape=(7,),
                                                                               dtype=np.float32)})  # for some reason it won't read action space sometimes
-        model.env.close()
 
         evaluation_results = {}
         for evaluation_scenario in ["wangexp_3", "narrow_tunnel", "library2", "workshop",
@@ -452,11 +460,9 @@ if __name__ == "__main__":
                                  show_debug_labels=True, n_substeps=20)
             print(f"Evaluating {evaluation_scenario}")
             model.set_env(env)
+            goals_to_achieve = copy(scenario_goals[evaluation_scenario])
             results, metrics = evaluate_ensemble([model], env, human=human, num_episodes=500, deterministic=True,
                                                  strategy="variance_only", goals_to_achieve=goals_to_achieve, scenario_name=evaluation_scenario)
-
-            if goals_to_achieve is None:
-                goals_to_achieve = metrics["goals"]
 
             evaluation_results[evaluation_scenario] = {"results": results, "metrics": metrics}
             env.close()
@@ -472,7 +478,7 @@ if __name__ == "__main__":
         table = pd.DataFrame(results)
         table.index.name = "Criterias"
         print(table.to_markdown())
-        table.to_csv(f"path_to_model/evaluation/results")
+        table.to_excel(f"results/{model_name}.csv")
 
     # evaluate ensemble
 

@@ -10,7 +10,7 @@ env = gym.make(configuration["env_name"], render=True, show_goal_space=True, obs
                show_debug_labels=True, scenario="narrow_tunnel", reward_type="kumar", randomize_robot_pose = False,
                joint_obstacle_observation="vectors+all")
 env.reset()
-
+goals = []
 while True:
     observation, reward, terminated, truncated, info = env.step(np.array([0,0,0,0,0,0,0]))
 

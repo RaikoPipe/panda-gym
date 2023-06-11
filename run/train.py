@@ -34,17 +34,17 @@ configuration = {
     "algorithm": "TQC",
     "reward_type": "kumar",  # sparse; dense
     "goal_distance_threshold": 0.05,
-    "max_timesteps": 900_000,
-    "seed": 1,
+    "max_timesteps": 2_000_000,
+    "seed": 8,
     "render": False,  # renders the eval env
-    "n_substeps": 5,  # number of simulation steps before handing control back to agent
+    "n_substeps": 20,  # number of simulation steps before handing control back to agent
     "obs_type": ["ee", "js"],  # Robot state to observe
     "control_type": "js",
     # Agent Output; js: joint velocities, ee: end effector displacements; jsd: joint velocities (applied directly)
     "limiter": "sim",
     "action_limiter": "clip",
     "show_goal_space": False,
-    "replay_buffer_class": VecHerReplayBuffer,  # HerReplayBuffer
+    "replay_buffer_class": DictReplayBuffer,  # HerReplayBuffer
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": False,
     "n_envs": 8,
@@ -96,7 +96,7 @@ hyperparameters_pybullet_defaults_tqc = {  # same as sac
     "learning_rate": float(7.3e-4),  # 0.0007, #0.00073 # linear_schedule(0.001)
     "gamma": 0.98,
     "tau": 0.02,
-    "buffer_size": 300_000,  # 300_000
+    "buffer_size": 1_000_000,  # 300_000
     "batch_size": 256,
     "gradient_steps": 8,
     "train_freq": 8,
@@ -213,7 +213,8 @@ def base_train(config):
     config["stages"] = reach_ao_stages
     config["success_thresholds"] = reach_ao_succ_thresholds
     config["max_ep_steps"] = [*reach_ao_max_ep_steps]
-    config["max_timesteps"] = 600_000
+    config["max_timesteps"] = 300_000
+    config["n_substeps"] = 20
 
     model, run = learn(config=config, algorithm=config["algorithm"])
 
@@ -224,8 +225,8 @@ def optimize_train(model, config, wandb_run = None ):
     config["stages"] = ["wangexp_3"]
     config["success_thresholds"] = [999]
     config["max_ep_steps"] = [400]
-    config["max_timesteps"] = 900_000
-    config["replay_buffer_class"] = VecHerReplayBuffer
+    config["max_timesteps"] = 2_000_000
+    config["replay_buffer_class"] = DictReplayBuffer
     config["goal_condition"] = "halt"
     config["n_substeps"] = 5
 
@@ -237,9 +238,9 @@ def optimize_train(model, config, wandb_run = None ):
     model = model.load("temp_model", env=env, replay_buffer_class = config["replay_buffer_class"])
     model.learning_starts = 10_000
 
-    if config["replay_buffer_class"] in (VecHerReplayBuffer, HerReplayBuffer):
-        # model.load_replay_buffer("temp_buffer")
-        model.replay_buffer.set_env(model.env)
+    # if config["replay_buffer_class"] in (VecHerReplayBuffer, HerReplayBuffer):
+    #     # model.load_replay_buffer("temp_buffer")
+    #     model.replay_buffer.set_env(model.env)
 
 
 
@@ -252,13 +253,12 @@ if __name__ == "__main__":
 
     wandb.login(key=os.getenv("wandb_key"))
 
-    # for i in range(5):
-    #     main()
     path_names = []
-    for path_to_model in ["gallant-serenity-299", "deep-frog-298", "solar-microwave-297", "revived-serenity-296", "glamorous-resonance-295"]:
+    for path_to_model in ["solar-microwave-297","deep-frog-298", "gallant-serenity-299"]:
         path_names.append(fr"../run/run_data/wandb/{path_to_model}")
 
-    for path_to_model in path_names:
+    for path_to_model, seed in zip(path_names, range(2,5)):
+        configuration["seed"] = seed
         env = get_env(configuration, configuration["n_envs"], configuration["stages"][0])
         model = TQC.load(f"{path_to_model}/files/best_model.zip", env=env,
                          replay_buffer_class=configuration["replay_buffer_class"],
@@ -279,7 +279,6 @@ if __name__ == "__main__":
     #     configuration["seed"] = i
     #
     #     model, run = base_train(configuration)
-    #     #todo: increase n_substeps during optimization training
     #     #model, run = optimize_train(model, run, configuration)
     #
     #     run.finish()
