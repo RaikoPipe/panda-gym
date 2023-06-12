@@ -1,3 +1,4 @@
+import logging
 import sys
 from copy import deepcopy
 
@@ -81,56 +82,62 @@ def get_model(algorithm, config, run):
     # env = get_env(config, config["stages"][0], deactivate_render=True)
     n_actions = 7 if config["control_type"] == "js" else 3
     # env.close()
-
-    if config.get("noise_std"):
+    noise_std = config["hyperparams"].get("noise_std")
+    if noise_std:
         normal_action_noise = NormalActionNoise(mean=np.zeros(n_actions),
-                                                sigma=config["noise_std"] * np.ones(n_actions))
+                                                sigma=noise_std * np.ones(n_actions))
         vectorized_action_noise = VectorizedActionNoise(n_envs=config["n_envs"], base_noise=normal_action_noise)
-        action_noise = vectorized_action_noise if config["n_env"] > 1 else normal_action_noise
+        action_noise = vectorized_action_noise if config["n_envs"] > 1 else normal_action_noise
+        config["hyperparams"].pop("noise_std")
     else:
         action_noise = None
-    # todo: test train frequency
-    if algorithm in ("TD3", "DDPG"):
-        model = TD3(config["policy_type"], env=get_env(config, config["n_envs"], config["stages"][0]),
-                    verbose=1, seed=config["seed"],
-                    tensorboard_log=f"runs/{run.id}", device="cuda",
-                    replay_buffer_class=config["replay_buffer_class"],
-                    learning_starts=config["learning_starts"],
-                    # hyperparameters
-                    **config["hyperparams"]
 
-                    )
-    elif algorithm == "SAC":
-        model = SAC(config["policy_type"], env=get_env(config, config["n_envs"], config["stages"][0]),
-                    verbose=1, seed=config["seed"],
-                    tensorboard_log=f"runs/{run.id}", device="cuda",
-                    replay_buffer_class=config["replay_buffer_class"],
-                    learning_starts=config["learning_starts"],
+    algorithm_type = None
+    match algorithm:
+        case "DDPG":
+            algorithm_type = DDPG
+        case "TD3":
+            algorithm_type = TD3
+        case "SAC":
+            algorithm_type = SAC
+        case "TQC":
+            algorithm_type = TQC
 
-                    # hyperparameters
+    if algorithm_type is None:
+        logging.warning("Algorithm not found. Aborting")
+        raise Exception("Algorithm not found!")
 
-                    **config["hyperparams"]
-                    )
-    elif algorithm == "TQC":
-        model = TQC(config["policy_type"], env=get_env(config, config["n_envs"], config["stages"][0]),
-                    verbose=1, seed=config["seed"],
-                    tensorboard_log=f"runs/{run.id}", device="cuda",
-                    replay_buffer_class=config["replay_buffer_class"],
-                    learning_starts=config["learning_starts"],
+    model = algorithm_type(
+        config["policy_type"], env=get_env(config, config["n_envs"], config["stages"][0]),
+        verbose=1, seed=config["seed"],
+        tensorboard_log=f"runs/{run.id}", device="cuda",
+        replay_buffer_class=config["replay_buffer_class"],
+        learning_starts=config["learning_starts"],
+        action_noise=action_noise,
+        # hyperparameters
+        **config["hyperparams"]
+    )
 
-                    # hyperparameters
-
-                    **config["hyperparams"]
-
-                    # learning_rate=config["learning_rate"],
-                    # gamma=config["gamma"],
-                    # tau=config["tau"],
-                    # buffer_size=config["buffer_size"],
-                    # gradient_steps=config["gradient_steps"],
-                    # train_freq=config["train_freq"],
-                    # use_sde=config["use_sde"],
-                    # policy_kwargs=config["policy_kwargs"]
-                    )
+    # elif algorithm == "TQC":
+    #     model = TQC(config["policy_type"], env=get_env(config, config["n_envs"], config["stages"][0]),
+    #                 verbose=1, seed=config["seed"],
+    #                 tensorboard_log=f"runs/{run.id}", device="cuda",
+    #                 replay_buffer_class=config["replay_buffer_class"],
+    #                 learning_starts=config["learning_starts"],
+    #
+    #                 # hyperparameters
+    #
+    #                 **config["hyperparams"]
+    #
+    #                 # learning_rate=config["learning_rate"],
+    #                 # gamma=config["gamma"],
+    #                 # tau=config["tau"],
+    #                 # buffer_size=config["buffer_size"],
+    #                 # gradient_steps=config["gradient_steps"],
+    #                 # train_freq=config["train_freq"],
+    #                 # use_sde=config["use_sde"],
+    #                 # policy_kwargs=config["policy_kwargs"]
+    #                 )
 
     return model
 
@@ -263,7 +270,7 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
 
 
     # evaluate trained model
-    benchmark_model(config, model, run)
+    # benchmark_model(config, model, run)
 
     return model, run
 

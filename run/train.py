@@ -37,7 +37,7 @@ configuration = {
     "max_timesteps": 2_000_000,
     "seed": 8,
     "render": False,  # renders the eval env
-    "n_substeps": 20,  # number of simulation steps before handing control back to agent
+    "n_substeps": 5,  # number of simulation steps before handing control back to agent
     "obs_type": ["ee", "js"],  # Robot state to observe
     "control_type": "js",
     # Agent Output; js: joint velocities, ee: end effector displacements; jsd: joint velocities (applied directly)
@@ -151,27 +151,14 @@ hyperparameters_pybullet_defaults_ppo = {
 }
 
 hyperparameters_pybullet_defaults_ddpg = {
-    # todo: fix true hyperparams
-    "normalize": True,
-    "n_envs": 16,
-    "policy": 'MlpPolicy',
-    "batch_size": 128,
-    "n_steps": 512,
-    "gamma": 0.99,
-    "gae_lambda": 0.9,
-    "n_epochs": 20,
-    "ent_coef": 0.0,
-    "sde_sample_freq": 4,
-    "max_grad_norm": 0.5,
-    "vf_coef": 0.5,
-    "learning_rate": float(3e-5),
-    "use_sde": True,
-    "clip_range": 0.4,
-    "policy_kwargs": dict(log_std_init=-2,
-                          ortho_init=False,
-                          activation_fn=nn.ReLU,
-                          net_arch=dict(pi=[256, 256], vf=[256, 256])
-                          ),
+    "learning_rate": float(1e-3),  # 0.0007, #0.00073 # linear_schedule(0.001)
+    "gamma": 0.98,
+    "buffer_size": 200_000,  # 300_000
+    "gradient_steps": 1,
+    "train_freq": 1,
+    "noise_std": 0.1,
+
+    "policy_kwargs": dict(net_arch=[256, 256])  # 400, 300
 }
 
 # hyperparameters_tqc = {
@@ -254,10 +241,10 @@ if __name__ == "__main__":
     wandb.login(key=os.getenv("wandb_key"))
 
     path_names = []
-    for path_to_model in ["solar-microwave-297","deep-frog-298", "gallant-serenity-299"]:
+    for path_to_model in ["gallant-serenity-299"]:
         path_names.append(fr"../run/run_data/wandb/{path_to_model}")
 
-    for path_to_model, seed in zip(path_names, range(2,5)):
+    for path_to_model, seed in zip(path_names, range(4,5)):
         configuration["seed"] = seed
         env = get_env(configuration, configuration["n_envs"], configuration["stages"][0])
         model = TQC.load(f"{path_to_model}/files/best_model.zip", env=env,

@@ -37,7 +37,7 @@ def fuse_controllers(prior_mu, prior_sigma, policy_mu, policy_sigma):
 
 
 def evaluate_ensemble(models, env, human=True, num_episodes=1000, goals_to_achieve=None, deterministic=True,
-                      strategy="variance_only", scenario_name=""):
+                      strategy="variance_only", scenario_name="", prior_orientation=None):
     """
     Evaluate a RL agent
     :param model: (BaseRLModel object) the RL Agent
@@ -86,13 +86,15 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, goals_to_achie
         # get next goal
         env.task.goal = np.array(goals_to_achieve.pop(0))
 
-
         while True:
             actions = []
             distribution_stds = []
             distribution_variances = []
             variances = []
 
+            if isinstance(models[0], str):
+                action = env.robot.compute_action_neo(env.task.goal, env.task.obstacles, env.task.collision_detector,
+                                                      prior_orientation)
             for model in models:
                 action, _states = model.predict(obs, deterministic=deterministic)
 
@@ -421,7 +423,49 @@ mt_agents = ["solar-disco-133", "stellar-river-132", "snowy-pine-131", "comic-fr
 
 simple_agents = ["dulcet-plant-105", "restful-bird-103", "graceful-dream-100", "noble-field-99", "easy-lion-98"]
 
-if __name__ == "__main__":
+def evaluate_prior(human=False):
+    with open("scenario_goals", "r") as file:
+        scenario_goals = json.load(file)
+
+    evaluation_results = {}
+    for evaluation_scenario, prior_orientation in zip(["wangexp_3", "narrow_tunnel", "library2", "workshop",
+                                "wall"], ["ORIENTATIONS"]):  # "wang_3", "library2", "library1", "narrow_tunnel", "wall"
+        env = gymnasium.make(configuration["env_name"], render=human, control_type=configuration["control_type"],
+                             obs_type=configuration["obs_type"], goal_distance_threshold=0.05,
+                             goal_condition="reach",
+                             reward_type="sparse", limiter=configuration["limiter"],
+                             show_goal_space=True, scenario=evaluation_scenario,
+                             randomize_robot_pose=False,  # if evaluation_scenario != "wang_3" else True,
+                             joint_obstacle_observation="vectors+all",
+                             truncate_episode_on_collision=True,
+                             show_debug_labels=True, n_substeps=20)
+        print(f"Evaluating {evaluation_scenario}")
+
+        goals_to_achieve = copy(scenario_goals[evaluation_scenario])
+        results, metrics = evaluate_ensemble(["prior"], env, human=human, num_episodes=500, deterministic=True,
+                                             strategy="variance_only", goals_to_achieve=goals_to_achieve, scenario_name=evaluation_scenario,
+                                             prior_orientation=prior_orientation)
+
+        evaluation_results[evaluation_scenario] = {"results": results, "metrics": metrics}
+        env.close()
+
+
+        for key, value in evaluation_results.items():
+            results = value["results"]
+            print(f"{key}: {results}")
+
+        results = {}
+        for key, value in evaluation_results.items():
+            results[key] = value["results"]
+
+        table = pd.DataFrame(results)
+        table.index.name = "Criterias"
+        print(table.to_markdown())
+        table.to_excel(f"results/prior.csv")
+
+
+
+def evaluate_rl_agent():
     human = False
 
     # workaround
@@ -480,6 +524,10 @@ if __name__ == "__main__":
         print(table.to_markdown())
         table.to_excel(f"results/{model_name}.csv")
 
+
+
+if __name__ == "__main__":
+    evaluate_rl_agent()
     # evaluate ensemble
 
     # env = gym.make(config["env_name"], render=human, control_type=config["control_type"],
