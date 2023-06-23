@@ -70,7 +70,7 @@ class Panda(PyBulletRobot):
         self.sim.set_spinning_friction(self.body_name, self.fingers_indices[0], spinning_friction=0.001)
         self.sim.set_spinning_friction(self.body_name, self.fingers_indices[1], spinning_friction=0.001)
 
-        self.max_change_position = 0.05#0.0025 * n_substeps
+        self.max_change_position = 0.0025 * n_substeps # 0.05
 
         # limits
         self.joint_lim_min = np.array([-2.7437,-1.7837,-2.9007,-3.0421,-2.8065,0.5445,-3.0159])
@@ -88,7 +88,9 @@ class Panda(PyBulletRobot):
 
         self.current_joint_velocity = np.zeros(7)
         self.previous_joint_velocity = np.zeros(7)
-        self.current_acceleration = None # pybullet doesn't allow for getting acceleration
+        self.current_joint_acceleration = np.zeros(7) # pybullet doesn't allow for getting acceleration
+        self.previous_joint_acceleration = np.zeros(7)
+        self.current_joint_jerk = np.zeros(7)
 
         self.rtb = use_robotics_toolbox
         self.panda_rtb = rtb.models.Panda()
@@ -163,8 +165,12 @@ class Panda(PyBulletRobot):
 
         # save current state
         self.previous_joint_velocity = self.current_joint_velocity
+        self.previous_joint_acceleration = self.current_joint_acceleration
         self.current_joint_velocity = np.array([self.get_joint_velocity(joint=i) for i in range(7)])
-        self.current_acceleration = self.previous_joint_velocity - self.current_joint_velocity
+        self.current_joint_acceleration = self.previous_joint_velocity - self.current_joint_velocity
+        self.current_joint_jerk = abs(self.previous_joint_acceleration - self.current_joint_acceleration)
+
+
 
         # if self.rtb:
         #     self.update_dummy_robot_link_positions()
@@ -256,48 +262,48 @@ class Panda(PyBulletRobot):
         target_arm_angles = current_arm_joint_angles + arm_joint_ctrl
         return target_arm_angles
 
-    def arm_joint_ctrl_to_target_arm_angles_ruckig(self, arm_joint_ctrl: np.ndarray) -> np.ndarray:
-        """Compute the target arm angles from the arm joint control.
-
-        Args:
-            arm_joint_ctrl (np.ndarray): Control of the 7 joints.
-
-        Returns:
-            np.ndarray: Target arm angles, as the angles of the 7 arm joints.
-        """
-        arm_joint_ctrl = arm_joint_ctrl * 0.05  # limit maximum change in position
-
-        inp = InputParameter(7)  # DOFs
-
-        current_joint_angles = np.array([self.get_joint_angle(joint=i) for i in range(7)])
-        current_joint_velocities = np.array([self.get_joint_velocity(joint=i) for i in range(7)])
-        current_acceleration = current_joint_velocities - self.previous_joint_velocities
-
-        inp.current_position = current_joint_angles
-        inp.current_velocity = current_joint_velocities
-        inp.current_acceleration = current_acceleration
-
-        inp.target_position = self.current_joint_angles + arm_joint_ctrl
-
-        inp.max_position = self.joint_lim_max
-        inp.max_velocity = self.joint_velocity_limits
-        inp.max_acceleration = self.joint_acceleration_limits
-        inp.max_jerk = self.joint_max_jerk
-
-        otg = Ruckig(7)
-        trajectory = Trajectory(7)
-        result = otg.calculate(inp, trajectory)
-        if result == Result.ErrorInvalidInput:
-            raise Exception('Invalid input!')
-
-        new_time = self.sim.timestep
-
-        target_joint_angles, target_joint_velocities, target_joint_accelerations = trajectory.at_time(new_time)
-
-        self.previous_joint_velocities = current_joint_velocities
-
-        # target_arm_angles = current_arm_joint_angles + arm_joint_ctrl
-        return target_joint_angles
+    # def arm_joint_ctrl_to_target_arm_angles_ruckig(self, arm_joint_ctrl: np.ndarray) -> np.ndarray:
+    #     """Compute the target arm angles from the arm joint control.
+    #
+    #     Args:
+    #         arm_joint_ctrl (np.ndarray): Control of the 7 joints.
+    #
+    #     Returns:
+    #         np.ndarray: Target arm angles, as the angles of the 7 arm joints.
+    #     """
+    #     arm_joint_ctrl = arm_joint_ctrl * 0.05  # limit maximum change in position
+    #
+    #     inp = InputParameter(7)  # DOFs
+    #
+    #     current_joint_angles = np.array([self.get_joint_angle(joint=i) for i in range(7)])
+    #     current_joint_velocities = np.array([self.get_joint_velocity(joint=i) for i in range(7)])
+    #     current_acceleration = current_joint_velocities - self.previous_joint_velocit
+    #
+    #     inp.current_position = current_joint_angles
+    #     inp.current_velocity = current_joint_velocities
+    #     inp.current_acceleration = current_acceleration
+    #
+    #     inp.target_position = self.current_joint_angles + arm_joint_ctrl
+    #
+    #     inp.max_position = self.joint_lim_max
+    #     inp.max_velocity = self.joint_velocity_limits
+    #     inp.max_acceleration = self.joint_acceleration_limits
+    #     inp.max_jerk = self.joint_max_jerk
+    #
+    #     otg = Ruckig(7)
+    #     trajectory = Trajectory(7)
+    #     result = otg.calculate(inp, trajectory)
+    #     if result == Result.ErrorInvalidInput:
+    #         raise Exception('Invalid input!')
+    #
+    #     new_time = self.sim.timestep
+    #
+    #     target_joint_angles, target_joint_velocities, target_joint_accelerations = trajectory.at_time(new_time)
+    #
+    #     self.previous_joint_velocities = current_joint_velocities
+    #
+    #     # target_arm_angles = current_arm_joint_angles + arm_joint_ctrl
+    #     return target_joint_angles
 
     def get_obs(self) -> np.ndarray:
         observation = []
@@ -373,7 +379,9 @@ class Panda(PyBulletRobot):
         elif target_pose == "front":
             Tep = SE3().RPY(np.array([0, 90,0]), unit="deg")
         elif target_pose == "back":
-            Tep = SE3().RPY(np.array([0, -135, 0]), unit="deg")
+            Tep = SE3().RPY(np.array([0, -90, 0]), unit="deg")
+        elif target_pose == "halfback":
+            Tep = SE3().RPY(np.array([0, -75, 0]), unit="deg")
         elif target_pose == "neg_neutral":
             Tep = self.panda_rtb.fkine(np.negative(self.neutral_joint_values[:7]))
         elif target_pose == "current":
@@ -406,7 +414,7 @@ class Panda(PyBulletRobot):
 
         # Calulate the required end-effector spatial velocity for the robot
         # to approach the goal. Gain is set to 1.0
-        v, arrived = rtb.p_servo(Te, Tep, 2.5, 0.05)
+        v, arrived = rtb.p_servo(Te, Tep, 1.0, 0.05)
 
         # Gain term (lambda) for control minimisation
         Y = 0.01
@@ -509,7 +517,7 @@ class Panda(PyBulletRobot):
 
         # Calulate the required end-effector spatial velocity for the robot
         # to approach the goal. Gain is set to 1.0
-        v, arrived = rtb.p_servo(Te, Tep, 1.0, 0.05)
+        v, arrived = rtb.p_servo(Te, Tep, 2.5, 0.05)
 
         # Gain term (lambda) for control minimisation
         Y = 0.01

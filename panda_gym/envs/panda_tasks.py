@@ -117,7 +117,7 @@ class PandaReachAOEnv(RobotTaskEnv):
     def __init__(self, render: bool = False, realtime: bool = False,
                  reward_type: str = "sparse", goal_distance_threshold: float = 0.05, goal_condition="reach",
                  control_type: str = "js", obs_type: tuple =("ee",), show_goal_space=False, scenario: str = "cube_3_random",
-                 randomize_robot_pose:bool=False, truncate_episode_on_collision=True,
+                 randomize_robot_pose:bool=False, truncate_on_collision=True, terminate_on_success=True,
                  joint_obstacle_observation: str = "all", show_debug_labels=False, fixed_target=None, limiter="sim",
                  action_limiter="clip", n_substeps=20, collision_reward = -100
                  ) -> None:
@@ -126,19 +126,19 @@ class PandaReachAOEnv(RobotTaskEnv):
                       obs_type=obs_type,
                       limiter=limiter, action_limiter=action_limiter, n_substeps=n_substeps)
         task = ReachAO(sim, robot, reward_type=reward_type,
-                                   goal_distance_threshold=goal_distance_threshold,
-                                    goal_condition=goal_condition,
-                                   joint_obstacle_observation=joint_obstacle_observation,
-                                   scenario=scenario,
-                                    randomize_robot_pose=randomize_robot_pose,
-                                    truncate_episode_on_collision=truncate_episode_on_collision,
-                                   get_ee_position=robot.get_ee_position,
-                                   show_goal_space=show_goal_space,
-                                   show_debug_labels=show_debug_labels,
-                                   fixed_target=fixed_target,
+                       goal_distance_threshold=goal_distance_threshold,
+                       goal_condition=goal_condition,
+                       joint_obstacle_observation=joint_obstacle_observation,
+                       scenario=scenario,
+                       randomize_robot_pose=randomize_robot_pose,
+                       truncate_episode_on_collision=truncate_on_collision,
+                       get_ee_position=robot.get_ee_position,
+                       show_goal_space=show_goal_space,
+                       show_debug_labels=show_debug_labels,
+                       fixed_target=fixed_target,
                        collision_reward=collision_reward
-                                   )
-        super().__init__(robot, task, reward_type)
+                       )
+        super().__init__(robot, task, terminate_on_success)
 
 
 class PandaSlideEnv(RobotTaskEnv):

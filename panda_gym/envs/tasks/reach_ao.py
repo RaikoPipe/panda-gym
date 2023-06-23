@@ -90,10 +90,11 @@ class ReachAO(Task):
         self.reward_type = reward_type
         self.goal_condition = goal_condition
         self.distance_threshold = goal_distance_threshold
-        self.ee_speed_threshold = 0.001
+        self.ee_speed_threshold = 0.01
         self.get_ee_position = get_ee_position
         self.goal_range = 0.3
         self.obstacle_count = 0
+        self.goal_reached = False
 
         self._sample_goal = self._sample_obstacle = self.sample_from_goal_range
         # set default goal range
@@ -103,10 +104,7 @@ class ReachAO(Task):
 
         self.truncate_episode_on_collision = truncate_episode_on_collision
         if not self.truncate_episode_on_collision:
-            def no_truncation():
-                pass
-
-            self.is_truncated = no_truncation
+            self.is_truncated = lambda: ()
 
         # # init pose generator env
         # self.reach_checker_env = gym.make("PandaReachChecker", control_type = "js", render=False)
@@ -189,6 +187,8 @@ class ReachAO(Task):
             self.debug_action_difference_base_text = "Action Difference:"
             self.debug_effort_label_name = "effort"
             self.debug_effort_base_text = "Effort:"
+            self.debug_jerk_label_name = "jerk"
+            self.debug_jerk_base_text = "Jerk:"
 
             self.debug_reward_label_name = "reward"
             self.debug_reward_base_text = "Reward:"
@@ -290,8 +290,8 @@ class ReachAO(Task):
         self.robot.neutral_joint_values = np.array([-1.0, -0.3, 0, -2.2, 0, 2.0, np.pi / 4, 0.00, 0.00])
 
         self.robot.set_joint_neutral()
-        self.goal_range_low = np.array([0.3, 0.2, 0.2])
-        self.goal_range_high = np.array([0.6, 0.4, 0.6])
+        self.goal_range_low = np.array([0.55, 0.2, 0.2])
+        self.goal_range_high = np.array([0.75, 0.4, 0.75])
 
         with open(f"{NARROW_TUNNEL_DIR}\\narrow_tunnel.json") as t:
             urdfs = json.load(t)
@@ -919,6 +919,7 @@ class ReachAO(Task):
         return ee_position
 
     def reset(self) -> None:
+        self.goal_reached = False
 
         if self.fixed_target is None:
             self.set_coll_free_goal(["table", "robot"])
@@ -965,7 +966,7 @@ class ReachAO(Task):
         self.robot.previous_action = None
 
     def set_random_num_obs(self):
-        num_obs = random.randint(self.sample_size_obs[0], self.sample_size_obs[1])
+        num_obs = self.np_random.randint(self.sample_size_obs[0], self.sample_size_obs[1])
         obs_to_move = abs(num_obs - len(self.obstacles))
         # shuffle obstacle order
         keys = list(self.obstacles.keys())
@@ -1132,15 +1133,21 @@ class ReachAO(Task):
         # if self.goal_condition == "reach":
         #     return np.array(d < self.distance_threshold, dtype=bool)
         # else:
-        #     ee_speed = np.linalg.norm(self.robot.get_ee_velocity())
+        #
         #     return np.array(np.logical_and((d < self.distance_threshold), (ee_speed < self.ee_speed_threshold)), dtype=bool)
+        if self.goal_condition == "halt":
+            if not self.goal_reached:
+                ee_speed = np.linalg.norm(self.robot.get_ee_velocity())
+                self.goal_reached = np.array(np.logical_and((d < self.distance_threshold), (ee_speed < self.ee_speed_threshold)), dtype=bool)
 
-        return np.array(d < self.distance_threshold, dtype=bool)
+        else:
+            return np.array(d < self.distance_threshold, dtype=bool)
+        return np.array(self.goal_reached, dtype=bool)
 
     def is_truncated(self) -> np.ndarray:
         return np.array(self.is_collided, dtype=bool)
 
-    def update_labels(self, manipulability, distance, obstacle_distances, action_difference, action_magnitude, reward):
+    def update_labels(self, manipulability, distance, obstacle_distances, action_difference, effort,jerk, reward):
         with self.sim.no_rendering():
             # self.sim.remove_all_debug_text()
             # self.sim.remove_debug_text(self.debug_dist_label_name)
@@ -1156,7 +1163,9 @@ class ReachAO(Task):
                 self.sim.create_debug_text(self.debug_action_difference_label_name,
                                            f"{self.debug_action_difference_base_text} {np.round(action_difference, 5)}")
                 self.sim.create_debug_text(self.debug_effort_label_name,
-                                           f"{self.debug_effort_base_text} {np.round(action_magnitude, 5)}")
+                                           f"{self.debug_effort_base_text} {np.round(effort, 5)}")
+                self.sim.create_debug_text(self.debug_jerk_label_name,
+                                           f"{self.debug_jerk_base_text} {np.round(jerk, 5)}")
                 self.sim.create_debug_text(self.debug_reward_label_name,
                                            f"{self.debug_reward_base_text} {np.round(reward, 5)}")
                 pass
@@ -1175,7 +1184,10 @@ class ReachAO(Task):
     def get_norm_effort(self) -> float:
         """Calculate the magnitude of the action, i.e. calculate the square of the norm of the action."""
 
-        return np.linalg.norm(self.robot.current_acceleration)
+        return np.linalg.norm(self.robot.current_joint_acceleration)
+
+    def get_norm_jerk(self):
+        return np.linalg.norm(self.robot.current_joint_jerk)
 
     def compute_reward(self, achieved_goal, desired_goal, info: Dict[str, Any]) -> np.ndarray:
         ee_error = distance(achieved_goal, desired_goal)
@@ -1184,6 +1196,7 @@ class ReachAO(Task):
         obs_distance = self.distances_links_to_closest_obstacle
         action_diff = self.get_norm_action_difference()
         effort = self.get_norm_effort()
+        jerk = self.get_norm_jerk()
 
         if self.reward_type == "sparse":
             if self.goal_condition == "reach":
@@ -1199,6 +1212,18 @@ class ReachAO(Task):
                 np.square(ee_error) + tolerance_distance)
             obstacle_reward = weight_obs * np.sum([np.max([0, 1 - d / 0.05]) for d in obs_distance])
             reward = -np.array(distance_reward + obstacle_reward, dtype=np.float32)
+        elif self.reward_type == "kumar_her":
+            if self.goal_condition == "reach":
+                reward = -np.array((ee_error > self.distance_threshold) * jerk, dtype=np.float32)
+            else:
+                reward = np.array(np.logical_and((ee_error < self.distance_threshold),
+                                                  (ee_speed < self.ee_speed_threshold)), dtype=np.float32)
+                reward -= jerk
+        elif self.reward_type == "kumar_optim":
+            weight_effort = 0.005
+            reward = -np.array((ee_error > self.distance_threshold), dtype=np.float32)
+            reward -= effort
+
         elif self.reward_type == "kumar":
             weight_distance = 20
             weight_effort = 0.005
@@ -1209,9 +1234,10 @@ class ReachAO(Task):
             obstacle_reward = - weight_obs * np.sum([np.max([0, 1 - d / 0.05]) for d in obs_distance])
 
             #finish_reward =  1000 * np.array(np.logical_and((ee_error < self.distance_threshold), (ee_speed < self.ee_speed_threshold)), dtype=np.float32)
-            speed_reward = np.array(ee_error < self.distance_threshold, dtype=np.float32) * np.exp(-weight_distance * np.square(ee_speed))
+            # speed_reward = np.array(ee_error < self.distance_threshold, dtype=np.float32) * np.exp(-weight_distance * np.square(ee_speed))
+            #print(speed_reward)
 
-            reward = np.array(distance_reward + effort_reward + obstacle_reward + speed_reward, dtype=np.float32)
+            reward = np.array(distance_reward + effort_reward + obstacle_reward, dtype=np.float32)
 
         else:
             # calculate dense rewards
@@ -1226,9 +1252,9 @@ class ReachAO(Task):
                                     dtype=np.float32)
 
         if self.sim.render_env and self.show_debug_labels:
-            self.update_labels(manipulability, ee_error, obs_distance, action_diff, effort, reward)
+            self.update_labels(manipulability, ee_error, obs_distance, action_diff, effort, jerk, reward)
 
-        if self.truncate_episode_on_collision:
+        if self.truncate_episode_on_collision and self.reward_type in ["sparse", "kumar_her", "kumar_optim"]:
             reward -= self.is_collided * -self.collision_reward  # prevent double negative in collision reward
 
         self.action_diff = action_diff

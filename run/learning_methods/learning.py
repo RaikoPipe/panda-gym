@@ -22,10 +22,11 @@ import pandas as pd
 from gymnasium.envs.registration import register
 import wandb
 from wandb.integration.sb3 import WandbCallback
+import panda_gym
 
 
 def get_env(config, n_envs, scenario, force_render=False):
-    env = make_vec_env(config["env_name"], n_envs=n_envs,
+    env = make_vec_env(config["env_name"], n_envs=n_envs, seed=config["seed"],
                        env_kwargs={"render": config["render"] if force_render else False,
                                    "control_type": config["control_type"],
                                    "obs_type": config["obs_type"],
@@ -40,7 +41,8 @@ def get_env(config, n_envs, scenario, force_render=False):
                                    "n_substeps": config["n_substeps"],
                                    "joint_obstacle_observation": config["joint_obstacle_observation"],
                                    "randomize_robot_pose": config["randomize_robot_pose"],
-                                   "truncate_episode_on_collision": config["truncate_episode_on_collision"],
+                                   "truncate_on_collision": config["truncate_on_collision"],
+                                   "terminate_on_success": config["terminate_on_success"],
                                    "collision_reward": config["collision_reward"]
                                    },
                        vec_env_cls=SubprocVecEnv if n_envs > 1 else None
@@ -175,17 +177,11 @@ def init_wandb(config, tags):
     )
     return run
 
-def register_reach_ao(max_ep_steps):
-    register(
-        id="PandaReachAO-v3",
-        entry_point="panda_gym.envs:PandaReachAOEnv",
-        max_episode_steps=max_ep_steps,  # default: 50
-    )
 
 def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
           starting_stage: Optional[str] = None, algorithm: str = "TD3", ):
 
-    register_reach_ao(config["max_ep_steps"][0])
+    panda_gym.register_reach_ao(config["max_ep_steps"][0])
 
     tags = get_tags(config)
     if initial_model:
@@ -229,7 +225,7 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
 
     for stage, success_threshold, max_ep_steps in zip(config["stages"], config["success_thresholds"],
                                                       config["max_ep_steps"]):
-        register_reach_ao(max_ep_steps)
+        panda_gym.register_reach_ao(max_ep_steps)
 
         if config["n_envs"] > 1:
             model.env.close() # for some reason closing environments for single agent will cause error
@@ -298,10 +294,13 @@ def benchmark_model(config, model, run):
                              show_goal_space=False, scenario=evaluation_scenario,
                              randomize_robot_pose=False,
                              joint_obstacle_observation=config["joint_obstacle_observation"],
-                             truncate_episode_on_collision=config["truncate_episode_on_collision"],
+                             truncate_on_collision=config["truncate_on_collision"],
+                             terminate_on_success=config["terminate_on_success"],
+
                              show_debug_labels=True, n_substeps=config["n_substeps"])
         print(f"Evaluating {evaluation_scenario}")
         best_model = model.load(path=f"{wandb.run.dir}\\best_model.zip", env=env)
+
         results, metrics = evaluate_ensemble([best_model], env, human=False, num_episodes=500, deterministic=True,
                                              strategy="variance_only")
         evaluation_results[evaluation_scenario] = {"results": results, "metrics": metrics}
@@ -326,7 +325,7 @@ def continue_learning(model, config, run):
         tags.append("pre-trained")
         run = init_wandb(config, tags)
 
-    register_reach_ao(config["max_ep_steps"][0])
+    panda_gym.register_reach_ao(config["max_ep_steps"][0])
     eval_env = get_eval_env(config, stage=config["stages"][0])
 
     stop_train_callback = StopTrainingOnRewardThreshold(reward_threshold=config["success_thresholds"][0], verbose=1)
