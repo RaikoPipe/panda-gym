@@ -319,7 +319,7 @@ def benchmark_model(config, model, run):
         run.log({key: value["success_rate"]})
 
 
-def continue_learning(model, config, run):
+def continue_learning(model, config, run=None):
     if run is None:
         tags = get_tags(config)
         tags.append("pre-trained")
@@ -328,9 +328,9 @@ def continue_learning(model, config, run):
     panda_gym.register_reach_ao(config["max_ep_steps"][0])
     eval_env = get_eval_env(config, stage=config["stages"][0])
 
-    stop_train_callback = StopTrainingOnRewardThreshold(reward_threshold=config["success_thresholds"][0], verbose=1)
+    stop_train_callback = StopTrainingOnSuccessThreshold(success_threshold=config["success_thresholds"][0], verbose=1)
 
-    eval_callback = EvalCallback(eval_env=eval_env,
+    eval_callback = EvalSuccessCallback(eval_env=eval_env,
                                         eval_freq=max(config["eval_freq"] // config["n_envs"], 1),
                                         callback_after_eval=stop_train_callback, verbose=1, n_eval_episodes=100,
                                         best_model_save_path=wandb.run.dir)

@@ -63,7 +63,6 @@ class PyBullet:
         for _ in range(self.n_substeps):
             self.physics_client.stepSimulation()
 
-            # self.dummy_collision_client.stepSimulation()
 
     def close(self) -> None:
         """Close the simulation."""
@@ -839,8 +838,8 @@ class PyBullet:
 
         return idx
 
-    def create_debug_line(self, start, end):
-        p.addUserDebugLine(lineFromXYZ=start, lineToXYZ=end, lineColorRGB=np.array([0,1,0]))
+    def create_debug_line(self, start, end, id=0):
+        p.addUserDebugLine(lineFromXYZ=start, lineToXYZ=end, lineColorRGB=np.array([0,1,0]), physicsClientId=id)
 
     def remove_debug_text(self, text_name):
 

@@ -33,6 +33,7 @@ class ReachAO(Task):
             sim,
             robot,
             get_ee_position,
+            n_substeps=20,
             reward_type="sparse",
             goal_distance_threshold=0.05,
             goal_condition="reach",
@@ -116,6 +117,7 @@ class ReachAO(Task):
 
         self.bodies = {"robot": self.robot.id}
 
+
         exclude_links = ["panda_grasptarget", "panda_leftfinger", "panda_rightfinger"]  # env has no grasptarget
         self.collision_links = [i for i in self.robot.link_names if i not in exclude_links]
         self.collision_objects = []
@@ -174,6 +176,17 @@ class ReachAO(Task):
 
         self.self_collision_detector = CollisionDetector(col_id=self.sim_id, bodies=self.bodies,
                                                          named_collision_pairs=named_collision_pairs_robot)
+
+        # overwrite standard pybullet step
+        def step_check_collision():
+            """Step the simulation and check for collision."""
+            for _ in range(n_substeps):
+                self.sim.physics_client.stepSimulation()
+                if not self.is_collided:
+                    self.is_collided = self.check_collided()
+
+
+        sim.step = lambda: step_check_collision()
 
         self.show_debug_labels = show_debug_labels
         if self.show_debug_labels:
@@ -857,6 +870,11 @@ class ReachAO(Task):
         goal = self.np_random.uniform(self.goal_range_low, self.goal_range_high)
         return goal
 
+    def check_collided(self):
+        obs_per_link, info = self.collision_detector.compute_distances_per_link(max_distance=999.0)
+        self.distances_links_to_closest_obstacle = np.array([min(i) for i in obs_per_link.values()])
+        return min(self.distances_links_to_closest_obstacle) <= 0.0
+
     def get_obs(self) -> np.ndarray:
         obstacle_obs = np.zeros(9)
         # check robot collision
@@ -866,7 +884,7 @@ class ReachAO(Task):
             # q = self.robot.get_joint_angles(self.robot.joint_indices[:7])
             obs_per_link, info = self.collision_detector.compute_distances_per_link(max_distance=999.0)
 
-            self.distances_links_to_closest_obstacle = np.array([min(i) for i in obs_per_link.values()])
+            #self.distances_links_to_closest_obstacle = np.array([min(i) for i in obs_per_link.values()])
             if self.joint_obstacle_observation == "all":
                 obstacle_obs = self.distances_links_to_closest_obstacle
             elif self.joint_obstacle_observation == "all2":
@@ -889,9 +907,6 @@ class ReachAO(Task):
                 closest_distances_all = self.distances_links_to_closest_obstacle
                 obstacle_obs = np.concatenate([closest_distances_all, closest_distances_vectors])
 
-
-            self.is_collided = min(
-                self.distances_links_to_closest_obstacle) <= 0.0  # and min(robot_collision_obs) <= 0.0
         else:
             # no obstacles
             if self.joint_obstacle_observation == "vectors":
@@ -920,6 +935,7 @@ class ReachAO(Task):
 
     def reset(self) -> None:
         self.goal_reached = False
+        self.is_collided = False
 
         if self.fixed_target is None:
             self.set_coll_free_goal(["table", "robot"])
@@ -1278,6 +1294,9 @@ class ReachAO(Task):
             rgba_color=np.array([0.0, 1.0, 0.0, 0.2])
         )
 
+        self.create_goal_outline()
+
+    def create_goal_outline(self):
         d = [self.goal_range_low, self.goal_range_high]
 
         d.append(np.array([self.goal_range_low[0], self.goal_range_high[1], self.goal_range_high[2]]))
@@ -1293,7 +1312,7 @@ class ReachAO(Task):
             for dot2 in d:
                 intersection_count = sum([dot[0] == dot2[0], dot[1] == dot2[1], dot[2] == dot2[2]])
                 if intersection_count >= 2:
-                    self.sim.create_debug_line(dot, dot2)
+                    self.sim.create_debug_line(dot, dot2, id=self.sim_id)
 
         # self.sim.create_box(
         #     body_name="goal_space",
