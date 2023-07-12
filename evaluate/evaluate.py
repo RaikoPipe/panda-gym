@@ -19,9 +19,10 @@ import pandas as pd
 import panda_gym
 from tqdm import tqdm
 import json
-from copy import copy
+from copy import copy, deepcopy
 from multiprocessing import Process
 import panda_gym
+import pybullet
 
 def fuse_controllers(prior_mu, prior_sigma, policy_mu, policy_sigma):
     # The policy mu and sigma are from the stochastic SAC output
@@ -32,9 +33,55 @@ def fuse_controllers(prior_mu, prior_sigma, policy_mu, policy_sigma):
         (np.power(prior_sigma, 2) * np.power(policy_sigma, 2)) / (np.power(policy_sigma, 2) + np.power(prior_sigma, 2)))
     return mu, sigma
 
+def visualize_trajectory(env, done_event, trajectory):
+
+    try:
+        env.task.sim.physics_client.removeBody(env.task.sim._bodies_idx["sphere_temp"])
+    except: pass
+
+    env.task.sim.remove_all_debug_text()
+    # if env.task.show_goal_space:
+    #     env.task.create_goal_outline()  # workaround
+
+    # hide goal
+    #env.task.sim.set_base_pose("target", np.array([0.0, 0.0, -1.0]), np.array([0.0, 0.0, 0.0, 1.0]))
+    # change visual shape of robot
+
+    # path_suc2 = path_success[:50]
+    # done_suc2 = np.ones(50)  # metrics["done_events"][100:200]
+    # done_normal = done_events[100:200]
+    # path_normal = ee_pos[100:200]
+
+
+    color = 1.0
+    traj = deepcopy(trajectory)
+    final_pos = copy(traj[-1])
+    xyz1 = traj.pop()
+
+    done_event_color = {1: np.array([0.0, 1.0, 0.0, 1.0]),
+                        0: np.array([1.0, 1.0, 0.0, 1.0]),
+                        -1: np.array([1.0, 0.0, 0.0, 1.0])}
+
+    env.task.sim.create_sphere(
+        body_name="sphere_temp",
+        radius=0.01,
+        mass=0.0,
+        ghost=True,
+        position=final_pos,
+        rgba_color=done_event_color[done_event],
+    )
+
+    while traj:
+        xyz2 = traj.pop()
+        pybullet.addUserDebugLine(lineFromXYZ=xyz1, lineToXYZ=xyz2, lineColorRGB=np.array([1 - color, color, 0]),
+                                  physicsClientId=1, lifeTime=0, lineWidth=2)
+        color = len(traj) / len(trajectory)  # 1/max_ep_steps
+        xyz1 = xyz2
+
+
 
 def evaluate_ensemble(models, env, human=True, num_episodes=1000, deterministic=True,
-                      strategy="variance_only", scenario_name="", prior_orientation=None):
+                      strategy="variance_only", scenario_name="", prior_orientation=None, pre_calc_metrics=None, show_model_actions=False):
     """
     Evaluate a RL agent
     :param model: (BaseRLModel object) the RL Agent
@@ -75,7 +122,7 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, deterministic=
     model_colors = {0: np.array([1.0, 0.0, 0.0]), 1: np.array([0.0, 0.0, 1.0]), 2: np.array([0.0, 0.0, 1.0]), 3: np.array([0.0, 0.0, 1.0]), 4: np.array([0.0, 0.0, 1.0])}
     seed = 0
     obs, _ = env.reset(seed=seed)
-    for _ in tqdm(range(num_episodes), desc=scenario_name):
+    for i in tqdm(range(num_episodes), desc=scenario_name):
         episode_reward = 0.0
         ee_pos = []
         ee_speed = []
@@ -90,6 +137,9 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, deterministic=
         if human:
             # update goal location
             env.task.sim.set_base_pose("target", env.task.goal, np.array([0.0, 0.0, 0.0, 1.0]))
+            if pre_calc_metrics: # of precalculated metrics are given, visualize
+                visualize_trajectory(env, pre_calc_metrics["done_events"][i], pre_calc_metrics["end_effector_positions"][i])
+
 
         while True:
             actions = []
@@ -121,9 +171,10 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, deterministic=
                 min_variance = min(distribution_variances)
                 action_sovereignty = distribution_variances.index(min_variance)
                 action = actions[action_sovereignty]
-                env.task.sim.create_debug_text(f"Model Actions",
-                                               f">>>Action: Model {action_sovereignty}<<<",
-                                               color=model_colors[action_sovereignty])
+                if show_model_actions:
+                    env.task.sim.create_debug_text(f"Model Actions",
+                                                   f">>>Action: Model {action_sovereignty}<<<",
+                                                   color=model_colors[action_sovereignty])
             elif strategy == "bcf":
                 # todo: implement
                 rl_sigmas = distribution_stds
@@ -160,7 +211,7 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, deterministic=
             total_index_count.append(action_sovereignty)
             episode_index_count.append(action_sovereignty)
 
-            if not isinstance(models[0], str):
+            if not isinstance(models[0], str) and show_model_actions:
                 for i in range(len(models)):
                     env.task.sim.create_debug_text(f"Model Action {i}",
                                                    f">>>Model 0 Variance: {distribution_variances[i]}<<<",
@@ -210,8 +261,7 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, deterministic=
                 elif info["is_truncated"]:
                     #print("Collision...")
                     done_events.append(-1)
-                    if human:
-                        sleep(1)
+
                 else:
                     #print("Timeout...")
                     done_events.append(0)
@@ -512,8 +562,8 @@ def evaluate_prior(human=False, eval_type="optimized"):
         scenario_goals = json.load(file)
 
     evaluation_results = {}
-    for evaluation_scenario, prior_orientation in zip(["wall"], [
-                                                                 ""]):  # "wang_3", "library2", "library1", "narrow_tunnel", "wall"
+    for evaluation_scenario, prior_orientation in zip(["wang_3", "library2", "narrow_tunnel","workshop", "wall"], [
+                                                                 "fkine", "back", "left", "fkine", "fkine"]):
         env = gymnasium.make(configuration["env_name"], render=human, control_type="jsd",
                              obs_type=configuration["obs_type"], goal_distance_threshold=0.05,
                              goal_condition=goal_condition,
@@ -652,7 +702,8 @@ def evaluate_agent_ensemble(agents, human=False, eval_type="basic", strategy="me
         print(f"Evaluating {evaluation_scenario}")
 
         goals_to_achieve = copy(scenario_goals[evaluation_scenario])
-        results, metrics = evaluate_ensemble(models, env, human=human, num_episodes=500, deterministic=True,
+
+        results, metrics = evaluate_ensemble(models, env, human=human, num_episodes=5, deterministic=True,
                                              strategy=strategy,
                                              scenario_name=evaluation_scenario)
 
@@ -682,21 +733,31 @@ def evaluate_agent_ensemble(agents, human=False, eval_type="basic", strategy="me
     if not os.path.exists(path):
         os.makedirs(path)
 
-    table.to_excel(f"{path}/{agent_type}-ensemble-{strategy}.xlsx")
+    table.to_excel(f"{path}/{agent_type}-ensemble-{strategy}-high-frequency.xlsx")
 
 
 
 def set_eval_type(eval_type):
-    if eval_type == "optim_eval":
+    if eval_type == "optim_eval2":
         reward_type = "kumar_her"
         goal_condition = "reach"
-        n_substeps = 5
-        panda_gym.register_reach_ao(400)
+        n_substeps = 2
+        panda_gym.register_reach_ao(800)
     elif eval_type == "base_eval":
         reward_type = "kumar_her"
         goal_condition = "reach"
         n_substeps = 20
         panda_gym.register_reach_ao(200)
+    elif eval_type == "optim_eval":
+        reward_type = "kumar_her"
+        goal_condition = "reach"
+        n_substeps = 5
+        panda_gym.register_reach_ao(400)
+    elif eval_type == "optim_eval10":
+        reward_type = "kumar_her"
+        goal_condition = "reach"
+        n_substeps = 10
+        panda_gym.register_reach_ao(400)
     elif eval_type == "base_eval2":
         reward_type = "kumar_her"
         goal_condition = "halt"
@@ -729,16 +790,23 @@ trained_models = {
 }
 
 if __name__ == "__main__":
-    eval_type = "optim_eval" # optimized; basic
+    eval_type = "base_eval" # optimized; basic
 
     #evaluate_agent_ensemble(trained_models["bench"], human=False, eval_type=eval_type, strategy="variance_only")
     #evaluate_agent_ensemble(trained_models["few_shot"], human=False, eval_type=eval_type, strategy="variance_only")
-    evaluate_agent_ensemble(trained_models["mt_cl"], human=True, eval_type=eval_type, strategy="variance_only")
+    #evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type=eval_type, strategy="variance_only")
+
+    #evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval2", strategy="variance_only")
+    #evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval", strategy="variance_only")
+    evaluate_agent_ensemble(trained_models["mt_cl"], human=True, eval_type="base_eval", strategy="variance_only")
+
+
+
 
 
 
     #evaluate_prior(human=False, eval_type=eval_type)
-    #evaluate_rl_agent(agents=trained_models["mt_cl"], human=True, eval_type=eval_type)
+    #evaluate_rl_agent(agents=trained_models["mt_cl"], human=False, eval_type=eval_type)
     # evaluate_rl_agent(agents=["easy-lion-98"], human=False, eval_type=eval_type)
     # evaluate_rl_agent(agents=["easy-lion-98"], human=False, eval_type=eval_type)
 

@@ -70,7 +70,7 @@ class Panda(PyBulletRobot):
         self.sim.set_spinning_friction(self.body_name, self.fingers_indices[0], spinning_friction=0.001)
         self.sim.set_spinning_friction(self.body_name, self.fingers_indices[1], spinning_friction=0.001)
 
-        self.max_change_position = 0.0025 * n_substeps # 0.05
+        self.max_change_position =  0.05
 
         # limits
         self.joint_lim_min = np.array([-2.7437,-1.7837,-2.9007,-3.0421,-2.8065,0.5445,-3.0159])
@@ -112,8 +112,8 @@ class Panda(PyBulletRobot):
             # end, start, _ = self.panda_rtb._get_limit_links(start=start[0], end=end[0])
             # links, n, _ = self.panda_rtb.get_path(start=start, end=end)
             # self.panda_rtb.q = self.neutral_joint_values[:7]
-            #self.init_swift_robot()
-            #self.update_dummy_robot_link_positions()
+            # self.init_swift_robot()
+            # self.update_dummy_robot_link_positions()
 
     def set_action(self, action: np.ndarray, action_limiter=None) -> None:
 

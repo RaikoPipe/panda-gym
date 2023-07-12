@@ -179,11 +179,20 @@ class ReachAO(Task):
 
         # overwrite standard pybullet step
         def step_check_collision():
-            """Step the simulation and check for collision."""
+            """Step the simulation and check for collision at each step."""
             for _ in range(n_substeps):
                 self.sim.physics_client.stepSimulation()
                 if not self.is_collided:
                     self.is_collided = self.check_collided()
+
+        def step_check_collision_once():
+            """Step the simulation and check for collision once after (Higher performance, but can lead to
+            tunneling)."""
+            for _ in range(n_substeps):
+                self.sim.physics_client.stepSimulation()
+            if not self.is_collided:
+                self.is_collided = self.check_collided()
+
 
 
         sim.step = lambda: step_check_collision()
@@ -871,7 +880,7 @@ class ReachAO(Task):
         return goal
 
     def check_collided(self):
-        obs_per_link, info = self.collision_detector.compute_distances_per_link(max_distance=999.0)
+        obs_per_link, _ = self.collision_detector.compute_distances_per_link(max_distance=999.0)
         self.distances_links_to_closest_obstacle = np.array([min(i) for i in obs_per_link.values()])
         return min(self.distances_links_to_closest_obstacle) <= 0.0
 
@@ -1280,7 +1289,6 @@ class ReachAO(Task):
         return reward
 
     def show_goal_space(self):
-
         x = (self.goal_range_high[0] - self.goal_range_low[0])
         y = (self.goal_range_high[1] - self.goal_range_low[1])
         z = (self.goal_range_high[2] - self.goal_range_low[2])
@@ -1314,11 +1322,4 @@ class ReachAO(Task):
                 if intersection_count >= 2:
                     self.sim.create_debug_line(dot, dot2, id=self.sim_id)
 
-        # self.sim.create_box(
-        #     body_name="goal_space",
-        #     ghost=True,
-        #     half_extents=np.array([x, y, z]),
-        #     mass=0.0,
-        #     position=np.array([0.0, 0.0, self.goal_range_high[2]/2]),
-        #     rgba_color=np.array([0.0, 0.0, 0.5, 0.2])
-        # )
+

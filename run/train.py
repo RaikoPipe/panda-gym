@@ -301,7 +301,7 @@ def train_benchmark_scenarios():
         del model
 
 def l():
-    for seed in range(1,5):
+    for seed in range(0,5):
         configuration["seed"] = seed
         model, run = base_train(configuration)
         #model, run = optimize_train(model, run, configuration)
