@@ -8,7 +8,7 @@ import numpy as np
 # from pygame import mixer
 sys.modules["gym"] = gymnasium
 
-from stable_baselines3 import PPO
+from stable_baselines3 import PPO, TD3
 from sb3_contrib import TQC
 
 import panda_gym
@@ -37,12 +37,12 @@ reach_optim_succ_thresholds = [999]
 configuration = {
     "env_name": "PandaReachAO-v3",
     "algorithm": "TQC",
-    "reward_type": "kumar_optim",  # sparse; dense
+    "reward_type": "sparse",  # sparse; dense
     "goal_distance_threshold": 0.05,
-    "max_timesteps": 600_000,
+    "max_timesteps": 300_000,
     "seed": 8,
     "render": False,  # renders the eval env
-    "n_substeps": 5,  # number of simulation steps before handing control back to agent
+    "n_substeps": 20,  # number of simulation steps before handing control back to agent
     "obs_type": ["ee", "js"],  # Robot state to observe
     "control_type": "js",
     # Agent Output; js: joint velocities, ee: end effector displacements; jsd: joint velocities (applied directly)
@@ -52,11 +52,11 @@ configuration = {
     "replay_buffer_class": DictReplayBuffer,  # HerReplayBuffer
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": False,
-    "n_envs": 8,
-    "eval_freq": 20_000,
-    "stages": reach_optim_stages,
-    "success_thresholds": reach_optim_succ_thresholds,  # [-7, -10, -12, -17, -20]
-    "max_ep_steps": [100],
+    "n_envs": 1,
+    "eval_freq": 5_000,
+    "stages": ["wangexp_3"],
+    "success_thresholds": [1],  # [-7, -10, -12, -17, -20]
+    "max_ep_steps": [150],
     "joint_obstacle_observation": "vectors+all",  # "all": closest distance to any obstacle of all joints is observed;
     "learning_starts": 10000,
     "prior_steps": 0,
@@ -217,15 +217,15 @@ def main():
 
 def base_train(config):
     config["reward_type"] = "sparse"
-    config["stages"] = reach_ao_stages
-    config["success_thresholds"] = reach_ao_succ_thresholds
-    config["replay_buffer_class"] = VecHerReplayBuffer
+    config["stages"] = ["wangexp_3"] #reach_ao_stages
+    config["success_thresholds"] = [1.1] #reach_ao_succ_thresholds
+    config["replay_buffer_class"] = HerReplayBuffer
     config["goal_condition"] = "reach"
-    config["max_ep_steps"] = [*reach_ao_max_ep_steps]
+    config["max_ep_steps"] = [100]#[*reach_ao_max_ep_steps]
     config["truncate_on_collision"] = True
     config["terminate_on_success"] = True
-    config["max_timesteps"] = 600_000
-    config["n_substeps"] = 5
+    config["max_timesteps"] = 450_000
+    config["n_substeps"] = 20
 
     model, run = learn(config=config, algorithm=config["algorithm"])
 
@@ -271,29 +271,47 @@ def optimize_train(path_to_model, config, wandb_run = None ):
 
     return continue_learning(model, config, wandb_run)
 
+def train_benchmark_scenarios():
+    model_names = ["snowy-pine-131", "deep-frog-298", "glamorous-resonance-295", "firm-pond-79"]
+    path_names = []
+    for name in model_names:
+        path_names.append(fr"../run/run_data/wandb/{name}")
 
-if __name__ == "__main__":
-    # print("Sleeping...")
-    # time.sleep(18.000)
-    from run.learning_methods.learning import learn, get_env, continue_learning
-    import wandb
+    for scenario, model_name in zip(["narrow_tunnel", "library2", "workshop", "wall"], path_names):
+        configuration["stages"] = [scenario]
 
-    wandb.login(key=os.getenv("wandb_key"))
+        env = get_env(configuration, 8, scenario)
+        model = TQC.load(f"{model_name}/files/best_model.zip", env=env,
+                         replay_buffer_class=configuration["replay_buffer_class"],
+        )
 
+        if configuration["replay_buffer_class"] in (VecHerReplayBuffer, HerReplayBuffer):
+            model.load_replay_buffer(f"../run/run_data/wandb/glamorous-resonance-295/files/replay_buffer.pkl")
+            model.replay_buffer.set_env(model.env)
 
-
-    # for seed in range(5):
-    #     configuration["seed"] = seed
-    #     model, run = base_train(configuration)
-    #     #model, run = optimize_train(model, run, configuration)
-    #
-    #     run.finish()
-    #
-    #     model.env.close()
-    #     del model
-
+        #model.learning_starts = 10.000
 
 
+        model, run = continue_learning(model, configuration)
+
+        run.finish()
+
+        model.env.close()
+
+        del model
+
+def l():
+    for seed in range(0,5):
+        configuration["seed"] = seed
+        model, run = base_train(configuration)
+        #model, run = optimize_train(model, run, configuration)
+
+        run.finish()
+
+        model.env.close()
+        del model
+
+def l2():
     path_names = []
     for path_to_model in ["gallant-serenity-299", "deep-frog-298", "solar-microwave-297", "revived-serenity-296", "glamorous-resonance-295"]:
         path_names.append(fr"../run/run_data/wandb/{path_to_model}")
@@ -317,6 +335,78 @@ if __name__ == "__main__":
 
         model.env.close()
         del model
+
+def train_hf(path_to_model, config, wandb_run = None ):
+    config["reward_type"] = "sparse"
+    config["stages"] = ["wangexp_3"]
+    config["max_ep_steps"] = [400]
+    config["max_timesteps"] = 300_000
+    config["replay_buffer_class"] = DictReplayBuffer
+    config["goal_condition"] = "reach"
+    config["n_substeps"] = 5
+    config["truncate_on_collision"] = True
+    config["terminate_on_success"] = True
+
+    #model.save("temp_model")
+
+    # if config["replay_buffer_class"] in (VecHerReplayBuffer, HerReplayBuffer):
+    #     model.save_replay_buffer("temp_buffer")
+
+    #model.env.close()
+    env = get_env(config, config["n_envs"], config["stages"][0], )
+    model = TQC.load(f"{path_to_model}/files/best_model.zip", env=env,
+                     replay_buffer_class=configuration["replay_buffer_class"],
+    )
+
+    #model = model.load("temp_model", env=env, replay_buffer_class = config["replay_buffer_class"])
+    #odel.learning_starts = 10_000
+
+    if config["replay_buffer_class"] in (VecHerReplayBuffer, HerReplayBuffer):
+        model.load_replay_buffer(f"{path_to_model}/files/replay_buffer.pkl")
+        model.replay_buffer.set_env(model.env)
+    # else:
+    #     model.load_replay_buffer(f"{path_to_model}/files/replay_buffer.pkl")
+    #     her_observations = deepcopy(model.replay_buffer.observations)
+    #     dict_buffer = DictReplayBuffer(buffer_size=config["hyperparams"]["buffer_size"],
+    #                                    action_space=gymnasium.spaces.Box(-1.0, 1.0, shape=(7,), dtype=np.float32),
+    #                                    observation_space=env.observation_space.spaces["observation"])
+
+
+
+    return continue_learning(model, config, wandb_run)
+
+
+if __name__ == "__main__":
+    # print("Sleeping...")
+    #time.sleep(3600*8)
+    from run.learning_methods.learning import learn, get_env, continue_learning
+    import wandb
+
+    wandb.login(key=os.getenv("wandb_key"))
+
+    #train_benchmark_scenarios()
+    l()
+    #l2()
+
+
+
+
+
+    # for seed in range(5,20):
+    #     configuration["seed"] = seed
+    #     model, run = base_train(configuration)
+    #     #model, run = optimize_train(model, run, configuration)
+    #
+    #     run.finish()
+    #
+    #     model.env.close()
+    #     del model
+
+
+
+
+
+
 
     # for i in range(5):
     #     configuration["seed"] = i
@@ -346,3 +436,4 @@ if __name__ == "__main__":
     # mixer.music.set_volume(1.0)
     # mixer.music.play()
     # time.sleep(2.0)
+

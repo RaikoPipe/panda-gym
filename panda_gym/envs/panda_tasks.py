@@ -125,7 +125,7 @@ class PandaReachAOEnv(RobotTaskEnv):
         robot = Panda(sim, block_gripper=True, base_position=np.array([0.0, 0.0, 0.0]), control_type=control_type,
                       obs_type=obs_type,
                       limiter=limiter, action_limiter=action_limiter, n_substeps=n_substeps)
-        task = ReachAO(sim, robot, reward_type=reward_type,
+        task = ReachAO(sim, robot, reward_type=reward_type, #n_substeps=n_substeps,
                        goal_distance_threshold=goal_distance_threshold,
                        goal_condition=goal_condition,
                        joint_obstacle_observation=joint_obstacle_observation,
