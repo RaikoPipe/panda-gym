@@ -391,6 +391,10 @@ def set_eval_type(eval_type):
         reward_type = "kumar_her"
         goal_condition = "reach"
         n_substeps = 20
+    elif eval_type == "prior_eval":
+        reward_type = "kumar_her"
+        goal_condition = "reach"
+        n_substeps = 5
         panda_gym.register_reach_ao(100)
     elif eval_type == "base_eval2":
         reward_type = "kumar_her"
@@ -406,31 +410,28 @@ def set_eval_type(eval_type):
 
 
 if __name__ == "__main__":
-    eval_type = "optim_eval" # optimized; basic
-    for i in range(18000):
-        time.sleep(1)
-        print("Sleepy time...")
+    eval_type = "prior_eval" # optimized; basic
 
 
-    # evaluate_prior(human=False, eval_type=eval_type)
+    evaluate_prior(human=False, eval_type=eval_type)
     #evaluate_rl_agent(agents=trained_models["mt_cl_opt_her"], human=False, eval_type=eval_type)
     # evaluate_rl_agent(agents=["easy-lion-98"], human=False, eval_type=eval_type)
     # evaluate_rl_agent(agents=["easy-lion-98"], human=False, eval_type=eval_type)
 
-    process_list = []
-    for key, value in trained_models.items():
-        # if key not in ["mt_cl_her_opt", "mt_cl"]:
-        #     continue
-
-        process_list.append(Process(target=evaluate_rl_agent, kwargs={"agents": value, "human": False, "eval_type": eval_type}))
-
-    process_list.append(Process(target=evaluate_prior, kwargs={"human": False, "eval_type": eval_type}))
-    #process_list.append(Process(target=evaluate_prior, kwargs={"human": False, "eval_type": "base_eval"}))
-    for p in process_list:
-        p.start()
-
-    for p in process_list:
-        p.join()
+    # process_list = []
+    # for key, value in trained_models.items():
+    #     # if key not in ["mt_cl_her_opt", "mt_cl"]:
+    #     #     continue
+    #
+    #     process_list.append(Process(target=evaluate_rl_agent, kwargs={"agents": value, "human": False, "eval_type": eval_type}))
+    #
+    # process_list.append(Process(target=evaluate_prior, kwargs={"human": False, "eval_type": eval_type}))
+    # #process_list.append(Process(target=evaluate_prior, kwargs={"human": False, "eval_type": "base_eval"}))
+    # for p in process_list:
+    #     p.start()
+    #
+    # for p in process_list:
+    #     p.join()
 
 
 

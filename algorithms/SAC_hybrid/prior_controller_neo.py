@@ -138,7 +138,7 @@ class NEO:
 
     def compute_action(self, target):
         self.panda_rtb.q = self.panda.get_joint_angles(self.panda.joint_indices[:7])
-        # self.swift_env.step(render=True)
+        self.swift_env.step(render=True)
         # self.collision_detector.set_collision_geometries()
 
         # Transform the goal into an SE3 pose
