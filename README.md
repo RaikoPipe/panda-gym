@@ -1,3 +1,5 @@
+# Modified Panda-Gym for Master thesis on collision free real time trajectory planning using reinforcement learning
+
 # panda-gym
 
 Set of robotic environments based on PyBullet physics engine and gymnasium.
