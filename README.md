@@ -18,6 +18,8 @@
 
 https://api.wandb.ai/links/raikowand/9tkqy7b9
 
+![PandaReachAO-v3](docs/_static/img/Showcase.mp4)
+
 ## Thesis
 
 https://1drv.ms/b/s!Ala_n6z0JphEg9kD0aIXblv2X2x7Jg?e=p5Xr7S
