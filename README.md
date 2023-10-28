@@ -1,11 +1,11 @@
 # Modified Panda-Gym for Master thesis on collision free real time trajectory planning using reinforcement learning (graded 1.0)
-# Conceptualised framework for learning agent with generalisation capabilities that surpasses current state of science (July 2023)
+Conceptualised and implemented curriculum learning framework for learning agent with generalisation capabilities that surpasses current state of science (July 2023)
+Uses vectorized version of Hindsight Experience Replay for faster training and domain randomization techniques.
+Includes [analytical motion planner](https://github.com/petercorke/robotics-toolbox-python) for comparison.
 
 # panda-gym
 
-## Training results
-
-https://api.wandb.ai/links/raikowand/9tkqy7b9
+## [Training results](https://api.wandb.ai/links/raikowand/9tkqy7b9)
 
 https://github.com/RaikoPipe/panda-gym/assets/74252023/89374c7d-927b-4bd3-bc3c-c5db5ba30182
 
