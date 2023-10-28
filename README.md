@@ -3,22 +3,11 @@
 
 # panda-gym
 
-## Environments
-
-|                                  |                                                |
-| :------------------------------: | :--------------------------------------------: |
-|         `PandaReach-v3`          |                 `PandaPush-v3`                 |
-| ![PandaReach-v3](docs/_static/img/reach.png) |         ![PandaPush-v3](docs/_static/img/push.png)         |
-|         `PandaSlide-v3`          |             `PandaPickAndPlace-v3`             |
-| ![PandaSlide-v3](docs/_static/img/slide.png) | ![PandaPickAndPlace-v3](docs/_static/img/pickandplace.png) |
-|         `PandaStack-v3`          |              `PandaFlip-v3`                    |
-| ![PandaStack-v3](docs/_static/img/stack.png) | ![PandaFlip-v3](docs/_static/img/flip.png) |
-
 ## Training results
 
 https://api.wandb.ai/links/raikowand/9tkqy7b9
 
-![PandaReachAO-v3](docs/_static/img/Showcase.mp4)
+https://github.com/RaikoPipe/panda-gym/assets/74252023/89374c7d-927b-4bd3-bc3c-c5db5ba30182
 
 ## Thesis
 
