@@ -1,4 +1,5 @@
-# Modified Panda-Gym for Master thesis on collision free real time trajectory planning using reinforcement learning
+# Modified Panda-Gym for Master thesis on collision free real time trajectory planning using reinforcement learning (graded 1.0)
+# Conceptualised framework for learning agent with generalisation capabilities that surpasses current state of science (July 2023)
 
 # panda-gym
 
