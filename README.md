@@ -11,8 +11,5 @@ https://github.com/RaikoPipe/panda-gym/assets/74252023/89374c7d-927b-4bd3-bc3c-c
 
 ## [Thesis (German)](https://1drv.ms/b/s!Ala_n6z0JphEg9kD0aIXblv2X2x7Jg?e=p5Xr7S)
 
-
-
 ## [Defense (German)](https://1drv.ms/p/s!Ala_n6z0JphEg7oyeWd9JYOaw3Hb9Q?e=xmuDDT)
 
-https://1drv.ms/p/s!Ala_n6z0JphEg7oyeWd9JYOaw3Hb9Q?e=xmuDDT
