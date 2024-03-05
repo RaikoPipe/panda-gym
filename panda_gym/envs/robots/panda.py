@@ -1,9 +1,7 @@
 from typing import Optional
 
 import numpy as np
-import pybullet
-import spatialmath
-from swift import Swift
+
 from gymnasium import spaces
 
 from panda_gym.envs.core import PyBulletRobot
@@ -13,11 +11,7 @@ import pybullet as p
 import roboticstoolbox as rtb
 from spatialmath import SE3
 
-from ruckig import InputParameter, Ruckig, Trajectory, Result
-import pathlib
-import ruckig
 import qpsolvers as qp
-from pathlib import Path
 
 class Panda(PyBulletRobot):
     """Panda robot in PyBullet.

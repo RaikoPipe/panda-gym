@@ -264,7 +264,7 @@ class RobotTaskEnv(gym.Env):
 
     metadata = {"render_modes": ["human", "rgb_array"]}
 
-    def __init__(self, robot: PyBulletRobot, task: Task, terminate_on_success) -> None:
+    def __init__(self, robot: PyBulletRobot, task: Task, terminate_on_success=False) -> None:
         assert robot.sim == task.sim, "The robot and the task must belong to the same simulation."
         self.sim = robot.sim
         self.robot = robot
