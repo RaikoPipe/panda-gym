@@ -262,49 +262,6 @@ class Panda(PyBulletRobot):
         target_arm_angles = current_arm_joint_angles + arm_joint_ctrl
         return target_arm_angles
 
-    # def arm_joint_ctrl_to_target_arm_angles_ruckig(self, arm_joint_ctrl: np.ndarray) -> np.ndarray:
-    #     """Compute the target arm angles from the arm joint control.
-    #
-    #     Args:
-    #         arm_joint_ctrl (np.ndarray): Control of the 7 joints.
-    #
-    #     Returns:
-    #         np.ndarray: Target arm angles, as the angles of the 7 arm joints.
-    #     """
-    #     arm_joint_ctrl = arm_joint_ctrl * 0.05  # limit maximum change in position
-    #
-    #     inp = InputParameter(7)  # DOFs
-    #
-    #     current_joint_angles = np.array([self.get_joint_angle(joint=i) for i in range(7)])
-    #     current_joint_velocities = np.array([self.get_joint_velocity(joint=i) for i in range(7)])
-    #     current_acceleration = current_joint_velocities - self.previous_joint_velocit
-    #
-    #     inp.current_position = current_joint_angles
-    #     inp.current_velocity = current_joint_velocities
-    #     inp.current_acceleration = current_acceleration
-    #
-    #     inp.target_position = self.current_joint_angles + arm_joint_ctrl
-    #
-    #     inp.max_position = self.joint_lim_max
-    #     inp.max_velocity = self.joint_velocity_limits
-    #     inp.max_acceleration = self.joint_acceleration_limits
-    #     inp.max_jerk = self.joint_max_jerk
-    #
-    #     otg = Ruckig(7)
-    #     trajectory = Trajectory(7)
-    #     result = otg.calculate(inp, trajectory)
-    #     if result == Result.ErrorInvalidInput:
-    #         raise Exception('Invalid input!')
-    #
-    #     new_time = self.sim.timestep
-    #
-    #     target_joint_angles, target_joint_velocities, target_joint_accelerations = trajectory.at_time(new_time)
-    #
-    #     self.previous_joint_velocities = current_joint_velocities
-    #
-    #     # target_arm_angles = current_arm_joint_angles + arm_joint_ctrl
-    #     return target_joint_angles
-
     def get_obs(self) -> np.ndarray:
         observation = []
 

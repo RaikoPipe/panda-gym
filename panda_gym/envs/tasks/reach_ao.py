@@ -3,6 +3,7 @@ import json
 import logging
 import random
 import sys
+import time
 from math import exp
 from pathlib import Path
 from typing import Any, Dict
@@ -117,7 +118,6 @@ class ReachAO(Task):
 
         self.bodies = {"robot": self.robot.id}
 
-
         exclude_links = ["panda_grasptarget", "panda_leftfinger", "panda_rightfinger"]  # env has no grasptarget
         self.collision_links = [i for i in self.robot.link_names if i not in exclude_links]
         self.collision_objects = []
@@ -129,7 +129,7 @@ class ReachAO(Task):
         self.sample_size_obs = [0, 0]
 
         # extra observations
-        self.distances_links_to_closest_obstacle = np.zeros(len(self.collision_links))
+        self.distances_closest_obstacles = np.zeros(len(self.collision_links))
         self.is_collided = False
         self.action_magnitude = 0
         self.action_diff = 0
@@ -192,8 +192,6 @@ class ReachAO(Task):
                 self.sim.physics_client.stepSimulation()
             if not self.is_collided:
                 self.is_collided = self.check_collided()
-
-
 
         sim.step = lambda: step_check_collision()
 
@@ -807,7 +805,7 @@ class ReachAO(Task):
         return self.sample_random_joint_position_within_workspace()
 
     def create_obstacle_sphere(self, position=np.array([0.1, 0, 0.1]), radius=0.02, velocity=np.array([0, 0, 0]),
-                               alpha=0.8):
+                               alpha=1.0):
         obstacle_name = "obstacle"
         # position[0] += 0.6
 
@@ -818,7 +816,7 @@ class ReachAO(Task):
                 radius=radius,
                 mass=0.0,
                 position=position,
-                rgba_color=np.array([0.5, 0, 0, alpha]),
+                rgba_color=np.array([1, 0, 0, alpha]),
                 physics_client=physics_client
             ))
 
@@ -880,9 +878,8 @@ class ReachAO(Task):
         return goal
 
     def check_collided(self):
-        obs_per_link, _ = self.collision_detector.compute_distances_per_link(max_distance=999.0)
-        self.distances_links_to_closest_obstacle = np.array([min(i) for i in obs_per_link.values()])
-        return min(self.distances_links_to_closest_obstacle) <= 0.0
+        self.distances_closest_obstacles = self.collision_detector.get_distances_per_link(max_distance=999.0)
+        return min(self.distances_closest_obstacles) <= 0.0
 
     def get_obs(self) -> np.ndarray:
         obstacle_obs = np.zeros(9)
@@ -893,27 +890,17 @@ class ReachAO(Task):
             # q = self.robot.get_joint_angles(self.robot.joint_indices[:7])
             obs_per_link, info = self.collision_detector.compute_distances_per_link(max_distance=999.0)
 
-            #self.distances_links_to_closest_obstacle = np.array([min(i) for i in obs_per_link.values()])
-            if self.joint_obstacle_observation == "all":
-                obstacle_obs = self.distances_links_to_closest_obstacle
-            elif self.joint_obstacle_observation == "all2":
-                sorted_obs_per_link = [sorted(i) for i in obs_per_link.values()]
-                obstacle_obs = np.array([i[:2] for i in sorted_obs_per_link]).flatten()
-            elif self.joint_obstacle_observation == "all3":
-                sorted_obs_per_link = [sorted(i) for i in obs_per_link.values()]
-                obstacle_obs = np.array([i[:3] for i in sorted_obs_per_link]).flatten()
-            elif self.joint_obstacle_observation == "all_close":
-                obstacle_obs = np.array([i if i < 0.4 else 1.0 for i in self.distances_links_to_closest_obstacle])
-            elif self.joint_obstacle_observation == "closest":
+            if self.joint_obstacle_observation == "closest":
                 obstacle_obs = np.array(min(obs_per_link.values()))
             elif self.joint_obstacle_observation == "vectors":
                 obstacle_obs = self.get_vector_obs(obs_per_link, info)
+                # debug visualization
                 # for a,b in closest_pairs:
                 #     p.addUserDebugLine(a, b, physicsClientId=0, lineColorRGB=np.array([0,1,0]))
                 # p.removeAllUserDebugItems(physicsClientId=0)
             elif self.joint_obstacle_observation == "vectors+all":
                 closest_distances_vectors = self.get_vector_obs(obs_per_link, info)
-                closest_distances_all = self.distances_links_to_closest_obstacle
+                closest_distances_all = self.distances_closest_obstacles
                 obstacle_obs = np.concatenate([closest_distances_all, closest_distances_vectors])
 
         else:
@@ -925,7 +912,6 @@ class ReachAO(Task):
             # print(robot_collision_obs)
         # todo: get end effector error
 
-        distance_obs = np.array([distance(self.robot.get_ee_position(), self.goal)])
         observations = np.concatenate([obstacle_obs])
 
         return observations
@@ -1218,7 +1204,7 @@ class ReachAO(Task):
         ee_error = distance(achieved_goal, desired_goal)
         ee_speed = np.linalg.norm(self.robot.get_ee_velocity())
         manipulability = self.robot.get_manipulability()
-        obs_distance = self.distances_links_to_closest_obstacle
+        obs_distance = self.distances_closest_obstacles
         action_diff = self.get_norm_action_difference()
         effort = self.get_norm_effort()
         jerk = self.get_norm_jerk()
@@ -1293,26 +1279,32 @@ class ReachAO(Task):
         y = (self.goal_range_high[1] - self.goal_range_low[1])
         z = (self.goal_range_high[2] - self.goal_range_low[2])
 
-        self.sim.create_box(
-            body_name=f"goal_space",
-            half_extents=np.array([x/2,y/2,z/2]),
-            ghost=True,
-            mass=0.0,
-            position=np.array([self.goal_range_high[0]-x/2,self.goal_range_high[1]-y/2,self.goal_range_high[2]-z/2]),
-            rgba_color=np.array([0.0, 1.0, 0.0, 0.2])
-        )
+        # self.sim.create_box(
+        #     body_name=f"goal_space",
+        #     half_extents=np.array([x/2,y/2,z/2]),
+        #     ghost=True,
+        #     mass=0.0,
+        #     position=np.array([self.goal_range_high[0]-x/2,self.goal_range_high[1]-y/2,self.goal_range_high[2]-z/2]),
+        #     rgba_color=np.array([0.0, 1.0, 0.0, 0.2])
+        # )
 
-        self.create_goal_outline()
+        #self.create_goal_outline()
 
     def create_goal_outline(self):
         d = [self.goal_range_low, self.goal_range_high]
-
+        time.sleep(0.3)
         d.append(np.array([self.goal_range_low[0], self.goal_range_high[1], self.goal_range_high[2]]))
+        time.sleep(0.3)
         d.append(np.array([self.goal_range_low[0], self.goal_range_low[1], self.goal_range_high[2]]))
+        time.sleep(0.3)
         d.append(np.array([self.goal_range_low[0], self.goal_range_high[1], self.goal_range_low[2]]))
+        time.sleep(0.3)
         d.append(np.array([self.goal_range_high[0], self.goal_range_low[1], self.goal_range_high[2]]))
+        time.sleep(0.3)
         d.append(np.array([self.goal_range_high[0], self.goal_range_low[1], self.goal_range_low[2]]))
+        time.sleep(0.3)
         d.append(np.array([self.goal_range_high[0], self.goal_range_high[1], self.goal_range_low[2]]))
+        time.sleep(0.3)
         d.append(np.array([self.goal_range_high[0], self.goal_range_low[1], self.goal_range_high[2]]))
 
 
