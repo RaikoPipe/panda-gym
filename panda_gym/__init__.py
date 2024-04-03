@@ -29,6 +29,13 @@ def register_envs(max_ep_steps):
             )
 
             register(
+                id="MyCobotReach{}{}-v0".format(control_suffix, reward_suffix),
+                entry_point="panda_gym.envs:MyCobotReachEnv",
+                kwargs=kwargs,
+                max_episode_steps=max_ep_steps,  # default: 50
+            )
+
+            register(
                 id="PandaReachChecker{}{}-v3".format(control_suffix, reward_suffix),
                 entry_point="panda_gym.envs:PandaReachCheckerEnv",
                 kwargs=kwargs,

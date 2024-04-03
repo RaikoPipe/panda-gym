@@ -278,7 +278,7 @@ def get_eval_env(config, stage):
         #                     reward_type=config["reward_type"],
         #                     show_goal_space=False, scenario=stage,
         #                     show_debug_labels=False, )
-        eval_env = get_env(config, 1, scenario=stage, force_render=False)
+        eval_env = get_env(config, 1, scenario=stage, force_render=True)
     else:
         eval_env = get_env(config, config["n_envs"], scenario=stage)
     return eval_env

@@ -15,9 +15,6 @@ from time import sleep
 
 import panda_gym
 
-from algorithms.SAC_hybrid.prior_controller_neo import NEO
-
-
 def evaluate(env, num_steps=10000):
     """
     Evaluate a RL agent

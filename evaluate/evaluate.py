@@ -661,7 +661,7 @@ def evaluate_rl_agent(agents, human=False, eval_type="basic"):
 
         table.to_excel(f"{path}/{model_name}.xlsx")
 
-def evaluate_agent_ensemble(agents, human=False, eval_type="basic", strategy="mean_actions"):
+def evaluate_agent_ensemble(agents, human=False, eval_type="basic", strategy="mean_actions", obstacle_observation="vectors"):
     logging.info(f"Evaluating {agents}")
     n_substeps, reward_type, goal_condition = set_eval_type(eval_type)
 
@@ -674,7 +674,7 @@ def evaluate_agent_ensemble(agents, human=False, eval_type="basic", strategy="me
                          reward_type=reward_type, limiter=configuration["limiter"],
                          show_goal_space=True, scenario="wangexp_3",
                          randomize_robot_pose=False,  # if evaluation_scenario != "wang_3" else True,
-                         joint_obstacle_observation="vectors+all",
+                         joint_obstacle_observation=obstacle_observation,
                          truncate_on_collision=True,
                          terminate_on_success=True,
                          show_debug_labels=True, n_substeps=n_substeps)
@@ -694,7 +694,7 @@ def evaluate_agent_ensemble(agents, human=False, eval_type="basic", strategy="me
                              reward_type=reward_type, limiter=configuration["limiter"],
                              show_goal_space=True, scenario=evaluation_scenario,
                              randomize_robot_pose=False,  # if evaluation_scenario != "wang_3" else True,
-                             joint_obstacle_observation="vectors+all",
+                             joint_obstacle_observation=obstacle_observation,
                              truncate_on_collision=True,
                              terminate_on_success=True,
                              show_debug_labels=True, n_substeps=n_substeps)
@@ -703,7 +703,7 @@ def evaluate_agent_ensemble(agents, human=False, eval_type="basic", strategy="me
 
         goals_to_achieve = copy(scenario_goals[evaluation_scenario])
 
-        results, metrics = evaluate_ensemble(models, env, human=human, num_episodes=5, deterministic=True,
+        results, metrics = evaluate_ensemble(models, env, human=human, num_episodes=50, deterministic=True,
                                              strategy=strategy,
                                              scenario_name=evaluation_scenario)
 
@@ -798,7 +798,8 @@ if __name__ == "__main__":
 
     #evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval2", strategy="variance_only")
     #evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval", strategy="variance_only")
-    evaluate_agent_ensemble(trained_models["mt_cl_opt_her"], human=False, eval_type="base_eval", strategy="variance_only")
+    # evaluate_agent_ensemble(trained_models["mt_cl"], human=True, eval_type="base_eval", strategy="variance_only")
+    evaluate_agent_ensemble(["generous-resonance-512"], human=True, eval_type="base_eval", strategy="variance_only", obstacle_observation="vectors")
 
 
 

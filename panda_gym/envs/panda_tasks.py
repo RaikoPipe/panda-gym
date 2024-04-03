@@ -2,6 +2,7 @@ import numpy as np
 
 from panda_gym.envs.core import RobotTaskEnv
 from panda_gym.envs.robots.panda import Panda
+from panda_gym.envs.robots.mycobot import MyCobot
 from panda_gym.envs.tasks.flip import Flip
 from panda_gym.envs.tasks.pick_and_place import PickAndPlace
 from panda_gym.envs.tasks.push import Push
@@ -78,6 +79,26 @@ class PandaReachEnv(RobotTaskEnv):
                  goal_range=0.3, show_goal_space=False) -> None:
         sim = PyBullet(render=render)
         robot = Panda(sim, block_gripper=True, base_position=np.array([-0.6, 0.0, 0.0]), control_type=control_type)
+        task = Reach(sim, reward_type=reward_type, get_ee_position=robot.get_ee_position, goal_range=goal_range,
+                     show_goal_space=show_goal_space)
+        super().__init__(robot, task)
+
+
+class MyCobotReachEnv(RobotTaskEnv):
+    """Reach task wih Panda robot.
+
+    Args:
+        render (bool, optional): Activate rendering. Defaults to False.
+        reward_type (str, optional): "sparse" or "dense". Defaults to "sparse".
+        control_type (str, optional): "ee" to control end-effector position or "joints" to control joint values.
+            Defaults to "ee".
+    """
+
+    def __init__(self, render: bool = False, realtime: bool = False, reward_type: str = "sparse",
+                 control_type: str = "js",
+                 goal_range=0.3, show_goal_space=False) -> None:
+        sim = PyBullet(render=render)
+        robot = MyCobot(sim, block_gripper=True, base_position=np.array([-0.6, 0.0, 0.0]), control_type=control_type)
         task = Reach(sim, reward_type=reward_type, get_ee_position=robot.get_ee_position, goal_range=goal_range,
                      show_goal_space=show_goal_space)
         super().__init__(robot, task)

@@ -37,7 +37,7 @@ reach_optim_succ_thresholds = [999]
 configuration = {
     "env_name": "PandaReachAO-v3",
     "algorithm": "TQC",
-    "reward_type": "sparse",  # sparse; dense
+    "reward_type": "kumar",  # sparse; dense
     "goal_distance_threshold": 0.05,
     "max_timesteps": 300_000,
     "seed": 8,
@@ -52,12 +52,12 @@ configuration = {
     "replay_buffer_class": DictReplayBuffer,  # HerReplayBuffer
     "policy_type": "MultiInputPolicy",
     "show_debug_labels": False,
-    "n_envs": 1,
+    "n_envs": 8,
     "eval_freq": 5_000,
     "stages": ["wangexp_3"],
     "success_thresholds": [1],  # [-7, -10, -12, -17, -20]
     "max_ep_steps": [150],
-    "joint_obstacle_observation": "vectors+all",  # "all": closest distance to any obstacle of all joints is observed;
+    "joint_obstacle_observation": "vectors",  # "all": closest distance to any obstacle of all joints is observed; "vectors": directional vectors pointing to closest obstacles
     "learning_starts": 10000,
     "prior_steps": 0,
     "randomize_robot_pose": False,
@@ -216,15 +216,15 @@ def main():
 
 
 def base_train(config):
-    config["reward_type"] = "sparse"
-    config["stages"] = ["wangexp_3"] #reach_ao_stages
-    config["success_thresholds"] = [1.1] #reach_ao_succ_thresholds
-    config["replay_buffer_class"] = HerReplayBuffer
+    config["reward_type"] = "kumar"
+    config["stages"] = reach_ao_stages
+    config["success_thresholds"] = reach_ao_succ_thresholds
+    config["replay_buffer_class"] = DictReplayBuffer
     config["goal_condition"] = "reach"
-    config["max_ep_steps"] = [100]#[*reach_ao_max_ep_steps]
+    config["max_ep_steps"] = [*reach_ao_max_ep_steps]
     config["truncate_on_collision"] = True
     config["terminate_on_success"] = True
-    config["max_timesteps"] = 450_000
+    config["max_timesteps"] = 2_000_000
     config["n_substeps"] = 20
 
     model, run = learn(config=config, algorithm=config["algorithm"])
@@ -301,7 +301,7 @@ def train_benchmark_scenarios():
         del model
 
 def l():
-    for seed in range(0,5):
+    for seed in range(0,1):
         configuration["seed"] = seed
         model, run = base_train(configuration)
         #model, run = optimize_train(model, run, configuration)
