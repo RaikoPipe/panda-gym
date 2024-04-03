@@ -798,7 +798,7 @@ if __name__ == "__main__":
 
     #evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval2", strategy="variance_only")
     #evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval", strategy="variance_only")
-    evaluate_agent_ensemble(trained_models["mt_cl"], human=True, eval_type="base_eval", strategy="variance_only")
+    evaluate_agent_ensemble(trained_models["mt_cl_opt_her"], human=False, eval_type="base_eval", strategy="variance_only")
 
 
 

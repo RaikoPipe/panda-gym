@@ -31,8 +31,11 @@ class PyBullet:
                     --background_color_blue={}".format(
             *self.background_color
         )
+
         self.connection_mode = p.GUI if render else p.DIRECT
         self.render_env = render
+        if render:
+            options += " --mp4=\"test.mp4\" --mp4fps=60"
 
         self.physics_client = bc.BulletClient(connection_mode=self.connection_mode, options=options)
         # self.dummy_collision_client = None
