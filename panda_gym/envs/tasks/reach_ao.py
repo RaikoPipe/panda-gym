@@ -64,6 +64,12 @@ class ReachAO(Task):
         self.obstacles = {}
         # self.dummy_obstacles = {}
         # self.dummy_obstacle_id = {}
+        self.past_obstacle_observations = []
+        if joint_obstacle_observation == "vectors+past":
+            self.joint_obstacle_observation = "vectors"
+            for _ in range(3):
+                self.get_obs()
+
         self.joint_obstacle_observation = joint_obstacle_observation
 
         # general reward configuration
@@ -81,7 +87,8 @@ class ReachAO(Task):
 
         self.scenario = scenario
         self.randomize_robot_pose = randomize_robot_pose
-        self.robot_pose_randomizer = lambda: self.set_robot_random_pose(self.sample_inside_torus)#lambda: self.set_robot_random_joint_position_ik_sphere(0.45, 0.5)
+        self.robot_pose_randomizer = lambda: self.set_robot_random_pose(
+            self.sample_inside_torus)  # lambda: self.set_robot_random_joint_position_ik_sphere(0.45, 0.5)
 
         # self.robot_params = self.create_robot_debug_params()
         self.cube_size_large = np.array([0.05, 0.05, 0.05])
@@ -330,13 +337,13 @@ class ReachAO(Task):
     def create_scenario_workshop(self):
 
         self.robot.neutral_joint_values = np.array(
-            [0.00887326, - 0.05377409, - 0.03621967, - 1.9094068,   0.08791409,  2.00265486,
+            [0.00887326, - 0.05377409, - 0.03621967, - 1.9094068, 0.08791409, 2.00265486,
              0.76681184])
-  #       self.robot.neutral_joint_values = np.array([ 0.00890065, -0.00459073,  0.20643058, -1.88141997,  0.06609664,  2.00475219,
-  # 0.75932251])
-# [ 0.00914028,  0.00850953, -0.07340824, -1.9585147,  -0.00768517,  1.99908934,
+        #       self.robot.neutral_joint_values = np.array([ 0.00890065, -0.00459073,  0.20643058, -1.88141997,  0.06609664,  2.00475219,
+        # 0.75932251])
+        # [ 0.00914028,  0.00850953, -0.07340824, -1.9585147,  -0.00768517,  1.99908934,
         #   0.77101711]
-        #self.robot.neutral_joint_values[0] = -1.5
+        # self.robot.neutral_joint_values[0] = -1.5
 
         self.robot.set_joint_neutral()
         # self.goal_range_low = np.array([0.4, -0.15, 0.45])
@@ -505,7 +512,7 @@ class ReachAO(Task):
 
     def set_robot_random_joint_position(self):
         joint_positions = self.np_random.uniform(low=np.array(self.robot.joint_lim_min),
-                                            high=np.array(self.robot.joint_lim_max))
+                                                 high=np.array(self.robot.joint_lim_max))
         self.robot.set_joint_angles(joint_positions)
 
     def set_robot_random_joint_position_ik(self):
@@ -537,31 +544,33 @@ class ReachAO(Task):
                 if z_upper_limit >= self.robot.get_link_position(11)[2] >= z_lower_limit:
                     valid_pose_found = True
 
-
-
     def create_scenario_reach1(self):
         self.goal_range_low = np.array([-0.4 / 2 + 0.6, -0.4 / 2, 0])
         self.goal_range_high = np.array([0.4 / 2 + 0.6, 0.4 / 2, 0.4])
-        self.robot_pose_randomizer = lambda: self.set_robot_random_pose(lambda: self.sample_inside_torus(front_half=True))
+        self.robot_pose_randomizer = lambda: self.set_robot_random_pose(
+            lambda: self.sample_inside_torus(front_half=True))
 
     def create_scenario_reach2(self):
         goal_radius_minor = 0.5
         goal_radius_major = 0.85
         self._sample_goal = lambda: self.sample_inside_hollow_sphere(goal_radius_minor, goal_radius_major,
                                                                      upper_half=True, three_quarter_front_half=True)
-        self.robot_pose_randomizer = lambda: self.set_robot_random_pose(lambda: self.sample_inside_torus(front_half=True))
+        self.robot_pose_randomizer = lambda: self.set_robot_random_pose(
+            lambda: self.sample_inside_torus(front_half=True))
 
     def create_scenario_reach3(self):
         goal_radius_minor = 0.5
         goal_radius_major = 0.85
-        self._sample_goal = lambda: self.sample_inside_hollow_sphere(goal_radius_minor, goal_radius_major, upper_half=True,
-                                                             three_quarter_front_half=True)
+        self._sample_goal = lambda: self.sample_inside_hollow_sphere(goal_radius_minor, goal_radius_major,
+                                                                     upper_half=True,
+                                                                     three_quarter_front_half=True)
         self.robot_pose_randomizer = lambda: self.set_robot_random_pose(self.sample_inside_torus)
 
     def create_scenario_reach4(self):
         goal_radius_minor = 0.5
         goal_radius_major = 0.85
-        self._sample_goal = lambda: self.sample_inside_hollow_sphere(goal_radius_minor, goal_radius_major, upper_half=True)
+        self._sample_goal = lambda: self.sample_inside_hollow_sphere(goal_radius_minor, goal_radius_major,
+                                                                     upper_half=True)
         self.robot_pose_randomizer = lambda: self.set_robot_random_pose(self.sample_inside_torus)
 
     def create_scenario_base1(self):
@@ -689,28 +698,26 @@ class ReachAO(Task):
         for i in range(num_spheres):
             self.create_obstacle_sphere(radius=0.05)
 
-
         self.sim.create_sphere(
-                body_name=f"a",
-                radius=goal_radius_minor,
-                mass=0.0,
-                position=np.array([0,0,0]),
-                rgba_color=np.array([1.0, 1.0, 1.0, 0.3]),
-                physics_client=self.sim.physics_client,
-                ghost=True
-            )
-
+            body_name=f"a",
+            radius=goal_radius_minor,
+            mass=0.0,
+            position=np.array([0, 0, 0]),
+            rgba_color=np.array([1.0, 1.0, 1.0, 0.3]),
+            physics_client=self.sim.physics_client,
+            ghost=True
+        )
 
         # major sphere
         self.sim.create_sphere(
-                body_name=f"b",
-                radius=goal_radius_major,
-                mass=0.0,
-                position=np.array([0,0,0]),
-                rgba_color=np.array([1.0, 1.0, 1.0, 0.2]),
-                physics_client=self.sim.physics_client,
-                ghost=True
-            )
+            body_name=f"b",
+            radius=goal_radius_major,
+            mass=0.0,
+            position=np.array([0, 0, 0]),
+            rgba_color=np.array([1.0, 1.0, 1.0, 0.2]),
+            physics_client=self.sim.physics_client,
+            ghost=True
+        )
 
     def create_scenario_wang_experimental(self):
         """Scenario for trying out different variations of wang"""
@@ -773,33 +780,28 @@ class ReachAO(Task):
         #             ghost=True
         #         )
         for i in range(3):
-
             self.create_obstacle_sphere(self.sample_inside_hollow_sphere(goal_radius_minor, goal_radius_major))
 
         self.sim.create_sphere(
-                body_name=f"{obstacle_name}_{len(self.obstacles)}",
-                radius=goal_radius_minor,
-                mass=0.0,
-                position=np.array([0,0,0]),
-                rgba_color=np.array([1.0, 1.0, 1.0, 0.3]),
-                physics_client=self.sim.physics_client,
-                ghost=True
-            )
-
+            body_name=f"{obstacle_name}_{len(self.obstacles)}",
+            radius=goal_radius_minor,
+            mass=0.0,
+            position=np.array([0, 0, 0]),
+            rgba_color=np.array([1.0, 1.0, 1.0, 0.3]),
+            physics_client=self.sim.physics_client,
+            ghost=True
+        )
 
         # major sphere
         self.sim.create_sphere(
-                body_name=f"{obstacle_name}_{len(self.obstacles)}",
-                radius=goal_radius_major,
-                mass=0.0,
-                position=np.array([0,0,0]),
-                rgba_color=np.array([1.0, 1.0, 1.0, 0.2]),
-                physics_client=self.sim.physics_client,
-                ghost=True
-            )
-
-
-
+            body_name=f"{obstacle_name}_{len(self.obstacles)}",
+            radius=goal_radius_major,
+            mass=0.0,
+            position=np.array([0, 0, 0]),
+            rgba_color=np.array([1.0, 1.0, 1.0, 0.2]),
+            physics_client=self.sim.physics_client,
+            ghost=True
+        )
 
     def sample_from_robot_workspace(self):
         return self.sample_random_joint_position_within_workspace()
@@ -889,19 +891,23 @@ class ReachAO(Task):
         if self.obstacles:
             # q = self.robot.get_joint_angles(self.robot.joint_indices[:7])
             obs_per_link, info = self.collision_detector.compute_distances_per_link(max_distance=999.0)
+            match self.joint_obstacle_observation:
+                case "all":
+                    obstacle_obs = np.array([min(i) for i in obs_per_link.values()])
+                case "closest":
+                    obstacle_obs = np.array(min(obs_per_link.values()))
+                case "vectors":
+                    obstacle_obs = self.get_vector_obs(obs_per_link, info)
+                    self.past_obstacle_observations.append(obstacle_obs)
+                case "vectors+past":
+                    self.past_obstacle_observations.append(self.get_vector_obs(obs_per_link, info))
+                    # concatenate latest 3 observations
+                    obstacle_obs = np.concatenate(self.past_obstacle_observations[-3:])
 
-            if self.joint_obstacle_observation == "closest":
-                obstacle_obs = np.array(min(obs_per_link.values()))
-            elif self.joint_obstacle_observation == "vectors":
-                obstacle_obs = self.get_vector_obs(obs_per_link, info)
-                # debug visualization
-                # for a,b in closest_pairs:
-                #     p.addUserDebugLine(a, b, physicsClientId=0, lineColorRGB=np.array([0,1,0]))
-                # p.removeAllUserDebugItems(physicsClientId=0)
-            elif self.joint_obstacle_observation == "vectors+all":
-                closest_distances_vectors = self.get_vector_obs(obs_per_link, info)
-                closest_distances_all = self.distances_closest_obstacles
-                obstacle_obs = np.concatenate([closest_distances_all, closest_distances_vectors])
+                case "vectors+all":
+                    closest_distances_vectors = self.get_vector_obs(obs_per_link, info)
+                    closest_distances_all = self.distances_closest_obstacles
+                    obstacle_obs = np.concatenate([closest_distances_all, closest_distances_vectors])
 
         else:
             # no obstacles
@@ -975,6 +981,13 @@ class ReachAO(Task):
         # reset robot actions
         self.robot.recent_action = None
         self.robot.previous_action = None
+
+        # empty past obstacle observations
+        self.past_obstacle_observations = []
+        # fill past obstacle observations with observation
+        if self.joint_obstacle_observation == "vectors+past":
+            for _ in range(2):
+                self.get_obs()
 
     def set_random_num_obs(self):
         num_obs = self.np_random.randint(self.sample_size_obs[0], self.sample_size_obs[1])
@@ -1130,10 +1143,11 @@ class ReachAO(Task):
         y = (R + rad * np.cos(phi)) * np.sin(theta)
         z = rad * np.sin(phi)
 
-        return np.array([x, y, z+0.5])
+        return np.array([x, y, z + 0.5])
 
     def set_random_robot_base(self):
-        self.robot.neutral_joint_values[0] = self.np_random.uniform(self.robot.joint_lim_min[0], self.robot.joint_lim_max[0])
+        self.robot.neutral_joint_values[0] = self.np_random.uniform(self.robot.joint_lim_min[0],
+                                                                    self.robot.joint_lim_max[0])
         self.robot.set_joint_neutral()
 
     def is_success(self, achieved_goal: np.ndarray, desired_goal: np.ndarray) -> np.ndarray:
@@ -1149,7 +1163,8 @@ class ReachAO(Task):
         if self.goal_condition == "halt":
             if not self.goal_reached:
                 ee_speed = np.linalg.norm(self.robot.get_ee_velocity())
-                self.goal_reached = np.array(np.logical_and((d < self.distance_threshold), (ee_speed < self.ee_speed_threshold)), dtype=bool)
+                self.goal_reached = np.array(
+                    np.logical_and((d < self.distance_threshold), (ee_speed < self.ee_speed_threshold)), dtype=bool)
 
         else:
             return np.array(d < self.distance_threshold, dtype=bool)
@@ -1158,7 +1173,7 @@ class ReachAO(Task):
     def is_truncated(self) -> np.ndarray:
         return np.array(self.is_collided, dtype=bool)
 
-    def update_labels(self, manipulability, distance, obstacle_distances, action_difference, effort,jerk, reward):
+    def update_labels(self, manipulability, distance, obstacle_distances, action_difference, effort, jerk, reward):
         with self.sim.no_rendering():
             # self.sim.remove_all_debug_text()
             # self.sim.remove_debug_text(self.debug_dist_label_name)
@@ -1213,7 +1228,8 @@ class ReachAO(Task):
             if self.goal_condition == "reach":
                 reward = -np.array((ee_error > self.distance_threshold), dtype=np.float32)
             else:
-                reward = -np.array(any([ee_error > self.distance_threshold, ee_speed > self.ee_speed_threshold]), dtype=np.float32)
+                reward = -np.array(any([ee_error > self.distance_threshold, ee_speed > self.ee_speed_threshold]),
+                                   dtype=np.float32)
         elif self.reward_type == "wang":
             weight_distance = 10e-3
             weight_obs = 0.1
@@ -1228,7 +1244,7 @@ class ReachAO(Task):
                 reward = -np.array((ee_error > self.distance_threshold) * jerk, dtype=np.float32)
             else:
                 reward = np.array(np.logical_and((ee_error < self.distance_threshold),
-                                                  (ee_speed < self.ee_speed_threshold)), dtype=np.float32)
+                                                 (ee_speed < self.ee_speed_threshold)), dtype=np.float32)
                 reward -= jerk
         elif self.reward_type == "kumar_optim":
             weight_effort = 0.005
@@ -1244,9 +1260,9 @@ class ReachAO(Task):
             effort_reward = - weight_effort * effort
             obstacle_reward = - weight_obs * np.sum([np.max([0, 1 - d / 0.05]) for d in obs_distance])
 
-            #finish_reward =  1000 * np.array(np.logical_and((ee_error < self.distance_threshold), (ee_speed < self.ee_speed_threshold)), dtype=np.float32)
+            # finish_reward =  1000 * np.array(np.logical_and((ee_error < self.distance_threshold), (ee_speed < self.ee_speed_threshold)), dtype=np.float32)
             # speed_reward = np.array(ee_error < self.distance_threshold, dtype=np.float32) * np.exp(-weight_distance * np.square(ee_speed))
-            #print(speed_reward)
+            # print(speed_reward)
 
             reward = np.array(distance_reward + effort_reward + obstacle_reward, dtype=np.float32)
 
@@ -1288,7 +1304,7 @@ class ReachAO(Task):
         #     rgba_color=np.array([0.0, 1.0, 0.0, 0.2])
         # )
 
-        #self.create_goal_outline()
+        # self.create_goal_outline()
 
     def create_goal_outline(self):
         d = [self.goal_range_low, self.goal_range_high]
@@ -1307,11 +1323,8 @@ class ReachAO(Task):
         time.sleep(0.3)
         d.append(np.array([self.goal_range_high[0], self.goal_range_low[1], self.goal_range_high[2]]))
 
-
         for dot in d:
             for dot2 in d:
                 intersection_count = sum([dot[0] == dot2[0], dot[1] == dot2[1], dot[2] == dot2[2]])
                 if intersection_count >= 2:
                     self.sim.create_debug_line(dot, dot2, id=self.sim_id)
-
-

@@ -24,6 +24,7 @@ from multiprocessing import Process
 import panda_gym
 import pybullet
 
+
 def fuse_controllers(prior_mu, prior_sigma, policy_mu, policy_sigma):
     # The policy mu and sigma are from the stochastic SAC output
     # The sigma from prior is fixed
@@ -33,25 +34,25 @@ def fuse_controllers(prior_mu, prior_sigma, policy_mu, policy_sigma):
         (np.power(prior_sigma, 2) * np.power(policy_sigma, 2)) / (np.power(policy_sigma, 2) + np.power(prior_sigma, 2)))
     return mu, sigma
 
-def visualize_trajectory(env, done_event, trajectory):
 
+def visualize_trajectory(env, done_event, trajectory):
     try:
         env.task.sim.physics_client.removeBody(env.task.sim._bodies_idx["sphere_temp"])
-    except: pass
+    except:
+        pass
 
     env.task.sim.remove_all_debug_text()
     # if env.task.show_goal_space:
     #     env.task.create_goal_outline()  # workaround
 
     # hide goal
-    #env.task.sim.set_base_pose("target", np.array([0.0, 0.0, -1.0]), np.array([0.0, 0.0, 0.0, 1.0]))
+    # env.task.sim.set_base_pose("target", np.array([0.0, 0.0, -1.0]), np.array([0.0, 0.0, 0.0, 1.0]))
     # change visual shape of robot
 
     # path_suc2 = path_success[:50]
     # done_suc2 = np.ones(50)  # metrics["done_events"][100:200]
     # done_normal = done_events[100:200]
     # path_normal = ee_pos[100:200]
-
 
     color = 1.0
     traj = deepcopy(trajectory)
@@ -79,9 +80,9 @@ def visualize_trajectory(env, done_event, trajectory):
         xyz1 = xyz2
 
 
-
 def evaluate_ensemble(models, env, human=True, num_episodes=1000, deterministic=True,
-                      strategy="variance_only", scenario_name="", prior_orientation=None, pre_calc_metrics=None, show_model_actions=False):
+                      strategy="variance_only", scenario_name="", prior_orientation=None, pre_calc_metrics=None,
+                      show_model_actions=False):
     """
     Evaluate a RL agent
     :param model: (BaseRLModel object) the RL Agent
@@ -119,7 +120,8 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, deterministic=
     # episode_action_sovereignty = 0
     action_sovereignty = None
 
-    model_colors = {0: np.array([1.0, 0.0, 0.0]), 1: np.array([0.0, 0.0, 1.0]), 2: np.array([0.0, 0.0, 1.0]), 3: np.array([0.0, 0.0, 1.0]), 4: np.array([0.0, 0.0, 1.0])}
+    model_colors = {0: np.array([1.0, 0.0, 0.0]), 1: np.array([0.0, 0.0, 1.0]), 2: np.array([0.0, 0.0, 1.0]),
+                    3: np.array([0.0, 0.0, 1.0]), 4: np.array([0.0, 0.0, 1.0])}
     seed = 0
     obs, _ = env.reset(seed=seed)
     for i in tqdm(range(num_episodes), desc=scenario_name):
@@ -137,9 +139,9 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, deterministic=
         if human:
             # update goal location
             env.task.sim.set_base_pose("target", env.task.goal, np.array([0.0, 0.0, 0.0, 1.0]))
-            if pre_calc_metrics: # of precalculated metrics are given, visualize
-                visualize_trajectory(env, pre_calc_metrics["done_events"][i], pre_calc_metrics["end_effector_positions"][i])
-
+            if pre_calc_metrics:  # of precalculated metrics are given, visualize
+                visualize_trajectory(env, pre_calc_metrics["done_events"][i],
+                                     pre_calc_metrics["end_effector_positions"][i])
 
         while True:
             actions = []
@@ -241,7 +243,6 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, deterministic=
             total_effort += env.task.get_norm_effort()
             jerk.append(env.task.get_norm_jerk())
 
-
             total_manipulability += env.task.manipulability
             ee_pos.append(env.robot.get_ee_position())
             ee_speed.append(np.linalg.norm(env.robot.get_ee_velocity()))
@@ -250,7 +251,7 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, deterministic=
             if done or truncated:
                 # sleep(2)
                 if info["is_success"]:
-                    #print("Success!")
+                    # print("Success!")
                     done_events.append(1)
                     ep_lengths_success.append(ep_length)
                     jerks.append(np.array(jerk))
@@ -259,11 +260,11 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, deterministic=
                     end_effector_speeds.append(ee_speed)
                     path_success.append(ee_pos)
                 elif info["is_truncated"]:
-                    #print("Collision...")
+                    # print("Collision...")
                     done_events.append(-1)
 
                 else:
-                    #print("Timeout...")
+                    # print("Timeout...")
                     done_events.append(0)
                 obs, _ = env.reset(seed=seed)
 
@@ -274,8 +275,6 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, deterministic=
                 ep_lengths.append(ep_length)
 
                 end_effector_positions.append(ee_pos)
-
-
 
                 # finish episode
                 break
@@ -293,7 +292,8 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, deterministic=
                "mean_ep_length": np.round(np.mean(ep_lengths), 4),
                "mean_ep_length_success": np.round(np.mean(ep_lengths_success), 4),
                "mean_num_sim_steps": np.round(np.mean([i * configuration["n_substeps"] for i in ep_lengths]), 4),
-               "mean_num_sim_steps_success": np.round(np.mean([i * configuration["n_substeps"] for i in ep_lengths_success]), 4),
+               "mean_num_sim_steps_success": np.round(
+                   np.mean([i * configuration["n_substeps"] for i in ep_lengths_success]), 4),
                "mean_effort": np.round(np.mean(efforts), 4),
                "mean_manipulability": np.round(np.mean(manipulabilities), 4),
                "mean_norm_jerk": np.round(np.mean(np.array([item for l in jerks for item in l])), 4),
@@ -317,8 +317,9 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, deterministic=
 
     return results, metrics
 
+
 def evaluate_ensemble_high_freq(models, env, human=True, num_episodes=1000, goals_to_achieve=None, deterministic=True,
-                      strategy="variance_only", scenario_name="", prior_orientation=None):
+                                strategy="variance_only", scenario_name="", prior_orientation=None):
     """
     Evaluate a RL agent
     :param model: (BaseRLModel object) the RL Agent
@@ -356,7 +357,8 @@ def evaluate_ensemble_high_freq(models, env, human=True, num_episodes=1000, goal
     # episode_action_sovereignty = 0
     action_sovereignty = None
 
-    model_colors = {0: np.array([1.0, 0.0, 0.0]), 1: np.array([0.0, 0.0, 1.0]), 2: np.array([0.0, 0.0, 1.0]), 3: np.array([0.0, 0.0, 1.0]), 4: np.array([0.0, 0.0, 1.0])}
+    model_colors = {0: np.array([1.0, 0.0, 0.0]), 1: np.array([0.0, 0.0, 1.0]), 2: np.array([0.0, 0.0, 1.0]),
+                    3: np.array([0.0, 0.0, 1.0]), 4: np.array([0.0, 0.0, 1.0])}
     seed = 0
     obs, _ = env.reset(seed=seed)
     for _ in tqdm(range(num_episodes), desc=scenario_name):
@@ -367,7 +369,7 @@ def evaluate_ensemble_high_freq(models, env, human=True, num_episodes=1000, goal
         total_effort = 0.0
         total_manipulability = 0.0
         jerk = []
-        j= 0
+        j = 0
 
         seed += 1
         # get next goal
@@ -488,7 +490,7 @@ def evaluate_ensemble_high_freq(models, env, human=True, num_episodes=1000, goal
             if done or truncated:
                 # sleep(2)
                 if info["is_success"]:
-                    #print("Success!")
+                    # print("Success!")
                     done_events.append(1)
                     ep_lengths_success.append(ep_length)
                     jerks.append(np.array(jerk))
@@ -497,12 +499,12 @@ def evaluate_ensemble_high_freq(models, env, human=True, num_episodes=1000, goal
                     end_effector_speeds.append(ee_speed)
                     path_success.append(ee_pos)
                 elif info["is_truncated"]:
-                    #print("Collision...")
+                    # print("Collision...")
                     done_events.append(-1)
                     if human:
                         sleep(1)
                 else:
-                    #print("Timeout...")
+                    # print("Timeout...")
                     done_events.append(0)
                 obs, _ = env.reset(seed=seed)
 
@@ -513,8 +515,6 @@ def evaluate_ensemble_high_freq(models, env, human=True, num_episodes=1000, goal
                 ep_lengths.append(ep_length)
 
                 end_effector_positions.append(ee_pos)
-
-
 
                 # finish episode
                 break
@@ -532,7 +532,8 @@ def evaluate_ensemble_high_freq(models, env, human=True, num_episodes=1000, goal
                "mean_ep_length": np.round(np.mean(ep_lengths), 4),
                "mean_ep_length_success": np.round(np.mean(ep_lengths_success), 4),
                "mean_num_sim_steps": np.round(np.mean([i * configuration["n_substeps"] for i in ep_lengths]), 4),
-               "mean_num_sim_steps_success": np.round(np.mean([i * configuration["n_substeps"] for i in ep_lengths_success]), 4),
+               "mean_num_sim_steps_success": np.round(
+                   np.mean([i * configuration["n_substeps"] for i in ep_lengths_success]), 4),
                "mean_effort": np.round(np.mean(efforts), 4),
                "mean_manipulability": np.round(np.mean(manipulabilities), 4),
                "mean_norm_jerk": np.round(np.mean(np.array([item for l in jerks for item in l])), 4),
@@ -555,6 +556,7 @@ def evaluate_ensemble_high_freq(models, env, human=True, num_episodes=1000, goal
 
     return results, metrics
 
+
 def evaluate_prior(human=False, eval_type="optimized"):
     logging.info("Evaluating Prior")
     n_substeps, reward_type, goal_condition = set_eval_type(eval_type)
@@ -562,8 +564,8 @@ def evaluate_prior(human=False, eval_type="optimized"):
         scenario_goals = json.load(file)
 
     evaluation_results = {}
-    for evaluation_scenario, prior_orientation in zip(["wang_3", "library2", "narrow_tunnel","workshop", "wall"], [
-                                                                 "fkine", "back", "left", "fkine", "fkine"]):
+    for evaluation_scenario, prior_orientation in zip(["wang_3", "library2", "narrow_tunnel", "workshop", "wall"], [
+        "fkine", "back", "left", "fkine", "fkine"]):
         env = gymnasium.make(configuration["env_name"], render=human, control_type="jsd",
                              obs_type=configuration["obs_type"], goal_distance_threshold=0.05,
                              goal_condition=goal_condition,
@@ -661,7 +663,9 @@ def evaluate_rl_agent(agents, human=False, eval_type="basic"):
 
         table.to_excel(f"{path}/{model_name}.xlsx")
 
-def evaluate_agent_ensemble(agents, human=False, eval_type="basic", strategy="mean_actions", obstacle_observation="vectors"):
+
+def evaluate_agent_ensemble(agents, human=False, eval_type="basic", strategy="mean_actions",
+                            obstacle_observation="vectors"):
     logging.info(f"Evaluating {agents}")
     n_substeps, reward_type, goal_condition = set_eval_type(eval_type)
 
@@ -682,8 +686,8 @@ def evaluate_agent_ensemble(agents, human=False, eval_type="basic", strategy="me
     models = []
     for model_name in agents:
         models.append(TQC.load(fr"../run/run_data/wandb/{model_name}/files/best_model.zip", env=env,
-                             custom_objects={"action_space": gymnasium.spaces.Box(-1.0, 1.0, shape=(7,),
-                                                                                  dtype=np.float32)}))
+                               custom_objects={"action_space": gymnasium.spaces.Box(-1.0, 1.0, shape=(7,),
+                                                                                    dtype=np.float32)}))
 
     evaluation_results = {}
     for evaluation_scenario in ["wangexp_3", "narrow_tunnel", "library2", "workshop",
@@ -736,7 +740,6 @@ def evaluate_agent_ensemble(agents, human=False, eval_type="basic", strategy="me
     table.to_excel(f"{path}/{agent_type}-ensemble-{strategy}-high-frequency.xlsx")
 
 
-
 def set_eval_type(eval_type):
     if eval_type == "optim_eval2":
         reward_type = "kumar_her"
@@ -770,11 +773,12 @@ def set_eval_type(eval_type):
         panda_gym.register_reach_ao(100)
     return n_substeps, reward_type, goal_condition
 
+
 trained_models = {
     "mt_cl": ["gallant-serenity-299", "deep-frog-298", "solar-microwave-297", "revived-serenity-296",
-                "glamorous-resonance-295"],
-    #"mt_cl_opt_old": ["dandy-flower-328", "fancy-cloud-329", "rosy-music-336", "dauntless-leaf-337", "pious-cloud-346"],
-    #"mt_cl_opt_her_old": ["lyric-dream-322", "apricot-cosmos-323", "tough-snow-324", "sunny-eon-325", "electric-serenity-326"],
+              "glamorous-resonance-295"],
+    # "mt_cl_opt_old": ["dandy-flower-328", "fancy-cloud-329", "rosy-music-336", "dauntless-leaf-337", "pious-cloud-346"],
+    # "mt_cl_opt_her_old": ["lyric-dream-322", "apricot-cosmos-323", "tough-snow-324", "sunny-eon-325", "electric-serenity-326"],
     "mt_cl_opt_her": ["curious-wave-419", "glad-universe-418", "fiery-totem-417", "silver-star-416", "swept-salad-415"],
     "mt_cl_opt": ["dainty-bee-423", "vital-salad-424", "crimson-plant-425", "upbeat-gorge-427", "morning-sun-428"],
     "mt": ["solar-disco-133", "stellar-river-132", "snowy-pine-131", "comic-frost-130", "giddy-darkness-129"],
@@ -784,30 +788,26 @@ trained_models = {
     "bench": ["bench_narrow_tunnel", "bench_library2", "bench_workshop", "bench_wall"],
     "few_shot": ["few_shot_narrow_tunnel", "few_shot_library2", "few_shot_workshop", "few_shot_wall"]
 
-  #  "opt2": ["atomic-snowflake-357"],
-  #  "opt3": ["smooth-dream-362"],
-  #  "mt_cl_effort": ["dutiful-fog-384", "dainty-surf-383", "helpful-night-382", "ruby-sponge-381", "dashing-dew-380"]
+    #  "opt2": ["atomic-snowflake-357"],
+    #  "opt3": ["smooth-dream-362"],
+    #  "mt_cl_effort": ["dutiful-fog-384", "dainty-surf-383", "helpful-night-382", "ruby-sponge-381", "dashing-dew-380"]
 }
 
 if __name__ == "__main__":
-    eval_type = "base_eval" # optimized; basic
+    eval_type = "base_eval"  # optimized; basic
 
-    #evaluate_agent_ensemble(trained_models["bench"], human=False, eval_type=eval_type, strategy="variance_only")
-    #evaluate_agent_ensemble(trained_models["few_shot"], human=False, eval_type=eval_type, strategy="variance_only")
-    #evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type=eval_type, strategy="variance_only")
+    # evaluate_agent_ensemble(trained_models["bench"], human=False, eval_type=eval_type, strategy="variance_only")
+    # evaluate_agent_ensemble(trained_models["few_shot"], human=False, eval_type=eval_type, strategy="variance_only")
+    # evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type=eval_type, strategy="variance_only")
 
-    #evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval2", strategy="variance_only")
-    #evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval", strategy="variance_only")
+    # evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval2", strategy="variance_only")
+    # evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval", strategy="variance_only")
     # evaluate_agent_ensemble(trained_models["mt_cl"], human=True, eval_type="base_eval", strategy="variance_only")
-    evaluate_agent_ensemble(["generous-resonance-512"], human=True, eval_type="base_eval", strategy="variance_only", obstacle_observation="vectors")
+    evaluate_agent_ensemble(["generous-resonance-512"], human=True, eval_type="base_eval", strategy="variance_only",
+                            obstacle_observation="vectors")
 
-
-
-
-
-
-    #evaluate_prior(human=False, eval_type=eval_type)
-    #evaluate_rl_agent(agents=trained_models["mt_cl"], human=False, eval_type=eval_type)
+    # evaluate_prior(human=False, eval_type=eval_type)
+    # evaluate_rl_agent(agents=trained_models["mt_cl"], human=False, eval_type=eval_type)
     # evaluate_rl_agent(agents=["easy-lion-98"], human=False, eval_type=eval_type)
     # evaluate_rl_agent(agents=["easy-lion-98"], human=False, eval_type=eval_type)
 
@@ -825,8 +825,6 @@ if __name__ == "__main__":
     #
     # for p in process_list:
     #     p.join()
-
-
 
     # evaluate ensemble
 
@@ -869,5 +867,3 @@ if __name__ == "__main__":
     #
     # # Ask Matplotlib to show it
     # plt.show()
-
-
