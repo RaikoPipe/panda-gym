@@ -1,3 +1,4 @@
+import os
 from typing import Optional
 
 import numpy as np
@@ -45,11 +46,14 @@ class Panda(PyBulletRobot):
         action_space = spaces.Box(-1.0, 1.0, shape=(n_action,), dtype=np.float32)
 
         # path_to_urdf = "C:\\Users\\eclip\\Documents\\GitHub\\panda-gym\\panda_gym\\URDF\\robots\\franka_panda_custom\\panda.urdf"
+        # get absolute path to urdf file
+
+        path_to_urdf = os.path.join(os.path.dirname(__file__), "URDF/robots/franka_panda_custom/panda.urdf")
 
         super().__init__(
             sim,
             body_name="panda",
-            file_name="franka_panda_custom/panda.urdf",
+            file_name='franka_panda_custom/panda.urdf',
             base_position=base_position,
             action_space=action_space,
             joint_indices=np.array([0, 1, 2, 3, 4, 5, 6, 9, 10]),

@@ -1,8 +1,6 @@
 import numpy as np
 from time import sleep
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
-from algorithms.SAC_hybrid.prior_controller_neo import NEO
-from copy import copy
 
 
 def fill_replay_buffer_with_prior(env, model: OffPolicyAlgorithm, num_steps=10000):

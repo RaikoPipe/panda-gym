@@ -135,7 +135,7 @@ class PandaReachAOEnv(RobotTaskEnv):
             Defaults to "ee".
     """
 
-    def __init__(self, render: bool = False, realtime: bool = False,
+    def __init__(self, render: bool = False, render_mode: str = "rgb_array", realtime: bool = False,
                  reward_type: str = "sparse", goal_distance_threshold: float = 0.05, goal_condition="reach",
                  control_type: str = "js", obs_type: tuple =("ee",), show_goal_space=False, scenario: str = "cube_3_random",
                  randomize_robot_pose:bool=False, truncate_on_collision=True, terminate_on_success=True,

@@ -8,10 +8,10 @@ sys.modules["gym"] = gymnasium
 
 from typing import Optional
 import numpy as np
-from stable_baselines3 import SAC, TD3, DDPG, PPO
-from stable_baselines3.her.her_replay_buffer import HerReplayBuffer, VecHerReplayBuffer
+from stable_baselines3 import SAC, TD3, DDPG, PPO, HerReplayBuffer
 from sb3_contrib import TQC
-from stable_baselines3.common.callbacks import EvalSuccessCallback, StopTrainingOnSuccessThreshold, EvalCallback, StopTrainingOnRewardThreshold
+from stable_baselines3.common.callbacks import EvalSuccessCallback, StopTrainingOnSuccessThreshold, EvalCallback, \
+    StopTrainingOnRewardThreshold
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.noise import NormalActionNoise, VectorizedActionNoise
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
@@ -24,10 +24,13 @@ import wandb
 from wandb.integration.sb3 import WandbCallback
 import panda_gym
 
+import time
+
 
 def get_env(config, n_envs, scenario, force_render=False):
     env = make_vec_env(config["env_name"], n_envs=n_envs, seed=config["seed"],
                        env_kwargs={"render": config["render"] if force_render else False,
+                                   "render_mode": "rgb_array",
                                    "control_type": config["control_type"],
                                    "obs_type": config["obs_type"],
                                    "reward_type": config["reward_type"],
@@ -178,9 +181,14 @@ def init_wandb(config, tags):
     return run
 
 
+def switch_model_env(model, env) -> None:
+    model.set_env(env, force_reset=True)
+    if isinstance(model.replay_buffer_class, HerReplayBuffer):
+        model.replay_buffer.set_env(env)
+
+
 def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
           starting_stage: Optional[str] = None, algorithm: str = "TD3", ):
-
     panda_gym.register_reach_ao(config["max_ep_steps"][0])
 
     tags = get_tags(config)
@@ -227,23 +235,15 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
                                                       config["max_ep_steps"]):
         panda_gym.register_reach_ao(max_ep_steps)
 
-        if config["n_envs"] > 1:
-            model.env.close() # for some reason closing environments for single agent will cause error
-
-        env = get_env(config, config["n_envs"], stage)
-        model.set_env(env)
-
-        if config["replay_buffer_class"] == VecHerReplayBuffer:
-            model.replay_buffer.close_env()
-            model.replay_buffer.set_env(env)
+        switch_model_env(model, get_env(config, config["n_envs"], stage))
 
         eval_env = get_eval_env(config, stage)
         if success_threshold > 1.0:
             stop_train_callback = StopTrainingOnRewardThreshold(reward_threshold=success_threshold, verbose=1)
             eval_callback = EvalCallback(eval_env=eval_env,
-                                            eval_freq=max(config["eval_freq"] // config["n_envs"], 1),
-                                            callback_after_eval=stop_train_callback, verbose=1, n_eval_episodes=100,
-                                            best_model_save_path=wandb.run.dir)
+                                         eval_freq=max(config["eval_freq"] // config["n_envs"], 1),
+                                         callback_after_eval=stop_train_callback, verbose=1, n_eval_episodes=100,
+                                         best_model_save_path=wandb.run.dir)
         else:
             stop_train_callback = StopTrainingOnSuccessThreshold(success_threshold=success_threshold, verbose=1)
 
@@ -263,7 +263,6 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
         model.save_replay_buffer(f"{wandb.run.dir}/replay_buffer")
 
         eval_env.close()
-
 
     # evaluate trained model
     # benchmark_model(config, model, run)
@@ -353,6 +352,6 @@ def continue_learning(model, config, run=None):
 
     )
 
-    #benchmark_model(config, model, run)
+    # benchmark_model(config, model, run)
 
     return model, run
