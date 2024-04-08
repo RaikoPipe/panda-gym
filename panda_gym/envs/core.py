@@ -207,7 +207,8 @@ class PyBulletRobot(ABC):
         Returns:
             List of joint values.
         """
-        inverse_kinematics = self.sim.inverse_kinematics(self.body_name, link=link, position=position, orientation=orientation)
+        inverse_kinematics = self.sim.inverse_kinematics(self.body_name, link=link, position=position,
+                                                         orientation=orientation)
         return inverse_kinematics
 
 

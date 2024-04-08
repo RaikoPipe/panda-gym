@@ -42,7 +42,7 @@ def get_env(config, n_envs, scenario, force_render=False):
                                    "scenario": scenario,
                                    "show_debug_labels": False,
                                    "n_substeps": config["n_substeps"],
-                                   "joint_obstacle_observation": config["joint_obstacle_observation"],
+                                   'task_observations': config["task_observations"],
                                    "randomize_robot_pose": config["randomize_robot_pose"],
                                    "truncate_on_collision": config["truncate_on_collision"],
                                    "terminate_on_success": config["terminate_on_success"],
@@ -183,7 +183,7 @@ def init_wandb(config, tags):
 
 def switch_model_env(model, env) -> None:
     model.set_env(env, force_reset=True)
-    if isinstance(model.replay_buffer_class, HerReplayBuffer):
+    if isinstance(model.replay_buffer, HerReplayBuffer):
         model.replay_buffer.set_env(env)
 
 
@@ -292,7 +292,7 @@ def benchmark_model(config, model, run):
                              reward_type=config["reward_type"], limiter=config["limiter"],
                              show_goal_space=False, scenario=evaluation_scenario,
                              randomize_robot_pose=False,
-                             joint_obstacle_observation=config["joint_obstacle_observation"],
+                             task_observations=config['task_observations'],
                              truncate_on_collision=config["truncate_on_collision"],
                              terminate_on_success=config["terminate_on_success"],
 
@@ -352,6 +352,6 @@ def continue_learning(model, config, run=None):
 
     )
 
-    # benchmark_model(config, model, run)
+    benchmark_model(config, model, run)
 
     return model, run

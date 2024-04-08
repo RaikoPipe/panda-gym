@@ -315,7 +315,7 @@ class Panda(PyBulletRobot):
         q = [self.get_joint_angle(i) for i in self.joint_indices[:7]]
         return self.panda_rtb.manipulability(q, axes="trans")
 
-    def compute_action_neo(self, target, collision_objects, collision_detector, target_pose=""):
+    def compute_action_neo(self, target, collision_objects, collision_detector, target_pose):
         self.panda_rtb.q = self.get_joint_angles(self.joint_indices[:7])
         self.panda_rtb.qd = [self.get_joint_velocity(i) for i in self.joint_indices[:7]]
         # self.swift_env.step(render=True)
@@ -327,24 +327,24 @@ class Panda(PyBulletRobot):
         # if target_pose == "ik":
         #     Tep = self.panda_rtb.fkine(self.inverse_kinematics(link=11, position=target))
         #
-        if target_pose == "left":
-            Tep = SE3().RPY(np.array([135, -60,0]), unit="deg")
-        elif target_pose == "right":
-            Tep = SE3().RPY(np.array([-135, 0,0]), unit="deg")
-        elif target_pose == "front":
-            Tep = SE3().RPY(np.array([0, 90,0]), unit="deg")
-        elif target_pose == "back":
-            Tep = SE3().RPY(np.array([0, -90, 0]), unit="deg")
-        elif target_pose == "halfback":
-            Tep = SE3().RPY(np.array([0, -75, 0]), unit="deg")
-        elif target_pose == "neg_neutral":
-            Tep = self.panda_rtb.fkine(np.negative(self.neutral_joint_values[:7]))
-        elif target_pose == "current":
-            Tep = self.get_joint_angles(self.joint_indices[:7])
-        elif isinstance(target_pose, np.ndarray):
-            Tep = self.panda_rtb.fkine(target_pose)
-        else:
-            Tep = self.panda_rtb.fkine(self.neutral_joint_values[:7])
+        # if target_pose == "left":
+        #     Tep = SE3().RPY(np.array([135, -60,0]), unit="deg")
+        # elif target_pose == "right":
+        #     Tep = SE3().RPY(np.array([-135, 0,0]), unit="deg")
+        # elif target_pose == "front":
+        #     Tep = SE3().RPY(np.array([0, 90,0]), unit="deg")
+        # elif target_pose == "back":
+        #     Tep = SE3().RPY(np.array([0, -90, 0]), unit="deg")
+        # elif target_pose == "halfback":
+        #     Tep = SE3().RPY(np.array([0, -75, 0]), unit="deg")
+        # elif target_pose == "neg_neutral":
+        #     Tep = self.panda_rtb.fkine(np.negative(self.neutral_joint_values[:7]))
+        # elif target_pose == "current":
+        #     Tep = self.get_joint_angles(self.joint_indices[:7])
+        # elif isinstance(target_pose, np.ndarray):
+        #     Tep = self.panda_rtb.fkine(target_pose)
+        # else:
+        #     Tep = self.panda_rtb.fkine(self.neutral_joint_values[:7])
         # else:
         #     Tep = SE3()
         #     if target[1] < 0:
@@ -355,10 +355,10 @@ class Panda(PyBulletRobot):
             # if target[0] > 0.5:
             #     Tep.Ry(-135, unit="deg")
 
+        Tep = self.panda_rtb.fkine(target_pose)
 
         # Tep = SE3.OA([0, 1, 0], [0, 0, -1])
         Tep.A[:3, 3] = target
-
 
         # The se3 pose of the Panda's end-effector
         Te = self.panda_rtb.fkine(self.panda_rtb.q)

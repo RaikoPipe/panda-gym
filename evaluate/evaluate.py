@@ -150,8 +150,8 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, deterministic=
             variances = []
 
             if isinstance(models[0], str):
-                if prior_orientation == "fkine":
-                    prior_orientation = env.robot.inverse_kinematics(link=11, position=env.task.goal)[:7]
+                #if prior_orientation == "fkine":
+                prior_orientation = env.robot.inverse_kinematics(link=11, position=env.task.goal)[:7]
                 action = env.robot.compute_action_neo(env.task.goal, env.task.obstacles, env.task.collision_detector,
                                                       prior_orientation)
             else:
@@ -234,8 +234,7 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, deterministic=
             obs, reward, done, truncated, info, = env.step(action)
 
             if human:
-                pass
-                # sleep(0.01/8)  # for human eval
+                sleep(0.01/8)  # for human eval
 
             # add results and metrics
             episode_reward += reward
@@ -665,7 +664,7 @@ def evaluate_rl_agent(agents, human=False, eval_type="basic"):
 
 
 def evaluate_agent_ensemble(agents, human=False, eval_type="basic", strategy="mean_actions",
-                            obstacle_observation="vectors"):
+                            obstacle_observation="vectors+past"):
     logging.info(f"Evaluating {agents}")
     n_substeps, reward_type, goal_condition = set_eval_type(eval_type)
 
@@ -803,8 +802,8 @@ if __name__ == "__main__":
     # evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval2", strategy="variance_only")
     # evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval", strategy="variance_only")
     # evaluate_agent_ensemble(trained_models["mt_cl"], human=True, eval_type="base_eval", strategy="variance_only")
-    evaluate_agent_ensemble(["generous-resonance-512"], human=True, eval_type="base_eval", strategy="variance_only",
-                            obstacle_observation="vectors")
+    evaluate_agent_ensemble(["logical-cherry-949"], human=False, eval_type="base_eval", strategy="variance_only",
+                            obstacle_observation="vectors+past")
 
     # evaluate_prior(human=False, eval_type=eval_type)
     # evaluate_rl_agent(agents=trained_models["mt_cl"], human=False, eval_type=eval_type)

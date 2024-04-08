@@ -1,3 +1,5 @@
+from typing import Optional
+
 import numpy as np
 
 from panda_gym.envs.core import RobotTaskEnv
@@ -137,19 +139,21 @@ class PandaReachAOEnv(RobotTaskEnv):
 
     def __init__(self, render: bool = False, render_mode: str = "rgb_array", realtime: bool = False,
                  reward_type: str = "sparse", goal_distance_threshold: float = 0.05, goal_condition="reach",
-                 control_type: str = "js", obs_type: tuple =("ee",), show_goal_space=False, scenario: str = "cube_3_random",
-                 randomize_robot_pose:bool=False, truncate_on_collision=True, terminate_on_success=True,
-                 joint_obstacle_observation: str = "all", show_debug_labels=False, fixed_target=None, limiter="sim",
-                 action_limiter="clip", n_substeps=20, collision_reward = -100
+                 control_type: str = "js", obs_type: tuple = ("ee",), show_goal_space=False,
+                 scenario: str = "cube_3_random",
+                 randomize_robot_pose: bool = False, truncate_on_collision=True, terminate_on_success=True,
+                 task_observations: Optional[dict] = None, show_debug_labels=False, fixed_target=None, limiter="sim",
+                 action_limiter="clip", n_substeps=20, collision_reward=-100
                  ) -> None:
+
         sim = PyBullet(render=render, n_substeps=n_substeps)
         robot = Panda(sim, block_gripper=True, base_position=np.array([0.0, 0.0, 0.0]), control_type=control_type,
                       obs_type=obs_type,
                       limiter=limiter, action_limiter=action_limiter, n_substeps=n_substeps)
-        task = ReachAO(sim, robot, reward_type=reward_type, #n_substeps=n_substeps,
+        task = ReachAO(sim, robot, reward_type=reward_type,  # n_substeps=n_substeps,
                        goal_distance_threshold=goal_distance_threshold,
                        goal_condition=goal_condition,
-                       joint_obstacle_observation=joint_obstacle_observation,
+                       task_observations=task_observations,
                        scenario=scenario,
                        randomize_robot_pose=randomize_robot_pose,
                        truncate_episode_on_collision=truncate_on_collision,

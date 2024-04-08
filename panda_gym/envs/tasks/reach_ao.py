@@ -39,7 +39,7 @@ class ReachAO(Task):
             goal_distance_threshold=0.05,
             goal_condition="reach",
             show_goal_space=False,
-            joint_obstacle_observation="all",
+            task_observations=None,
             scenario="cube_3",
             randomize_robot_pose=False,
             truncate_episode_on_collision=True,
@@ -56,21 +56,24 @@ class ReachAO(Task):
     ) -> None:
         super().__init__(sim)
 
+        if task_observations is None:
+            task_observations = {'obstacles': 'vectors+past', 'prior': None}
+
         self.sim_id = self.sim.physics_client._client
-        # if self.sim.dummy_collision_client is not None:
-        #     self.dummy_sim_id = self.sim.dummy_collision_client._client
 
         self.robot: Panda = robot
         self.obstacles = {}
-        # self.dummy_obstacles = {}
-        # self.dummy_obstacle_id = {}
+
+        self.prior = task_observations["prior"]
+
         self.past_obstacle_observations = []
-        if joint_obstacle_observation == "vectors+past":
-            self.joint_obstacle_observation = "vectors"
+        if "vectors+past" in task_observations["obstacles"]:
+            self.obstacle_obs = "vectors"
             for _ in range(3):
                 self.get_obs()
 
-        self.joint_obstacle_observation = joint_obstacle_observation
+        self.obstacle_obs = task_observations["obstacles"]
+
 
         # general reward configuration
         self.collision_reward = collision_reward
@@ -884,14 +887,12 @@ class ReachAO(Task):
         return min(self.distances_closest_obstacles) <= 0.0
 
     def get_obs(self) -> np.ndarray:
-        obstacle_obs = np.zeros(9)
-        # check robot collision
-        # robot_collision_obs, _ = self.self_collision_detector.compute_distances_per_link(max_distance=999.0)
-        # robot_collision_obs = np.array([min(i) for i in robot_collision_obs.values()])
+
+        obstacle_obs = np.ones(27)
         if self.obstacles:
             # q = self.robot.get_joint_angles(self.robot.joint_indices[:7])
             obs_per_link, info = self.collision_detector.compute_distances_per_link(max_distance=999.0)
-            match self.joint_obstacle_observation:
+            match self.obstacle_obs:
                 case "all":
                     obstacle_obs = np.array([min(i) for i in obs_per_link.values()])
                 case "closest":
@@ -909,16 +910,11 @@ class ReachAO(Task):
                     closest_distances_all = self.distances_closest_obstacles
                     obstacle_obs = np.concatenate([closest_distances_all, closest_distances_vectors])
 
-        else:
-            # no obstacles
-            if self.joint_obstacle_observation == "vectors":
-                obstacle_obs = np.ones(27)
+        prior_action = np.empty(0)
+        if self.prior == "rrmc_neo":
+            prior_action = self.robot.compute_action_neo(self.goal, self.obstacles, self.collision_detector, self.robot.inverse_kinematics(link=11, position=self.goal)[:7])
 
-            # self.is_collided = min(robot_collision_obs) <= -0.05
-            # print(robot_collision_obs)
-        # todo: get end effector error
-
-        observations = np.concatenate([obstacle_obs])
+        observations = np.concatenate([obstacle_obs, prior_action])
 
         return observations
 
@@ -985,7 +981,7 @@ class ReachAO(Task):
         # empty past obstacle observations
         self.past_obstacle_observations = []
         # fill past obstacle observations with observation
-        if self.joint_obstacle_observation == "vectors+past":
+        if self.obstacle_obs == "vectors+past":
             for _ in range(2):
                 self.get_obs()
 

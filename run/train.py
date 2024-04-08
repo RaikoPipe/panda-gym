@@ -25,8 +25,12 @@ reach_max_ep_steps = [50, 50, 50, 50]
 reach_succ_thresholds = [1.0, 1.0, 1.0, 1.0]
 
 reach_ao_stages = ["base1", "base2", "wangexp_3"]
-reach_ao_max_ep_steps = [50, 75, 100]
+reach_ao_max_ep_steps = [50, 100, 150]
 reach_ao_succ_thresholds = [0.9, 0.9, 1.1]
+
+reach_ao_stages_test1 = ["base1", "base2", "wangexp_3"]
+reach_ao_max_ep_steps_test1 = [100, 150, 200]
+reach_ao_succ_thresholds_test1 = [0.9, 0.9, 1.1]
 
 reach_optim_stages = ["wangexp_3"]
 reach_optim_max_ep_steps = [400]
@@ -42,7 +46,7 @@ configuration = {
     "max_timesteps": 1_200_000,
     "seed": 8,
     "render": False,  # renders the eval env
-    "n_substeps": 20,  # number of simulation steps before handing control back to agent
+    "n_substeps": 50,  # number of simulation steps before handing control back to agent
     "obs_type": ["ee", "js"],  # Robot state to observe
     "control_type": "js",
     # Agent Output; js: joint velocities, ee: end effector displacements; jsd: joint velocities (applied directly)
@@ -54,10 +58,10 @@ configuration = {
     "show_debug_labels": False,
     "n_envs": 8,
     "eval_freq": 5_000,
-    "stages": reach_ao_stages,
-    "success_thresholds": reach_ao_succ_thresholds,  # [-7, -10, -12, -17, -20]
-    "max_ep_steps": reach_ao_max_ep_steps,
-    "joint_obstacle_observation": "vectors+past",
+    "stages": reach_ao_stages_test1,
+    "success_thresholds": reach_ao_succ_thresholds_test1,  # [-7, -10, -12, -17, -20]
+    "max_ep_steps": reach_ao_max_ep_steps_test1,
+    "task_observations": {'obstacles': "vectors+all", 'prior': "rrmc_neo"},
     # "all": closest distance to any obstacle of all joints is observed; "vectors": directional vectors pointing to closest obstacles
     "learning_starts": 10000,
     "prior_steps": 0,

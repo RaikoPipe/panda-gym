@@ -56,6 +56,10 @@ class PyBullet:
         self._string_idx = {}
         self._string_positions = {}
 
+        if self.render_env:
+            self.physics_client.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
+            self.physics_client.configureDebugVisualizer(p.COV_ENABLE_SINGLE_STEP_RENDERING, 1)
+
     @property
     def dt(self):
         """Timestep."""
