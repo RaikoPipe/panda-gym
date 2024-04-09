@@ -585,8 +585,8 @@ class ReachAO(Task):
     def create_scenario_base2(self):
         self.randomize_obstacle_position = True
         self.random_num_obs = False
-        goal_radius_minor = 0.5
-        goal_radius_major = 0.8
+        goal_radius_minor = 0.4
+        goal_radius_major = 0.7
 
         # PandaReach with 1 obstacle
         def sample_base_2_goal():
@@ -594,7 +594,7 @@ class ReachAO(Task):
                                                     front_half=True)
 
         self._sample_goal = sample_base_2_goal
-        self._sample_obstacle = sample_base_2_goal
+        self._sample_obstacle = self.sample_obstacle_default
 
         for i in range(2):
             self.create_obstacle_sphere(radius=0.05)
@@ -667,6 +667,16 @@ class ReachAO(Task):
         self.randomize_robot_pose = True
         self.robot_pose_randomizer = lambda: self.set_robot_random_joint_position_ik()
 
+    def sample_obstacle_default(self):
+
+        if self.np_random.random() > 0.3:
+            # move to goal
+            sample = self.sample_inside_hollow_sphere(0.2, 0.6)
+            return sample + self.goal
+        else:
+            sample = self.sample_inside_hollow_sphere(0.2, 0.4)
+            return self.robot.get_ee_position() + sample
+
     def create_scenario_wang(self):
         goal_radius_minor = 0.4
         goal_radius_major = 0.95
@@ -724,23 +734,24 @@ class ReachAO(Task):
 
     def create_scenario_wang_experimental(self):
         """Scenario for trying out different variations of wang"""
-        goal_radius_minor = 0.5
-        goal_radius_major = 0.8
+        goal_radius_minor = 0.4
+        goal_radius_major = 0.75
 
         def sample_wang_obstacle():
             rand = self.np_random.random()
-            if rand > 0.3:
-                # move to goal
-                sample = self.sample_inside_hollow_sphere(0.1, 0.5)
+            if rand > 0.6:
+                # sample near goal
+                sample = self.sample_inside_hollow_sphere(0.06, 0.25)
                 return sample + self.goal
-            elif rand > 0.1:
-                sample = self.sample_inside_hollow_sphere(0.1, 0.4)
+            elif rand > 0.2:
+                # sample near ee
+                sample = self.sample_inside_hollow_sphere(0.1, 0.2)
                 return self.robot.get_ee_position() + sample
             # else:
             #     return self.sample_sphere(0.3,0.5)
             else:
                 # sample near base
-                sample = self.sample_inside_hollow_sphere(0.3, 0.6, True)
+                sample = self.sample_inside_hollow_sphere(0.2, 0.5, True)
                 return sample + self.robot.get_link_position(0)
 
         num_obstacles = int(self.scenario.split(sep="_")[1])
@@ -904,17 +915,22 @@ class ReachAO(Task):
                     self.past_obstacle_observations.append(self.get_vector_obs(obs_per_link, info))
                     # concatenate latest 3 observations
                     obstacle_obs = np.concatenate(self.past_obstacle_observations[-3:])
-
                 case "vectors+all":
                     closest_distances_vectors = self.get_vector_obs(obs_per_link, info)
                     closest_distances_all = self.distances_closest_obstacles
-                    obstacle_obs = np.concatenate([closest_distances_all, closest_distances_vectors])
+                    obstacle_obs = np.concatenate((closest_distances_all, closest_distances_vectors))
 
         prior_action = np.empty(0)
         if self.prior == "rrmc_neo":
-            prior_action = self.robot.compute_action_neo(self.goal, self.obstacles, self.collision_detector, self.robot.inverse_kinematics(link=11, position=self.goal)[:7])
+            prior_action = self.robot.compute_action_neo(
+                self.goal,
+                self.obstacles,
+                self.collision_detector,
+                self.robot.inverse_kinematics(link=11, position=self.goal)[:7],
+                'default')
 
-        observations = np.concatenate([obstacle_obs, prior_action])
+        observations = np.concatenate((obstacle_obs, prior_action))
+
 
         return observations
 
@@ -923,7 +939,9 @@ class ReachAO(Task):
         obs_distances = list(obs_per_link.values())
         closest_per_obstacle = [sorted(zip(i, y)) for i, y in zip(obs_distances, closest_points)]
         closest_pairs = np.array([x[0][1] for x in closest_per_obstacle])
-        closest_distances = np.array([i[0] - i[1] for i in closest_pairs]).flatten()
+        # get array of unit vectors pointing to the closest obstacles
+        closest_distances = np.array([- i[0] + i[1] for i in closest_pairs]).flatten()
+
         return closest_distances
 
     def get_achieved_goal(self) -> np.ndarray:
@@ -942,7 +960,7 @@ class ReachAO(Task):
         else:
             coll_obj = [i for i in self.obstacles.keys()]
             coll_obj.extend(["table", "robot"])
-            self.set_coll_free_goal(coll_obj, margin=0.1)
+            self.set_coll_free_goal(coll_obj, margin=0.05)
 
         self.sim.set_base_pose("dummy_sphere", np.array([0.0, 0.0, -5.0]),
                                np.array([0.0, 0.0, 0.0, 1.0]))  # move dummy away

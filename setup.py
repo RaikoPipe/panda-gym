@@ -25,17 +25,13 @@ setup(
                       "pyb_utils @ git+ssh://git@github.com/RaikoPipe/pyb_utils",
                       "stable_baselines3 @ git+ssh://git@github.com/RaikoPipe/stable-baselines3@fix_tests",
                         "sb3-contrib @ git+ssh://git@github.com/RaikoPipe/stable-baselines3-contrib@feat/gymnasium_version",
-                      "roboticstoolbox-python @ git+ssh://github.com/RaikoPipe/robotics-toolbox-python", "tensorboard"],
-    dependency_links=["https://download.pytorch.org/whl/cu117"],
+                      "roboticstoolbox-python @ git+ssh://github.com/RaikoPipe/robotics-toolbox-python@old", "tensorboard"],
+    dependency_links=["https://download.pytorch.org/whl/cu121"],
     extras_require={
         "develop": ["pytest-cov", "black", "isort", "pytype", "sphinx", "sphinx-rtd-theme"],
     },
     classifiers=[
         "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11"
     ],
 )

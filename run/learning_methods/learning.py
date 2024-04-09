@@ -17,7 +17,7 @@ from stable_baselines3.common.noise import NormalActionNoise, VectorizedActionNo
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 from stable_baselines3.common.vec_env import SubprocVecEnv
 from run.learning_methods.imitation_learning import fill_replay_buffer_with_init_model, fill_replay_buffer_with_prior
-from evaluate.evaluate import evaluate_ensemble
+from evaluate.evaluate import perform_benchmark
 import pandas as pd
 from gymnasium.envs.registration import register
 import wandb
@@ -265,7 +265,7 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
         eval_env.close()
 
     # evaluate trained model
-    # benchmark_model(config, model, run)
+    benchmark_model(config, model, run)
 
     return model, run
 
@@ -285,8 +285,7 @@ def get_eval_env(config, stage):
 
 def benchmark_model(config, model, run):
     evaluation_results = {}
-    for evaluation_scenario in ["wang_3", "wangexp_3", "library2", "library1", "narrow_tunnel", "wall",
-                                "workshop"]:  # "wang_3", "library2", "library1", "narrow_tunnel"
+    for evaluation_scenario in ["wangexp_3", "library2",  "narrow_tunnel"]:
         env = gymnasium.make(config["env_name"], render=False, control_type=config["control_type"],
                              obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                              reward_type=config["reward_type"], limiter=config["limiter"],
@@ -300,7 +299,7 @@ def benchmark_model(config, model, run):
         print(f"Evaluating {evaluation_scenario}")
         best_model = model.load(path=f"{wandb.run.dir}\\best_model.zip", env=env)
 
-        results, metrics = evaluate_ensemble([best_model], env, human=False, num_episodes=500, deterministic=True,
+        results, metrics = perform_benchmark([best_model], env, human=False, num_episodes=500, deterministic=True,
                                              strategy="variance_only")
         evaluation_results[evaluation_scenario] = {"results": results, "metrics": metrics}
         env.close()

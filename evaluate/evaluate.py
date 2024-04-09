@@ -80,8 +80,8 @@ def visualize_trajectory(env, done_event, trajectory):
         xyz1 = xyz2
 
 
-def evaluate_ensemble(models, env, human=True, num_episodes=1000, deterministic=True,
-                      strategy="variance_only", scenario_name="", prior_orientation=None, pre_calc_metrics=None,
+def perform_benchmark(models, env, human=True, num_episodes=1000, deterministic=True,
+                      strategy=None, scenario_name="", prior_orientation=None, pre_calc_metrics=None,
                       show_model_actions=False):
     """
     Evaluate a RL agent
@@ -149,11 +149,11 @@ def evaluate_ensemble(models, env, human=True, num_episodes=1000, deterministic=
             distribution_variances = []
             variances = []
 
-            if isinstance(models[0], str):
+            if models == "prior":
                 #if prior_orientation == "fkine":
                 prior_orientation = env.robot.inverse_kinematics(link=11, position=env.task.goal)[:7]
                 action = env.robot.compute_action_neo(env.task.goal, env.task.obstacles, env.task.collision_detector,
-                                                      prior_orientation)
+                                                      prior_orientation, strategy)
             else:
                 # get rl action distribution
                 for model in models:
@@ -556,115 +556,20 @@ def evaluate_ensemble_high_freq(models, env, human=True, num_episodes=1000, goal
     return results, metrics
 
 
-def evaluate_prior(human=False, eval_type="optimized"):
-    logging.info("Evaluating Prior")
-    n_substeps, reward_type, goal_condition = set_eval_type(eval_type)
-    with open("scenario_goals", "r") as file:
-        scenario_goals = json.load(file)
+def evaluate_agents(agents, human=False, eval_type="basic", strategy="mean_actions",
+                    obstacle_observation="vectors+past"):
+    # get agent type
+    agent_type = None
+    if len(agents) > 1:
+        agent_type = "ensemble"
+    elif len(agents) == 1:
+        agent_type = "single"
+    elif agents == "prior":
+        agent_type = "prior"
+    else:
+        logging.error("No agents to evaluate")
+        return
 
-    evaluation_results = {}
-    for evaluation_scenario, prior_orientation in zip(["wang_3", "library2", "narrow_tunnel", "workshop", "wall"], [
-        "fkine", "back", "left", "fkine", "fkine"]):
-        env = gymnasium.make(configuration["env_name"], render=human, control_type="jsd",
-                             obs_type=configuration["obs_type"], goal_distance_threshold=0.05,
-                             goal_condition=goal_condition,
-                             reward_type=reward_type, limiter=configuration["limiter"],
-                             show_goal_space=True, scenario=evaluation_scenario,
-                             randomize_robot_pose=False,  # if evaluation_scenario != "wang_3" else True,
-                             joint_obstacle_observation="vectors+all",
-                             truncate_on_collision=True,
-                             terminate_on_success=True,
-                             show_debug_labels=True, n_substeps=n_substeps)
-        print(f"Evaluating {evaluation_scenario}")
-
-        results, metrics = evaluate_ensemble(["prior"], env, human=human, num_episodes=500, deterministic=True,
-                                             strategy="",
-                                             scenario_name=evaluation_scenario,
-                                             prior_orientation=prior_orientation)
-
-        evaluation_results[evaluation_scenario] = {"results": results, "metrics": metrics}
-        env.close()
-
-    for key, value in evaluation_results.items():
-        results = value["results"]
-        print(f"{key}: {results}")
-
-    results = {}
-    for key, value in evaluation_results.items():
-        results[key] = value["results"]
-
-    table = pd.DataFrame(results)
-    table.index.name = "Criterias"
-    print(table.to_markdown())
-    table.to_excel(f"results/{eval_type}/prior.xlsx")
-
-
-def evaluate_rl_agent(agents, human=False, eval_type="basic"):
-    logging.info(f"Evaluating {agents}")
-    n_substeps, reward_type, goal_condition = set_eval_type(eval_type)
-
-    with open("scenario_goals", "r") as file:
-        scenario_goals = json.load(file)
-
-    for model_name in agents:
-
-        evaluation_results = {}
-        for evaluation_scenario in ["wangexp_3", "narrow_tunnel", "library2", "workshop",
-                                    "wall"]:  # "wang_3", "library2", "library1", "narrow_tunnel", "wall"
-            env = gymnasium.make(configuration["env_name"], render=human, control_type="js",
-                                 obs_type=configuration["obs_type"], goal_distance_threshold=0.05,
-                                 goal_condition=goal_condition,
-                                 reward_type=reward_type, limiter=configuration["limiter"],
-                                 show_goal_space=True, scenario=evaluation_scenario,
-                                 randomize_robot_pose=False,  # if evaluation_scenario != "wang_3" else True,
-                                 joint_obstacle_observation="vectors+all",
-                                 truncate_on_collision=True,
-                                 terminate_on_success=True,
-                                 show_debug_labels=True, n_substeps=n_substeps)
-
-            print(f"Evaluating {evaluation_scenario}")
-
-            # Load model
-            model = TQC.load(fr"../run/run_data/wandb/{model_name}/files/best_model.zip", env=env,
-                             custom_objects={"action_space": gymnasium.spaces.Box(-1.0, 1.0, shape=(7,),
-                                                                                  dtype=np.float32)})  # for some reason it won't read action space sometimes
-
-            goals_to_achieve = copy(scenario_goals[evaluation_scenario])
-            results, metrics = evaluate_ensemble([model], env, human=human, num_episodes=500, deterministic=True,
-                                                 strategy="variance_only",
-                                                 scenario_name=evaluation_scenario)
-
-            evaluation_results[evaluation_scenario] = {"results": results, "metrics": metrics}
-            env.close()
-            del model
-
-        for key, value in evaluation_results.items():
-            results = value["results"]
-            print(f"{key}: {results}")
-
-        results = {}
-        for key, value in evaluation_results.items():
-            results[key] = value["results"]
-
-        table = pd.DataFrame(results)
-        table.index.name = "Criterias"
-        print(table.to_markdown())
-
-        agent_type = "folder"
-        for key, value in trained_models.items():
-            if model_name in value:
-                agent_type = key
-
-        path = f"results/{eval_type}/{agent_type}"
-
-        if not os.path.exists(path):
-            os.makedirs(path)
-
-        table.to_excel(f"{path}/{model_name}.xlsx")
-
-
-def evaluate_agent_ensemble(agents, human=False, eval_type="basic", strategy="mean_actions",
-                            obstacle_observation="vectors+past"):
     logging.info(f"Evaluating {agents}")
     n_substeps, reward_type, goal_condition = set_eval_type(eval_type)
 
@@ -706,37 +611,34 @@ def evaluate_agent_ensemble(agents, human=False, eval_type="basic", strategy="me
 
         goals_to_achieve = copy(scenario_goals[evaluation_scenario])
 
-        results, metrics = evaluate_ensemble(models, env, human=human, num_episodes=50, deterministic=True,
+        results, metrics = perform_benchmark(models, env, human=human, num_episodes=50, deterministic=True,
                                              strategy=strategy,
                                              scenario_name=evaluation_scenario)
 
         evaluation_results[evaluation_scenario] = {"results": results, "metrics": metrics}
         env.close()
 
+    display_and_save_benchmark_results(agent_type, eval_type, evaluation_results, strategy)
+
+
+def display_and_save_benchmark_results(agent_type, eval_type, evaluation_results, strategy):
     for key, value in evaluation_results.items():
         results = value["results"]
         print(f"{key}: {results}")
-
     results = {}
     for key, value in evaluation_results.items():
         results[key] = value["results"]
-
+    if isinstance(strategy, dict):
+        results['configuration'] = strategy
+        strategy = strategy["name"]
     table = pd.DataFrame(results)
     table.index.name = "Criterias"
-
-    agent_type = "folder"
-    for key, value in trained_models.items():
-        if agents == value:
-            agent_type = key
-            break
     print(f"{agent_type}-{strategy}")
     print(table.to_markdown())
     path = f"results/{eval_type}/{agent_type}"
-
     if not os.path.exists(path):
         os.makedirs(path)
-
-    table.to_excel(f"{path}/{agent_type}-ensemble-{strategy}-high-frequency.xlsx")
+    table.to_excel(f"{path}/{agent_type}-{strategy}.xlsx")
 
 
 def set_eval_type(eval_type):
@@ -802,8 +704,8 @@ if __name__ == "__main__":
     # evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval2", strategy="variance_only")
     # evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval", strategy="variance_only")
     # evaluate_agent_ensemble(trained_models["mt_cl"], human=True, eval_type="base_eval", strategy="variance_only")
-    evaluate_agent_ensemble(["logical-cherry-949"], human=False, eval_type="base_eval", strategy="variance_only",
-                            obstacle_observation="vectors+past")
+    evaluate_agents(["logical-cherry-949"], human=False, eval_type="base_eval", strategy="variance_only",
+                    obstacle_observation="vectors+past")
 
     # evaluate_prior(human=False, eval_type=eval_type)
     # evaluate_rl_agent(agents=trained_models["mt_cl"], human=False, eval_type=eval_type)

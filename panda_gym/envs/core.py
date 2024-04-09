@@ -10,8 +10,6 @@ from panda_gym.pybullet import PyBullet
 import pybullet
 
 
-
-
 class PyBulletRobot(ABC):
     """Base class for robot env.
 
@@ -23,14 +21,14 @@ class PyBulletRobot(ABC):
     """
 
     def __init__(
-        self,
-        sim: PyBullet,
-        body_name: str,
-        file_name: str,
-        base_position: np.ndarray,
-        action_space: spaces.Space,
-        joint_indices: np.ndarray,
-        joint_forces: np.ndarray,
+            self,
+            sim: PyBullet,
+            body_name: str,
+            file_name: str,
+            base_position: np.ndarray,
+            action_space: spaces.Space,
+            joint_indices: np.ndarray,
+            joint_forces: np.ndarray,
     ) -> None:
         self.sim = sim
         self.sim_id = self.sim.physics_client._client
@@ -52,7 +50,6 @@ class PyBulletRobot(ABC):
         self.action_space = action_space
         self.joint_indices = joint_indices
         self.joint_forces = joint_forces
-
 
     def _load_robot(self, file_name: str, base_position: np.ndarray) -> int:
         """Load the robot.
@@ -173,8 +170,7 @@ class PyBulletRobot(ABC):
         """
         return self.sim.get_joint_velocities(self.body_name, joints)
 
-
-    def control_joints(self, action: np.ndarray, control_mode:int) -> None:
+    def control_joints(self, action: np.ndarray, control_mode: int) -> None:
         """Control the joints of the robot.
 
         Args:
@@ -196,7 +192,8 @@ class PyBulletRobot(ABC):
         """
         self.sim.set_joint_angles(self.body_name, joints=self.joint_indices, angles=angles)
 
-    def inverse_kinematics(self, link: int, position: np.ndarray, orientation: Optional[np.ndarray]=None) -> np.ndarray:
+    def inverse_kinematics(self, link: int, position: np.ndarray,
+                           orientation: Optional[np.ndarray] = None) -> np.ndarray:
         """Compute the inverse kinematics and return the new joint values.
 
         Args:
@@ -210,7 +207,6 @@ class PyBulletRobot(ABC):
         inverse_kinematics = self.sim.inverse_kinematics(self.body_name, link=link, position=position,
                                                          orientation=orientation)
         return inverse_kinematics
-
 
 
 class Task(ABC):
@@ -251,7 +247,8 @@ class Task(ABC):
         """Returns whether the episode was truncated because some condition was violated."""
 
     @abstractmethod
-    def compute_reward(self, achieved_goal: np.ndarray, desired_goal: np.ndarray, info: Dict[str, Any] = {}) -> np.ndarray:
+    def compute_reward(self, achieved_goal: np.ndarray, desired_goal: np.ndarray,
+                       info: Dict[str, Any] = {}) -> np.ndarray:
         """Compute reward associated to the achieved and the desired goal."""
 
 
@@ -299,11 +296,11 @@ class RobotTaskEnv(gym.Env):
         }
 
     def reset(
-        self, seed: Optional[int] = None, options: Optional[dict] = None
+            self, seed: Optional[int] = None, options: Optional[dict] = None
     ) -> Tuple[Dict[str, np.ndarray], Dict[str, Any]]:
         super().reset(seed=seed, options=options)
         self.task.np_random, seed = seeding.np_random(seed)
-        #with self.sim.no_rendering():
+        # with self.sim.no_rendering():
         self.robot.reset()
         self.task.reset()
         observation = self._get_obs()
@@ -359,7 +356,7 @@ class RobotTaskEnv(gym.Env):
 
         # An episode is terminated if the agent has reached the target
         is_success = bool(self.task.is_success(observation["achieved_goal"], self.task.get_goal()))
-        terminated= False
+        terminated = False
         if self.terminate_on_success:
             terminated = is_success
 
@@ -374,15 +371,15 @@ class RobotTaskEnv(gym.Env):
         self.sim.close()
 
     def render(
-        self,
-        mode: str = "human",
-        width: int = 720,
-        height: int = 480,
-        target_position: Optional[np.ndarray] = None,
-        distance: float = 1.4,
-        yaw: float = 45,
-        pitch: float = -30,
-        roll: float = 0,
+            self,
+            mode: str = "human",
+            width: int = 720,
+            height: int = 480,
+            target_position: Optional[np.ndarray] = None,
+            distance: float = 1.4,
+            yaw: float = 45,
+            pitch: float = -30,
+            roll: float = 0,
     ) -> Optional[np.ndarray]:
         """Render.
 

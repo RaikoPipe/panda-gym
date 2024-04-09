@@ -61,7 +61,7 @@ configuration = {
     "stages": reach_ao_stages_test1,
     "success_thresholds": reach_ao_succ_thresholds_test1,  # [-7, -10, -12, -17, -20]
     "max_ep_steps": reach_ao_max_ep_steps_test1,
-    "task_observations": {'obstacles': "vectors+all", 'prior': "rrmc_neo"},
+    "task_observations": {'obstacles': "vectors", 'prior': "rrmc_neo"},
     # "all": closest distance to any obstacle of all joints is observed; "vectors": directional vectors pointing to closest obstacles
     "learning_starts": 10000,
     "prior_steps": 0,
@@ -301,7 +301,7 @@ def train_base_model():
     for seed in range(0, 1):
         configuration["seed"] = seed
         model, run = base_train(configuration)
-        # model, run = optimize_train(model, run, configuration)
+            # model, run = optimize_train(model, run, configuration)
 
         run.finish()
 

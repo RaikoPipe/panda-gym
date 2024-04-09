@@ -14,6 +14,7 @@ from spatialmath import SE3
 
 import qpsolvers as qp
 
+
 class Panda(PyBulletRobot):
     """Panda robot in PyBullet.
 
@@ -31,11 +32,11 @@ class Panda(PyBulletRobot):
             block_gripper: bool = False,
             base_position: Optional[np.ndarray] = None,
             control_type: str = "js",
-            obs_type:tuple=("ee",),
+            obs_type: tuple = ("ee",),
             limiter: str = "sim",
             action_limiter: str = "clip",
             use_robotics_toolbox=True,
-            n_substeps = 20
+            n_substeps=20
     ) -> None:
         base_position = base_position if base_position is not None else np.zeros(3)
         self.block_gripper = block_gripper
@@ -68,11 +69,12 @@ class Panda(PyBulletRobot):
         self.sim.set_spinning_friction(self.body_name, self.fingers_indices[0], spinning_friction=0.001)
         self.sim.set_spinning_friction(self.body_name, self.fingers_indices[1], spinning_friction=0.001)
 
-        self.max_change_position =  0.05
+        self.max_change_position = 0.05
 
         # limits
-        self.joint_lim_min = np.array([-2.7437,-1.7837,-2.9007,-3.0421,-2.8065,0.5445,-3.0159])
-        self.joint_lim_max = np.array([2.7437, 1.7837,2.9007,-0.1518,2.8065,4.5169, 3.0159]) # from specifications in radians
+        self.joint_lim_min = np.array([-2.7437, -1.7837, -2.9007, -3.0421, -2.8065, 0.5445, -3.0159])
+        self.joint_lim_max = np.array(
+            [2.7437, 1.7837, 2.9007, -0.1518, 2.8065, 4.5169, 3.0159])  # from specifications in radians
 
         self.joint_velocity_limits = np.array([150, 150, 150, 150, 180, 180, 180])  # degrees per second
         self.joint_acceleration_limits = np.array([150, 150, 150, 150, 180, 180, 180])  # degrees per second
@@ -86,7 +88,7 @@ class Panda(PyBulletRobot):
 
         self.current_joint_velocity = np.zeros(7)
         self.previous_joint_velocity = np.zeros(7)
-        self.current_joint_acceleration = np.zeros(7) # pybullet doesn't allow for getting acceleration
+        self.current_joint_acceleration = np.zeros(7)  # pybullet doesn't allow for getting acceleration
         self.previous_joint_acceleration = np.zeros(7)
         self.current_joint_jerk = np.zeros(7)
 
@@ -130,7 +132,6 @@ class Panda(PyBulletRobot):
         elif action_limiter == "clip":
             action = np.clip(action, self.action_space.low, self.action_space.high)
 
-
         # save action
         self.previous_action = self.recent_action
         self.recent_action = action
@@ -151,7 +152,7 @@ class Panda(PyBulletRobot):
 
         if self.control_type == "jsd":
             # velocity control
-            action = np.concatenate((action, np.array([0,0])))
+            action = np.concatenate((action, np.array([0, 0])))
             self.control_joints(action=action, control_mode=self.sim.physics_client.VELOCITY_CONTROL)
         elif self.control_type == "pcc":
             # position change control (teleporting)
@@ -159,7 +160,7 @@ class Panda(PyBulletRobot):
             self.set_joint_angles(target_angles)
         else:
             target_angles = np.concatenate((target_arm_angles, [target_fingers_width / 2, target_fingers_width / 2]))
-            self.control_joints(action=target_angles, control_mode= self.sim.physics_client.POSITION_CONTROL)
+            self.control_joints(action=target_angles, control_mode=self.sim.physics_client.POSITION_CONTROL)
 
         # save current state
         self.previous_joint_velocity = self.current_joint_velocity
@@ -167,8 +168,6 @@ class Panda(PyBulletRobot):
         self.current_joint_velocity = np.array([self.get_joint_velocity(joint=i) for i in range(7)])
         self.current_joint_acceleration = self.previous_joint_velocity - self.current_joint_velocity
         self.current_joint_jerk = abs(self.previous_joint_acceleration - self.current_joint_acceleration)
-
-
 
         # if self.rtb:
         #     self.update_dummy_robot_link_positions()
@@ -253,7 +252,7 @@ class Panda(PyBulletRobot):
         Returns:
             np.ndarray: Target arm angles, as the angles of the 7 arm joints.
         """
-        arm_joint_ctrl = arm_joint_ctrl * self.max_change_position # default: * 0.05  # limit maximum change in position
+        arm_joint_ctrl = arm_joint_ctrl * self.max_change_position  # default: * 0.05  # limit maximum change in position
 
         # get the current position and the target position
         current_arm_joint_angles = np.array([self.get_joint_angle(joint=i) for i in range(7)])
@@ -315,45 +314,38 @@ class Panda(PyBulletRobot):
         q = [self.get_joint_angle(i) for i in self.joint_indices[:7]]
         return self.panda_rtb.manipulability(q, axes="trans")
 
-    def compute_action_neo(self, target, collision_objects, collision_detector, target_pose):
+    def compute_action_neo(self, target, collision_objects, collision_detector, target_pose, configuration="default"):
+        if configuration == "default":
+            configuration = {
+                "velocity_gain": 0.5,  # gain for the velocity control
+                "threshold_error": 0.05,  # tolerance of the final error between the robot's pose and desired pose
+                "gain_control_minimization": 0.01,  # gain for the control minimization
+                "min_angle_joint": 0.05,  # minimum angle in which the joint is allowed to approach to its limit
+                "min_angle_joint_damp_active": 0.9,  # influence angle to joints in which the velocity damper becomes active
+                'min_dist_obstacle': 0.05,  # minimum distance in which the link is allowed to approach the object shape
+                'min_dist_obstacle_damp_active': 0.3,
+                # influence distance to obstacles in which the damper becomes active
+                'damp_gain': 1.0,  # The gain for the velocity damper
+            }
+        # check if configuration is dict
+        elif not isinstance(configuration, dict):
+            raise ValueError("Configuration must be a dictionary or 'default'")  #
+
+        ps = configuration["min_angle_joint"]
+        pi = configuration["min_angle_joint_damp_active"]
+        ds = configuration["min_dist_obstacle"]
+        di = configuration["min_dist_obstacle_damp_active"]
+        xi = configuration["damp_gain"]
+        gain = configuration["velocity_gain"]
+        delta = configuration["threshold_error"]
+        Y = configuration["gain_control_minimization"]
+
         self.panda_rtb.q = self.get_joint_angles(self.joint_indices[:7])
         self.panda_rtb.qd = [self.get_joint_velocity(i) for i in self.joint_indices[:7]]
         # self.swift_env.step(render=True)
         # self.collision_detector.set_collision_geometries()
 
         n = self.panda_rtb.n
-
-        # Transform the goal into an SE3 pose
-        # if target_pose == "ik":
-        #     Tep = self.panda_rtb.fkine(self.inverse_kinematics(link=11, position=target))
-        #
-        # if target_pose == "left":
-        #     Tep = SE3().RPY(np.array([135, -60,0]), unit="deg")
-        # elif target_pose == "right":
-        #     Tep = SE3().RPY(np.array([-135, 0,0]), unit="deg")
-        # elif target_pose == "front":
-        #     Tep = SE3().RPY(np.array([0, 90,0]), unit="deg")
-        # elif target_pose == "back":
-        #     Tep = SE3().RPY(np.array([0, -90, 0]), unit="deg")
-        # elif target_pose == "halfback":
-        #     Tep = SE3().RPY(np.array([0, -75, 0]), unit="deg")
-        # elif target_pose == "neg_neutral":
-        #     Tep = self.panda_rtb.fkine(np.negative(self.neutral_joint_values[:7]))
-        # elif target_pose == "current":
-        #     Tep = self.get_joint_angles(self.joint_indices[:7])
-        # elif isinstance(target_pose, np.ndarray):
-        #     Tep = self.panda_rtb.fkine(target_pose)
-        # else:
-        #     Tep = self.panda_rtb.fkine(self.neutral_joint_values[:7])
-        # else:
-        #     Tep = SE3()
-        #     if target[1] < 0:
-        #         Tep.Rx(135, unit="deg")
-        #     else:
-        #         Tep.Rx(-135, unit="deg")
-
-            # if target[0] > 0.5:
-            #     Tep.Ry(-135, unit="deg")
 
         Tep = self.panda_rtb.fkine(target_pose)
 
@@ -371,10 +363,7 @@ class Panda(PyBulletRobot):
 
         # Calulate the required end-effector spatial velocity for the robot
         # to approach the goal. Gain is set to 1.0
-        v, arrived = rtb.p_servo(Te, Tep, 2.0, 0.05)
-
-        # Gain term (lambda) for control minimisation
-        Y = 0.1
+        v, arrived = rtb.p_servo(Te, Tep, gain, delta)
 
         # Quadratic component of objective function
         Q = np.eye(self.panda_rtb.n + 6)
@@ -393,14 +382,6 @@ class Panda(PyBulletRobot):
         Ain = np.zeros((n + 6, n + 6))
         bin = np.zeros(n + 6)
 
-        # The minimum angle (in radians) in which the joint is allowed to approach
-        # to its limit
-        ps = 0.035
-
-        # The influence angle (in radians) in which the velocity damper
-        # becomes active
-        pi = 0.87
-
         # Form the joint limit velocity damper
         Ain[:n, :n], bin[:n] = self.panda_rtb.joint_velocity_damper(ps, pi, n)
 
@@ -412,9 +393,9 @@ class Panda(PyBulletRobot):
                 collision,
                 collision_detector,
                 self.panda_rtb.q[:n],
-                0.25,  # influence distance in which the damper becomes active
-                0.05,  # minimum distance in which the link is allowed to approach the object shape
-                1.0,
+                di,
+                ds,
+                xi,
                 start=self.panda_rtb.link_dict["panda_link1"],
                 end=self.panda_rtb.link_dict["panda_hand"]
             )
@@ -435,7 +416,7 @@ class Panda(PyBulletRobot):
         lb = -np.r_[self.panda_rtb.qdlim[:n], 10 * np.ones(6)]
         ub = np.r_[self.panda_rtb.qdlim[:n], 10 * np.ones(6)]
 
-        # Solve for the joint velocities dq
+        # Solve for the joint velocities qd
         qd = qp.solve_qp(Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver="gurobi")
 
         # self.panda_rtb.qd[:] = qd[:n]
@@ -444,106 +425,3 @@ class Panda(PyBulletRobot):
         if qd is None:
             return np.zeros(n)
         return qd[:n]
-
-    # def compute_action_neo_pybullet(self, target, collision_objects, collision_detector):
-    #     self.panda_rtb.q = self.get_joint_angles(self.joint_indices[:7])
-    #     # self.swift_env.step(render=True)
-    #     # self.collision_detector.set_collision_geometries()
-    #
-    #     n = self.panda_rtb.n
-    #
-    #     # Transform the goal into an SE3 pose
-    #     if self.optimal_pose is not None:
-    #         Tep = self.panda_rtb.fkine(self.optimal_pose)
-    #         Tep.A[:3, 3] = target
-    #     else:
-    #         Tep = self.panda_rtb.fkine(self.panda_rtb.q)
-    #         Tep.A[:3, 3] = target
-    #
-    #     # sol = self.panda_rtb.ik_lm_chan(Tep)
-    #     # Tep = self.panda_rtb.fkine(sol.q)
-    #
-    #     # The se3 pose of the Panda's end-effector
-    #     Te = self.panda_rtb.fkine(self.panda_rtb.q)
-    #
-    #     # Transform from the end-effector to desired pose
-    #     eTep = Te.inv() * Tep
-    #
-    #     # Spatial error
-    #     e = np.sum(np.abs(np.r_[eTep.t, eTep.rpy() * np.pi / 180]))
-    #
-    #     # Calulate the required end-effector spatial velocity for the robot
-    #     # to approach the goal. Gain is set to 1.0
-    #     v, arrived = rtb.p_servo(Te, Tep, 2.5, 0.05)
-    #
-    #     # Gain term (lambda) for control minimisation
-    #     Y = 0.01
-    #
-    #     # Quadratic component of objective function
-    #     Q = np.eye(self.panda_rtb.n + 6)
-    #
-    #     # Joint velocity component of Q
-    #     Q[:n, :n] *= Y
-    #
-    #     # Slack component of Q
-    #     Q[n:, n:] = (1 / e) * np.eye(6)
-    #
-    #     # The equality constraints
-    #     Aeq = np.c_[self.panda_rtb.jacobe(self.panda_rtb.q), np.eye(6)]
-    #     beq = v.reshape((6,))
-    #
-    #     # The inequality constraints for joint limit avoidance
-    #     Ain = np.zeros((n + 6, n + 6))
-    #     bin = np.zeros(n + 6)
-    #
-    #     # The minimum angle (in radians) in which the joint is allowed to approach
-    #     # to its limit
-    #     ps = 0.05
-    #
-    #     # The influence angle (in radians) in which the velocity damper
-    #     # becomes active
-    #     pi = 0.9
-    #
-    #     # Form the joint limit velocity damper
-    #     Ain[:n, :n], bin[:n] = self.panda_rtb.joint_velocity_damper(ps, pi, n)
-    #
-    #     # For each collision in the scene
-    #     for collision in collision_objects.keys():
-    #         # Form the velocity damper inequality constraint for each collision
-    #         # object on the robot to the collision in the scene
-    #         c_Ain, c_bin = self.panda_rtb.link_collision_damper_pybullet(
-    #             collision,
-    #             collision_detector,
-    #             self.panda_rtb.q[:n],
-    #             0.3,  # influence distance in which the damper becomes active
-    #             0.01,  # minimum distance in which the link is allowed to approach the object shape
-    #             1.0,
-    #             start=self.panda_rtb.link_dict["panda_link1"],
-    #             end=self.panda_rtb.link_dict["panda_hand"],
-    #         )
-    #
-    #         # If there are any parts of the robot within the influence distance
-    #         # to the collision in the scene
-    #         if c_Ain is not None and c_bin is not None:
-    #             c_Ain = np.c_[c_Ain, np.zeros((c_Ain.shape[0], 6))]
-    #
-    #             # Stack the inequality constraints
-    #             Ain = np.r_[Ain, c_Ain]
-    #             bin = np.r_[bin, c_bin]
-    #
-    #     # Linear component of objective function: the manipulability Jacobian
-    #     c = np.r_[-self.panda_rtb.jacobm(self.panda_rtb.q).reshape((n,)), np.zeros(6)]
-    #
-    #     # The lower and upper bounds on the joint velocity and slack variable
-    #     lb = -np.r_[self.panda_rtb.qdlim[:n], 10 * np.ones(6)]
-    #     ub = np.r_[self.panda_rtb.qdlim[:n], 10 * np.ones(6)]
-    #
-    #     # Solve for the joint velocities dq
-    #     qd = qp.solve_qp(Q, c, Ain, bin, Aeq, beq, lb=lb, ub=ub, solver="gurobi")
-    #
-    #     # self.panda_rtb.qd[:] = qd[:n]
-    #
-    #     # Return the joint velocities
-    #     if qd is None:
-    #         return np.zeros(n)
-    #     return qd[:n]
