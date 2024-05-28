@@ -75,7 +75,7 @@ def visualize_trajectory(env, done_event, trajectory):
     while traj:
         xyz2 = traj.pop()
         pybullet.addUserDebugLine(lineFromXYZ=xyz1, lineToXYZ=xyz2, lineColorRGB=np.array([1 - color, color, 0]),
-                                  physicsClientId=1, lifeTime=0, lineWidth=2)
+                                  physicsClientId=env.sim.physics_client._client, lifeTime=0, lineWidth=2)
         color = len(traj) / len(trajectory)  # 1/max_ep_steps
         xyz1 = xyz2
 
@@ -234,7 +234,7 @@ def perform_benchmark(models, env, human=True, num_episodes=1000, deterministic=
             obs, reward, done, truncated, info, = env.step(action)
 
             if human:
-                sleep(0.01/8)  # for human eval
+                sleep(0.01/2)  # for human eval
 
             # add results and metrics
             episode_reward += reward
@@ -555,10 +555,12 @@ def evaluate_ensemble_high_freq(models, env, human=True, num_episodes=1000, goal
 
     return results, metrics
 
-
 def evaluate_agents(agents, human=False, eval_type="basic", strategy="mean_actions",
-                    obstacle_observation="vectors+past"):
+                    obstacle_observation=None):
     # get agent type
+    if obstacle_observation is None:
+        obstacle_observation = {'obstacles': "vectors", 'prior': None}
+
     agent_type = None
     if len(agents) > 1:
         agent_type = "ensemble"
@@ -579,10 +581,11 @@ def evaluate_agents(agents, human=False, eval_type="basic", strategy="mean_actio
     env = gymnasium.make(configuration["env_name"], render=False, control_type="js",
                          obs_type=configuration["obs_type"], goal_distance_threshold=0.05,
                          goal_condition=goal_condition,
-                         reward_type=reward_type, limiter=configuration["limiter"],
+                         reward_type=reward_type,
+                         limiter=configuration["limiter"],
                          show_goal_space=True, scenario="wangexp_3",
                          randomize_robot_pose=False,  # if evaluation_scenario != "wang_3" else True,
-                         joint_obstacle_observation=obstacle_observation,
+                         task_observations=obstacle_observation,
                          truncate_on_collision=True,
                          terminate_on_success=True,
                          show_debug_labels=True, n_substeps=n_substeps)
@@ -602,7 +605,7 @@ def evaluate_agents(agents, human=False, eval_type="basic", strategy="mean_actio
                              reward_type=reward_type, limiter=configuration["limiter"],
                              show_goal_space=True, scenario=evaluation_scenario,
                              randomize_robot_pose=False,  # if evaluation_scenario != "wang_3" else True,
-                             joint_obstacle_observation=obstacle_observation,
+                             task_observations=obstacle_observation,
                              truncate_on_collision=True,
                              terminate_on_success=True,
                              show_debug_labels=True, n_substeps=n_substeps)
@@ -649,7 +652,7 @@ def set_eval_type(eval_type):
         panda_gym.register_reach_ao(800)
     elif eval_type == "base_eval":
         reward_type = "kumar_her"
-        goal_condition = "reach"
+        goal_condition = "halt"
         n_substeps = 20
         panda_gym.register_reach_ao(200)
     elif eval_type == "optim_eval":
@@ -704,8 +707,7 @@ if __name__ == "__main__":
     # evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval2", strategy="variance_only")
     # evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval", strategy="variance_only")
     # evaluate_agent_ensemble(trained_models["mt_cl"], human=True, eval_type="base_eval", strategy="variance_only")
-    evaluate_agents(["logical-cherry-949"], human=False, eval_type="base_eval", strategy="variance_only",
-                    obstacle_observation="vectors+past")
+    evaluate_agents(["stilted-frog-987"], human=False, eval_type="base_eval", strategy="variance_only")
 
     # evaluate_prior(human=False, eval_type=eval_type)
     # evaluate_rl_agent(agents=trained_models["mt_cl"], human=False, eval_type=eval_type)

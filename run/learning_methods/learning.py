@@ -28,26 +28,32 @@ import time
 
 
 def get_env(config, n_envs, scenario, force_render=False):
+    args = {
+        "render": config["render"] if not force_render else False,
+        "control_type": config["control_type"],
+        "render_mode": "rgb_array",
+        "obs_type": config["obs_type"],
+        "reward_type": config["reward_type"],
+        "goal_distance_threshold": config["goal_distance_threshold"],
+        "goal_condition": config["goal_condition"],
+        "limiter": config["limiter"],
+        "action_limiter": config["action_limiter"],
+        "show_goal_space": False,
+        "scenario": scenario,
+        "show_debug_labels": False,
+        "n_substeps": config["n_substeps"],
+        'task_observations': config["task_observations"],
+        "randomize_robot_pose": config["randomize_robot_pose"],
+        "truncate_on_collision": config["truncate_on_collision"],
+        "terminate_on_success": config["terminate_on_success"],
+        "collision_reward": config["collision_reward"]
+    }
+
+    if 'speed_threshold' in config:
+        args['speed_threshold'] = config['speed_threshold']
+
     env = make_vec_env(config["env_name"], n_envs=n_envs, seed=config["seed"],
-                       env_kwargs={"render": config["render"] if force_render else False,
-                                   "render_mode": "rgb_array",
-                                   "control_type": config["control_type"],
-                                   "obs_type": config["obs_type"],
-                                   "reward_type": config["reward_type"],
-                                   "goal_distance_threshold": config["goal_distance_threshold"],
-                                   "goal_condition": config["goal_condition"],
-                                   "limiter": config["limiter"],
-                                   "action_limiter": config["action_limiter"],
-                                   "show_goal_space": False,
-                                   "scenario": scenario,
-                                   "show_debug_labels": False,
-                                   "n_substeps": config["n_substeps"],
-                                   'task_observations': config["task_observations"],
-                                   "randomize_robot_pose": config["randomize_robot_pose"],
-                                   "truncate_on_collision": config["truncate_on_collision"],
-                                   "terminate_on_success": config["terminate_on_success"],
-                                   "collision_reward": config["collision_reward"]
-                                   },
+                       env_kwargs=args,
                        vec_env_cls=SubprocVecEnv if n_envs > 1 else None
                        )
     # else:
@@ -174,9 +180,11 @@ def init_wandb(config, tags):
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
         dir="run_data",
         tags=tags,
-        group=config["stages"][-1]  # last stage is job goal
-        # monitor_gym=True,  # auto-upload the videos of agents playing the game
-        # save_code=True,  # optional
+        group=config["stages"][-1],  # last stage is job goal
+        monitor_gym=True,  # auto-upload the videos of agents playing the game
+        save_code=True,  # optional
+        job_type=config['job_type'],
+        name= config['name']
     )
     return run
 
@@ -211,7 +219,8 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
             config["stages"] = stages[idx:]
             config["success_thresholds"] = success_thresholds[idx:]
 
-    assert len(config["stages"]) == len(config["success_thresholds"]) == len(config["max_ep_steps"])
+    assert len(config["stages"]) == len(config["success_thresholds"]) == len(
+        config["max_ep_steps"]) == len(config["speed_thresholds"])
 
     # learn for each stage until reward threshold is reached
     if config["learning_starts"]:
@@ -231,9 +240,13 @@ def learn(config: dict, initial_model: Optional[OffPolicyAlgorithm] = None,
         env = get_env(config, 1, config["stages"][0])
         model.replay_buffer = fill_replay_buffer_with_prior(env, model, config["prior_steps"])
 
-    for stage, success_threshold, max_ep_steps in zip(config["stages"], config["success_thresholds"],
-                                                      config["max_ep_steps"]):
+    for stage, success_threshold, max_ep_steps, speed_threshold in zip(config["stages"], config["success_thresholds"],
+                                                                       config["max_ep_steps"],
+                                                                       config["speed_thresholds"]):
         panda_gym.register_reach_ao(max_ep_steps)
+
+        scenario_config = deepcopy(config)
+        scenario_config['speed_threshold'] = speed_threshold
 
         switch_model_env(model, get_env(config, config["n_envs"], stage))
 
@@ -285,7 +298,7 @@ def get_eval_env(config, stage):
 
 def benchmark_model(config, model, run):
     evaluation_results = {}
-    for evaluation_scenario in ["wangexp_3", "library2",  "narrow_tunnel"]:
+    for evaluation_scenario in ["wangexp_3", "library2", "narrow_tunnel"]:
         env = gymnasium.make(config["env_name"], render=False, control_type=config["control_type"],
                              obs_type=config["obs_type"], goal_distance_threshold=config["goal_distance_threshold"],
                              reward_type=config["reward_type"], limiter=config["limiter"],

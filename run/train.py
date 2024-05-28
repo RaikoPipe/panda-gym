@@ -32,6 +32,8 @@ reach_ao_stages_test1 = ["base1", "base2", "wangexp_3"]
 reach_ao_max_ep_steps_test1 = [100, 150, 200]
 reach_ao_succ_thresholds_test1 = [0.9, 0.9, 1.1]
 
+speed_thresholds = [0.5, 0.1, 0.001]
+
 reach_optim_stages = ["wangexp_3"]
 reach_optim_max_ep_steps = [400]
 reach_optim_succ_thresholds = [999]
@@ -43,7 +45,8 @@ configuration = {
     "algorithm": "TQC",
     "reward_type": "sparse",  # sparse; dense
     "goal_distance_threshold": 0.05,
-    "max_timesteps": 1_200_000,
+    'speed_thresholds': speed_thresholds,
+    "max_timesteps": 300_000,
     "seed": 8,
     "render": False,  # renders the eval env
     "n_substeps": 50,  # number of simulation steps before handing control back to agent
@@ -58,18 +61,18 @@ configuration = {
     "show_debug_labels": False,
     "n_envs": 8,
     "eval_freq": 5_000,
-    "stages": reach_ao_stages_test1,
+    "stages": reach_ao_stages,
     "success_thresholds": reach_ao_succ_thresholds_test1,  # [-7, -10, -12, -17, -20]
     "max_ep_steps": reach_ao_max_ep_steps_test1,
-    "task_observations": {'obstacles': "vectors", 'prior': "rrmc_neo"},
+    "task_observations": {'obstacles': "vectors", 'prior': None},
     # "all": closest distance to any obstacle of all joints is observed; "vectors": directional vectors pointing to closest obstacles
     "learning_starts": 10000,
     "prior_steps": 0,
     "randomize_robot_pose": False,
     "truncate_on_collision": True,
     "terminate_on_success": True,
-    "collision_reward": -100,
-    "goal_condition": "reach"  # reach; reach_hold #
+    "collision_reward": -300,
+    "goal_condition": "halt"  # reach; halt #
     # "closest": only closest joint distance is observed
 }
 
@@ -223,7 +226,6 @@ def main():
 
 
 def base_train(config):
-
     model, run = learn(config=config, algorithm=config["algorithm"])
 
     return model, run
@@ -297,11 +299,20 @@ def train_benchmark_scenarios():
         del model
 
 
-def train_base_model():
-    for seed in range(0, 1):
+def train_base_model(name='base_model', iterations=None):
+    if iterations is None:
+        if name == 'base_model':
+            # assign random name
+            name = f"base_model_{time.asctime().replace(' ', '_').replace(':', '_')}"
+            iterations = 1
+
+    configuration['job_type'] = 'train'
+
+    for seed in range(0, iterations):
+        configuration['name'] = f'{name}_{seed}'
         configuration["seed"] = seed
         model, run = base_train(configuration)
-            # model, run = optimize_train(model, run, configuration)
+        # model, run = optimize_train(model, run, configuration)
 
         run.finish()
 
@@ -383,7 +394,7 @@ if __name__ == "__main__":
     wandb.login(key=os.getenv("wandb_key"))
 
     # train_benchmark_scenarios()
-    train_base_model()
+    train_base_model(name='ja_halt_vectors', iterations=1)
     # l2()
 
     # for seed in range(5,20):
@@ -396,7 +407,7 @@ if __name__ == "__main__":
     #     model.env.close()
     #     del model
 
-    # for i in range(5):
+    # for i in range(15):
     #     configuration["seed"] = i
     #
     #     model, run = base_train(configuration)

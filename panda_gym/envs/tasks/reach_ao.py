@@ -37,6 +37,7 @@ class ReachAO(Task):
             n_substeps=20,
             reward_type="sparse",
             goal_distance_threshold=0.05,
+            speed_threshold=0.1,
             goal_condition="reach",
             show_goal_space=False,
             task_observations=None,
@@ -69,7 +70,7 @@ class ReachAO(Task):
         self.past_obstacle_observations = []
         if "vectors+past" in task_observations["obstacles"]:
             self.obstacle_obs = "vectors"
-            for _ in range(3):
+            for _ in range(10):
                 self.get_obs()
 
         self.obstacle_obs = task_observations["obstacles"]
@@ -102,7 +103,7 @@ class ReachAO(Task):
         self.reward_type = reward_type
         self.goal_condition = goal_condition
         self.distance_threshold = goal_distance_threshold
-        self.ee_speed_threshold = 0.01
+        self.ee_speed_threshold = speed_threshold
         self.get_ee_position = get_ee_position
         self.goal_range = 0.3
         self.obstacle_count = 0
@@ -585,7 +586,7 @@ class ReachAO(Task):
     def create_scenario_base2(self):
         self.randomize_obstacle_position = True
         self.random_num_obs = False
-        goal_radius_minor = 0.4
+        goal_radius_minor = 0.45
         goal_radius_major = 0.7
 
         # PandaReach with 1 obstacle
@@ -671,10 +672,10 @@ class ReachAO(Task):
 
         if self.np_random.random() > 0.3:
             # move to goal
-            sample = self.sample_inside_hollow_sphere(0.2, 0.6)
+            sample = self.sample_inside_hollow_sphere(0.1, 0.25)
             return sample + self.goal
         else:
-            sample = self.sample_inside_hollow_sphere(0.2, 0.4)
+            sample = self.sample_inside_hollow_sphere(0.2, 0.25)
             return self.robot.get_ee_position() + sample
 
     def create_scenario_wang(self):
@@ -734,24 +735,24 @@ class ReachAO(Task):
 
     def create_scenario_wang_experimental(self):
         """Scenario for trying out different variations of wang"""
-        goal_radius_minor = 0.4
+        goal_radius_minor = 0.45
         goal_radius_major = 0.75
 
         def sample_wang_obstacle():
             rand = self.np_random.random()
             if rand > 0.6:
                 # sample near goal
-                sample = self.sample_inside_hollow_sphere(0.06, 0.25)
+                sample = self.sample_inside_hollow_sphere(0.1, 0.25)
                 return sample + self.goal
-            elif rand > 0.2:
+            elif rand > 0.3:
                 # sample near ee
-                sample = self.sample_inside_hollow_sphere(0.1, 0.2)
+                sample = self.sample_inside_hollow_sphere(0.1, 0.25)
                 return self.robot.get_ee_position() + sample
             # else:
             #     return self.sample_sphere(0.3,0.5)
             else:
                 # sample near base
-                sample = self.sample_inside_hollow_sphere(0.2, 0.5, True)
+                sample = self.sample_inside_hollow_sphere(0.2, 0.6, True)
                 return sample + self.robot.get_link_position(0)
 
         num_obstacles = int(self.scenario.split(sep="_")[1])
@@ -913,8 +914,8 @@ class ReachAO(Task):
                     self.past_obstacle_observations.append(obstacle_obs)
                 case "vectors+past":
                     self.past_obstacle_observations.append(self.get_vector_obs(obs_per_link, info))
-                    # concatenate latest 3 observations
-                    obstacle_obs = np.concatenate(self.past_obstacle_observations[-3:])
+                    # concatenate latest observations
+                    obstacle_obs = np.concatenate(self.past_obstacle_observations[-10:])
                 case "vectors+all":
                     closest_distances_vectors = self.get_vector_obs(obs_per_link, info)
                     closest_distances_all = self.distances_closest_obstacles
@@ -1000,7 +1001,7 @@ class ReachAO(Task):
         self.past_obstacle_observations = []
         # fill past obstacle observations with observation
         if self.obstacle_obs == "vectors+past":
-            for _ in range(2):
+            for _ in range(10):
                 self.get_obs()
 
     def set_random_num_obs(self):
@@ -1239,11 +1240,8 @@ class ReachAO(Task):
         jerk = self.get_norm_jerk()
 
         if self.reward_type == "sparse":
-            if self.goal_condition == "reach":
-                reward = -np.array((ee_error > self.distance_threshold), dtype=np.float32)
-            else:
-                reward = -np.array(any([ee_error > self.distance_threshold, ee_speed > self.ee_speed_threshold]),
-                                   dtype=np.float32)
+            reward = -np.array((ee_error > self.distance_threshold), dtype=np.float32)
+
         elif self.reward_type == "wang":
             weight_distance = 10e-3
             weight_obs = 0.1
