@@ -10,7 +10,7 @@ from stable_baselines3 import TD3
 
 import gymnasium as gym
 import numpy as np
-from run.train import configuration
+from train.train import configuration
 from time import sleep
 
 import panda_gym

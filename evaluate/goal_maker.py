@@ -1,7 +1,7 @@
 import gymnasium as gym
 import panda_gym
 import numpy as np
-from run.train import configuration
+from train.train import configuration
 import time
 import json
 

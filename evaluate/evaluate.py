@@ -10,7 +10,7 @@ sys.modules["gym"] = gymnasium
 from sb3_contrib import TQC
 
 import numpy as np
-from run.train import configuration
+from train.train import configuration
 from time import sleep
 from torch.distributions.normal import Normal
 import torch
@@ -592,7 +592,7 @@ def evaluate_agents(agents, human=False, eval_type="basic", strategy="mean_actio
 
     models = []
     for model_name in agents:
-        models.append(TQC.load(fr"../run/run_data/wandb/{model_name}/files/best_model.zip", env=env,
+        models.append(TQC.load(fr"../train/run_data/wandb/{model_name}/files/best_model.zip", env=env,
                                custom_objects={"action_space": gymnasium.spaces.Box(-1.0, 1.0, shape=(7,),
                                                                                     dtype=np.float32)}))
 
