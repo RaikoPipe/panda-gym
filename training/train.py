@@ -35,25 +35,10 @@ reach_optim_succ_thresholds = [999]
 
 # hyperparameters from rl-baselines3-zoo tuned pybullet defaults
 
-configuration = TrainConfig
+configuration = TrainConfig()
 
 # # register envs to gymnasium
-panda_gym.register_envs(configuration.max_ep_steps[0])
-
-# hyperparameters_tqc = {
-#     "learning_rate": float(1e-3),
-#     "batch_size": 2048,
-#     "buffer_size": int(1e6),
-#     "replay_buffer_kwargs": dict(
-#         goal_selection_strategy='future', n_sampled_goal=4),
-#     "gamma": 0.95,
-#     "tau": 0.05,
-#     "policy_kwargs": dict(net_arch=[400, 300]),
-#     "use_sde": True
-# }
-
-
-
+panda_gym.register_reach_ao(configuration.max_ep_steps[0])
 
 def main():
     # env = get_env(config, config.n_envs, config.stages[0])
@@ -101,14 +86,12 @@ def train_benchmark_scenarios():
 
 
 def train_base_model(config=TrainConfig(), iterations=None):
-    if iterations is None:
+    for seed in range(0, iterations):
         if config.name == 'default':
             # assign random name
             name = f"base_model_{time.asctime().replace(' ', '_').replace(':', '_')}"
-            iterations = 1
+            config.name = f'{name}_{seed}'
 
-    for seed in range(0, iterations):
-        config.name = f'{name}_{seed}'
         config.seed = seed
         model, run = base_train(config)
         # model, run = optimize_train(model, run, configuration)
@@ -124,11 +107,24 @@ if __name__ == "__main__":
     import wandb
 
     wandb.login(key=os.getenv("wandb_key"))
-    test_configuration_0 = TrainConfig(name='learning_test_default')
-    test_configuration_1 = TrainConfig(name='learning_test_extra_timesteps', max_ep_steps=[150, 200, 250])
-    test_configuration_2 = TrainConfig(name='learning_test_few_substeps', n_substeps=10)
-    test_configuration_3 = TrainConfig(name='learning_test_few_substeps_extra_timesteps', n_substeps=10, max_ep_steps=[150, 200, 250])
 
-    for configuration in [test_configuration_1, test_configuration_2, test_configuration_3]:
+    # adjustments from basic training configuration
+    # stages = ["base1", "base2", "wangexp_3", 'wangexp_3', 'wangexp_3', 'wangexp_3', 'wangexp_3']
+    # speed_thresholds = [0.5, 0.5, 0.5, 0.1, 0.01, 0.001, 0]
+    # ee_error_thresholds = [0.05 for i in range(7)]
+    # max_ep_steps = [50, 100, 150, 200, 250, 300, 300]
+    # success_thresholds = [0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 1.0]
+    # goal_condition = 'halt'
+    #
+
+    train_config_blind = TrainConfig(
+        stages=["wangexp_3"],
+        max_ep_steps=[300],
+        success_thresholds=[1.0],
+        ee_error_thresholds=[0.05])
+    train_config_curriculum_learning = TrainConfig()
+
+
+    for configuration in [train_config_curriculum_learning, train_config_blind]:
         train_base_model(config=configuration, iterations=5)
 

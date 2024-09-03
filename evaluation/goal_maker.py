@@ -5,7 +5,7 @@ from train.train import configuration
 import time
 import json
 
-panda_gym.register_envs(100)
+panda_gym.register_reach_ao(100)
 
 # env = gym.make(configuration["env_name"], render=False, show_goal_space=True, obs_type="js", control_type ="js",
 #                show_debug_labels=True, scenario="narrow_tunnel", reward_type="kumar", randomize_robot_pose = False,

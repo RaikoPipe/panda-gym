@@ -1,6 +1,9 @@
 import os, sys
 
 import gymnasium
+
+from classes.train_config import TrainConfig
+
 sys.modules["gym"] = gymnasium
 
 from gymnasium.envs.registration import register
@@ -8,12 +11,15 @@ from gymnasium.envs.registration import register
 with open(os.path.join(os.path.dirname(__file__), "version.txt"), "r") as file_handler:
     __version__ = file_handler.read().strip()
 
+
 def register_reach_ao(max_ep_steps):
     register(
         id="PandaReachAO-v3",
         entry_point="panda_gym.envs:PandaReachAOEnv",
         max_episode_steps=max_ep_steps,  # default: 50
     )
+
+
 def register_envs(max_ep_steps):
     for reward_type in ["sparse", "dense"]:
         for control_type in ["ee", "joints"]:

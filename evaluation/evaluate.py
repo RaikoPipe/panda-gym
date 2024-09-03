@@ -5,12 +5,14 @@ import time
 
 import gymnasium
 
+from classes.train_config import TrainConfig
+
 sys.modules["gym"] = gymnasium
 
 from sb3_contrib import TQC
 
 import numpy as np
-from train.train import configuration
+#from training.train import configuration
 from time import sleep
 from torch.distributions.normal import Normal
 import torch
@@ -82,7 +84,7 @@ def visualize_trajectory(env, done_event, trajectory):
 
 def perform_benchmark(models, env, human=True, num_episodes=1000, deterministic=True,
                       strategy=None, scenario_name="", prior_orientation=None, pre_calc_metrics=None,
-                      show_model_actions=False):
+                      show_model_actions=False, configuration=TrainConfig()):
     """
     Evaluate a RL agent
     :param model: (BaseRLModel object) the RL Agent
@@ -290,9 +292,9 @@ def perform_benchmark(models, env, human=True, num_episodes=1000, deterministic=
                "num_episodes": np.round(len(done_events), 4),
                "mean_ep_length": np.round(np.mean(ep_lengths), 4),
                "mean_ep_length_success": np.round(np.mean(ep_lengths_success), 4),
-               "mean_num_sim_steps": np.round(np.mean([i * configuration["n_substeps"] for i in ep_lengths]), 4),
+               "mean_num_sim_steps": np.round(np.mean([i * configuration.n_substeps for i in ep_lengths]), 4),
                "mean_num_sim_steps_success": np.round(
-                   np.mean([i * configuration["n_substeps"] for i in ep_lengths_success]), 4),
+                   np.mean([i * configuration.n_substeps for i in ep_lengths_success]), 4),
                "mean_effort": np.round(np.mean(efforts), 4),
                "mean_manipulability": np.round(np.mean(manipulabilities), 4),
                "mean_norm_jerk": np.round(np.mean(np.array([item for l in jerks for item in l])), 4),
@@ -530,9 +532,9 @@ def evaluate_ensemble_high_freq(models, env, human=True, num_episodes=1000, goal
                "num_episodes": np.round(len(done_events), 4),
                "mean_ep_length": np.round(np.mean(ep_lengths), 4),
                "mean_ep_length_success": np.round(np.mean(ep_lengths_success), 4),
-               "mean_num_sim_steps": np.round(np.mean([i * configuration["n_substeps"] for i in ep_lengths]), 4),
+               "mean_num_sim_steps": np.round(np.mean([i * configuration.n_substeps for i in ep_lengths]), 4),
                "mean_num_sim_steps_success": np.round(
-                   np.mean([i * configuration["n_substeps"] for i in ep_lengths_success]), 4),
+                   np.mean([i * configuration.n_substeps for i in ep_lengths_success]), 4),
                "mean_effort": np.round(np.mean(efforts), 4),
                "mean_manipulability": np.round(np.mean(manipulabilities), 4),
                "mean_norm_jerk": np.round(np.mean(np.array([item for l in jerks for item in l])), 4),
@@ -556,7 +558,31 @@ def evaluate_ensemble_high_freq(models, env, human=True, num_episodes=1000, goal
     return results, metrics
 
 def evaluate_agents(agents, human=False, eval_type="basic", strategy="mean_actions",
-                    obstacle_observation=None):
+                    obstacle_observation=None, num_episodes=100):
+    # default path options
+    default_path = "../training/run_data/wandb"
+    default_model_location = 'files/best_model.zip'
+    default_yaml_location = "files/config.yaml"
+
+    # model paths
+    model_paths = [f"{default_path}/{model_name}/{default_model_location}" for model_name in agents]
+    # %%
+    from classes.train_config import TrainConfig
+    import yaml
+
+    with open(f"{default_path}/{agents[0]}/{default_yaml_location}", 'r') as stream:
+        try:
+            yaml_config = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            print(exc)
+
+    configuration = TrainConfig()
+    # omit wandb version
+    for key, value in yaml_config.items():
+        if isinstance(value, dict):
+            setattr(configuration, key, value["value"])
+
+
     # get agent type
     if obstacle_observation is None:
         obstacle_observation = {'obstacles': "vectors", 'prior': None}
@@ -578,45 +604,34 @@ def evaluate_agents(agents, human=False, eval_type="basic", strategy="mean_actio
     with open("scenario_goals", "r") as file:
         scenario_goals = json.load(file)
 
-    env = gymnasium.make(configuration["env_name"], render=False, control_type="js",
-                         obs_type=configuration["obs_type"], goal_distance_threshold=0.05,
-                         goal_condition=goal_condition,
-                         reward_type=reward_type,
-                         limiter=configuration["limiter"],
-                         show_goal_space=True, scenario="wangexp_3",
-                         randomize_robot_pose=False,  # if evaluation_scenario != "wang_3" else True,
-                         task_observations=obstacle_observation,
-                         truncate_on_collision=True,
-                         terminate_on_success=True,
-                         show_debug_labels=True, n_substeps=n_substeps)
+    # get env
+    env = gymnasium.make(configuration.env_name)
 
     models = []
     for model_name in agents:
-        models.append(TQC.load(fr"../train/run_data/wandb/{model_name}/files/best_model.zip", env=env,
+        models.append(TQC.load(fr"../training/run_data/wandb/{model_name}/files/best_model.zip", env=env,
                                custom_objects={"action_space": gymnasium.spaces.Box(-1.0, 1.0, shape=(7,),
                                                                                     dtype=np.float32)}))
 
     evaluation_results = {}
     for evaluation_scenario in ["wangexp_3", "narrow_tunnel", "library2", "workshop",
                                 "wall"]:  # "wang_3", "library2", "library1", "narrow_tunnel", "wall"
-        env = gymnasium.make(configuration["env_name"], render=human, control_type="js",
-                             obs_type=configuration["obs_type"], goal_distance_threshold=0.05,
-                             goal_condition=goal_condition,
-                             reward_type=reward_type, limiter=configuration["limiter"],
-                             show_goal_space=True, scenario=evaluation_scenario,
-                             randomize_robot_pose=False,  # if evaluation_scenario != "wang_3" else True,
-                             task_observations=obstacle_observation,
-                             truncate_on_collision=True,
-                             terminate_on_success=True,
-                             show_debug_labels=True, n_substeps=n_substeps)
+        # get env
+        env = gymnasium.make(configuration.env_name,
+                                  render=False,
+                                  config=configuration,
+                                  scenario=evaluation_scenario,
+                                  ee_error_threshold=configuration.ee_error_thresholds[-1],
+                                  speed_threshold=configuration.speed_thresholds[-1])
 
         print(f"Evaluating {evaluation_scenario}")
 
         goals_to_achieve = copy(scenario_goals[evaluation_scenario])
 
-        results, metrics = perform_benchmark(models, env, human=human, num_episodes=50, deterministic=True,
+        results, metrics = perform_benchmark(models, env, human=human, num_episodes=num_episodes, deterministic=True,
                                              strategy=strategy,
-                                             scenario_name=evaluation_scenario)
+                                             scenario_name=evaluation_scenario,
+                                             configuration=configuration)
 
         evaluation_results[evaluation_scenario] = {"results": results, "metrics": metrics}
         env.close()
@@ -707,7 +722,8 @@ if __name__ == "__main__":
     # evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval2", strategy="variance_only")
     # evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval", strategy="variance_only")
     # evaluate_agent_ensemble(trained_models["mt_cl"], human=True, eval_type="base_eval", strategy="variance_only")
-    evaluate_agents(["stilted-frog-987"], human=False, eval_type="base_eval", strategy="variance_only")
+    evaluate_agents(["learning_test_blind"], human=False, eval_type="base_eval", strategy="variance_only",
+                    num_episodes=200)
 
     # evaluate_prior(human=False, eval_type=eval_type)
     # evaluate_rl_agent(agents=trained_models["mt_cl"], human=False, eval_type=eval_type)

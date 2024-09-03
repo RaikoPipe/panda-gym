@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from stable_baselines3.her.her_replay_buffer import HerReplayBuffer, DictReplayBuffer
-from hyperparameters import Hyperparameters
+from classes.hyperparameters import Hyperparameters
 
 @dataclass
 class TrainConfig:
@@ -17,7 +17,7 @@ class TrainConfig:
     seed: int = 0
 
     # performance settings
-    n_envs: int = 8
+    n_envs: int = 16
 
     # environment settings
     env_name: str = 'PandaReachAO-v3'
@@ -36,14 +36,14 @@ class TrainConfig:
     speed_thresholds: list[float] = field(default_factory=lambda: [0.5, 0.1, 0.01])
 
     # temporal settings
-    max_timesteps: int = 900_000
-    max_ep_steps: list[int] = field(default_factory=lambda: [75, 150, 200])
+    max_timesteps: int = 600_000
+    max_ep_steps: list[int] = field(default_factory=lambda: [75, 200, 300])
     n_substeps: int = 20
 
     # curriculum setup
     stages: list[str] = field(default_factory=lambda: ["base1", "base2", "wangexp_3"])
-    success_thresholds: list[float] = field(default_factory=lambda: [0.9, 0.9, 1.0])
-    eval_freq: int = 5_000
+    success_thresholds: list[float] = field(default_factory=lambda: [0.8, 0.8, 1.0])
+    eval_freq: int = 2000
 
     # observations and actions
     obs_type: tuple = ("ee", "js")
@@ -58,5 +58,5 @@ class TrainConfig:
     show_debug_labels: bool = False
 
     # hyperparams
-    hyperparams: Hyperparameters = Hyperparameters(algorithm=algorithm)
+    hyperparams: Hyperparameters = field(default_factory=lambda: Hyperparameters(algorithm='TQC'))
 

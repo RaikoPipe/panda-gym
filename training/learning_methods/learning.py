@@ -13,13 +13,13 @@ import numpy as np
 from stable_baselines3 import SAC, TD3, DDPG, PPO, HerReplayBuffer
 from sb3_contrib import TQC
 from stable_baselines3.common.callbacks import EvalSuccessCallback, StopTrainingOnSuccessThreshold, EvalCallback, \
-    StopTrainingOnRewardThreshold
+    StopTrainingOnRewardThreshold, StopTrainingOnSuccessRateCallback, RecordCustomMetricsCallback
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.noise import NormalActionNoise, VectorizedActionNoise
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 from stable_baselines3.common.vec_env import SubprocVecEnv
-from train.learning_methods.imitation_learning import fill_replay_buffer_with_init_model, fill_replay_buffer_with_prior
-from evaluate.evaluate import perform_benchmark
+from training.learning_methods.imitation_learning import fill_replay_buffer_with_init_model, fill_replay_buffer_with_prior
+from evaluation.evaluate import perform_benchmark
 import pandas as pd
 from gymnasium.envs.registration import register
 import wandb
@@ -37,11 +37,18 @@ def get_env(config, scenario, ee_error_threshold, speed_threshold, force_render=
         "speed_threshold": speed_threshold,
         "scenario": scenario,
     }
-
-    env = make_vec_env(config.env_name, n_envs=config.n_envs, seed=config.seed,
-                       env_kwargs=args,
-                       vec_env_cls=SubprocVecEnv if config.n_envs > 1 else None
-                       )
+    if config.n_envs > 1:
+        return make_vec_env(config.env_name, n_envs=config.n_envs, seed=config.seed,
+                           env_kwargs=args,
+                           vec_env_cls=SubprocVecEnv if config.n_envs > 1 else None
+                           )
+    else:
+        return gymnasium.make(config.env_name,
+                       render=force_render,
+                       config=config,
+                       scenario=scenario,
+                       ee_error_threshold=ee_error_threshold,
+                       speed_threshold=speed_threshold)
     # else:
     #     # todo: check if obsolete
     #     # env = gym.make(config.env_name,
@@ -105,14 +112,14 @@ def get_model(config, run):
         raise Exception("Algorithm not found!")
 
     model = algorithm_type(
-        config.policy_type, env=get_env(config, config.n_envs, config.stages[0]),
+        config.policy_type, env=get_env(config, config.stages[0], config.ee_error_thresholds[0], config.speed_thresholds[0]),
         verbose=1, seed=config.seed,
         tensorboard_log=f"runs/{run.id}", device="cuda",
         replay_buffer_class=config.replay_buffer_class,
         learning_starts=config.learning_starts,
         action_noise=action_noise,
         # hyperparameters
-        **asdict(config.hyperparams)
+        **config.hyperparams.__dict__
     )
 
     return model
@@ -205,6 +212,7 @@ def learn(config: TrainConfig, initial_model: Optional[OffPolicyAlgorithm] = Non
         env = get_env(config, 1, config.stages[0])
         model.replay_buffer = fill_replay_buffer_with_prior(env, model, config.prior_steps)
 
+    iteration = 0
     for stage, success_threshold, max_ep_steps, ee_error_threshold, speed_threshold in zip(config.stages,
                                                                                            config.success_thresholds,
                                                                                            config.max_ep_steps,
@@ -214,7 +222,7 @@ def learn(config: TrainConfig, initial_model: Optional[OffPolicyAlgorithm] = Non
 
         switch_model_env(model, get_env(config, stage, ee_error_threshold, speed_threshold))
 
-        eval_env = get_eval_env(config, stage)
+        eval_env = get_env(config, stage, ee_error_threshold, speed_threshold)
         if success_threshold > 1.0:
             stop_train_callback = StopTrainingOnRewardThreshold(reward_threshold=success_threshold, verbose=1)
             eval_callback = EvalCallback(eval_env=eval_env,
@@ -230,15 +238,23 @@ def learn(config: TrainConfig, initial_model: Optional[OffPolicyAlgorithm] = Non
                                                 callback_after_eval=stop_train_callback, verbose=1, n_eval_episodes=100,
                                                 best_model_save_path=wandb.run.dir)
 
+            #eval_callback = StopTrainingOnSuccessRateCallback(check_freq=config.eval_freq, success_threshold=success_threshold,
+            #                                                  window_size=100, verbose=0)
+
+        custom_metrics_callback = RecordCustomMetricsCallback({'stage': stage})
+
         model.learn(
             total_timesteps=config.max_timesteps,
             callback=[WandbCallback(
                 model_save_path=wandb.run.dir,
                 model_save_freq=20_000
-            ), eval_callback]
+            ), eval_callback, custom_metrics_callback],
+            progress_bar=True,
+            log_interval=4
         )
 
-        model.save_replay_buffer(f"{wandb.run.dir}/replay_buffer")
+        # save model
+        model.save(f"{wandb.run.dir}/model_{stage}_{iteration}")
 
         eval_env.close()
 
@@ -248,34 +264,29 @@ def learn(config: TrainConfig, initial_model: Optional[OffPolicyAlgorithm] = Non
     return model, run
 
 
-def get_eval_env(config, stage):
+def get_eval_env(config, stage, ee_error_threshold=None, speed_threshold=None):
     if config.render:
         # eval_env = gymnasium.make(config.env_name, render=True if not config.render else False, control_type=config.control_type,
         #                     obs_type=config.obs_type,
         #                     reward_type=config.reward_type,
         #                     show_goal_space=False, scenario=stage,
         #                     show_debug_labels=False, )
-        eval_env = get_env(config, 1, scenario=stage, force_render=True)
+        eval_env = get_env(config, scenario=stage, force_render=True)
     else:
-        eval_env = get_env(config, config.n_envs, scenario=stage)
+        eval_env = get_env(config, stage, ee_error_threshold, speed_threshold)
     return eval_env
 
 
 def benchmark_model(config, model, run):
     evaluation_results = {}
-    for evaluation_scenario in ["wangexp_3", "library2", "narrow_tunnel"]:
-        env = gymnasium.make(config.env_name, render=False, control_type=config.control_type,
-                             obs_type=config.obs_type, goal_distance_threshold=config.goal_distance_threshold,
-                             reward_type=config.reward_type, limiter=config.limiter,
-                             show_goal_space=False, scenario=evaluation_scenario,
-                             randomize_robot_pose=False,
-                             task_observations=config.task_observations,
-                             truncate_on_collision=config.truncate_on_collision,
-                             terminate_on_success=config.terminate_on_success,
+    for evaluation_scenario in ["wangexp_3", "library1", "library2", "narrow_tunnel", "workshop"]:
+        # workaround because fetching results of multiple envs is not supported (yet)
+        config = deepcopy(config)
+        config.n_envs = 1
 
-                             show_debug_labels=True, n_substeps=config.n_substeps)
+        env = get_env(config, evaluation_scenario, config.ee_error_thresholds[-1], config.speed_thresholds[-1])
         print(f"Evaluating {evaluation_scenario}")
-        best_model = model.load(path=f"{wandb.run.dir}\\best_model.zip", env=env)
+        best_model = model.load(path=f"{wandb.run.dir}\\model_wangexp_3_0.zip", env=env)
 
         results, metrics = perform_benchmark([best_model], env, human=False, num_episodes=500, deterministic=True,
                                              strategy="variance_only")

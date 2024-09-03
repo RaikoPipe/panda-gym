@@ -16,6 +16,7 @@ from panda_gym.pybullet import PyBullet
 
 from classes.train_config import TrainConfig
 
+
 class PandaFlipEnv(RobotTaskEnv):
     """Pick and Place task wih Panda robot.
 
@@ -138,18 +139,18 @@ class PandaReachAOEnv(RobotTaskEnv):
             Defaults to "ee".
     """
 
-    def __init__(self, render: bool = False, goal_distance_threshold: float = 0.05,
+    def __init__(self, render: bool = False, ee_error_threshold: float = 0.05,
                  speed_threshold=0.1,
                  scenario: str = "wangexp_3",
                  config=TrainConfig()
                  ) -> None:
-
         sim = PyBullet(render=render, n_substeps=config.n_substeps)
-        robot = Panda(sim, block_gripper=True, base_position=np.array([0.0, 0.0, 0.0]), control_type=config.control_type,
+        robot = Panda(sim, block_gripper=True, base_position=np.array([0.0, 0.0, 0.0]),
+                      control_type=config.control_type,
                       obs_type=config.obs_type,
                       limiter=config.limiter, action_limiter=config.action_limiter, n_substeps=config.n_substeps)
         task = ReachAO(sim, robot,
-                       goal_distance_threshold=goal_distance_threshold,
+                       ee_error_threshold=ee_error_threshold,
                        speed_threshold=speed_threshold,
                        scenario=scenario,
                        get_ee_position=robot.get_ee_position,

@@ -37,7 +37,7 @@ class ReachAO(Task):
             get_ee_position,
             scenario='wangexp_3',
             config=TrainConfig(),
-            goal_distance_threshold = 0.05,
+            ee_error_threshold = 0.05,
             speed_threshold = 0.5,
 
     ) -> None:
@@ -87,7 +87,7 @@ class ReachAO(Task):
 
         self.reward_type = config.reward_type
         self.goal_condition = config.goal_condition
-        self.distance_threshold = np.float32(goal_distance_threshold)
+        self.ee_error_threshold = np.float32(ee_error_threshold)
         self.ee_speed_threshold = np.float32(speed_threshold)
         self.get_ee_position = get_ee_position
         self.goal_range = 0.3
@@ -1158,10 +1158,10 @@ class ReachAO(Task):
             if not self.goal_reached:
                 ee_speed = np.linalg.norm(self.robot.get_ee_velocity())
                 self.goal_reached = np.array(
-                    np.logical_and((d < self.distance_threshold), (ee_speed < self.ee_speed_threshold)), dtype=bool)
+                    np.logical_and((d < self.ee_error_threshold), (ee_speed < self.ee_speed_threshold)), dtype=bool)
 
         else:
-            return np.array(d < self.distance_threshold, dtype=bool)
+            return np.array(d < self.ee_error_threshold, dtype=bool)
         return np.array(self.goal_reached, dtype=bool)
 
     def is_truncated(self) -> np.ndarray:
@@ -1220,9 +1220,9 @@ class ReachAO(Task):
 
         if self.reward_type == "sparse":
             if self.goal_condition == "reach":
-                reward = -np.array((ee_error > self.distance_threshold), dtype=np.float32)
+                reward = -np.array((ee_error > self.ee_error_threshold), dtype=np.float32)
             else:
-                reward = np.array(-1 + np.logical_and((ee_error < self.distance_threshold),
+                reward = np.array(-1 + np.logical_and((ee_error < self.ee_error_threshold),
                                                       (ee_speed < self.ee_speed_threshold)), dtype=np.float32)
 
         elif self.reward_type == "wang":
@@ -1236,14 +1236,14 @@ class ReachAO(Task):
             reward = -np.array(distance_reward + obstacle_reward, dtype=np.float32)
         elif self.reward_type == "kumar_her":
             if self.goal_condition == "reach":
-                reward = -np.array((ee_error > self.distance_threshold) * jerk, dtype=np.float32)
+                reward = -np.array((ee_error > self.ee_error_threshold) * jerk, dtype=np.float32)
             else:
-                reward = np.array(np.logical_and((ee_error < self.distance_threshold),
+                reward = np.array(np.logical_and((ee_error < self.ee_error_threshold),
                                                  (ee_speed < self.ee_speed_threshold)), dtype=np.float32)
                 reward -= jerk
         elif self.reward_type == "kumar_optim":
             weight_effort = 0.005
-            reward = -np.array((ee_error > self.distance_threshold), dtype=np.float32)
+            reward = -np.array((ee_error > self.ee_error_threshold), dtype=np.float32)
             reward -= effort
 
         elif self.reward_type == "kumar":

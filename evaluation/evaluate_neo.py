@@ -66,7 +66,7 @@ def evaluate(env, num_steps=10000):
     return mean_100ep_reward
 
 
-panda_gym.register_envs(200)
+panda_gym.register_reach_ao(200)
 # instantiate reachEvadeObstacle
 # env = gym.make(config["env_name"], render=True, control_type=config["control_type"], reward_type=config["reward_type"],
 #                show_goal_space=False, obstacle_layout=1,
@@ -76,7 +76,7 @@ panda_gym.register_envs(200)
 # test the pyb_utils function
 
 
-panda_gym.register_envs(800)
+panda_gym.register_reach_ao(800)
 env = gym.make(configuration["env_name"], render=True, control_type="jsd",
                obs_type=configuration["obs_type"], goal_distance_threshold=configuration["goal_distance_threshold"],
                reward_type="sparse", limiter=configuration["limiter"],
