@@ -1,0 +1,117 @@
+<robot name="bookshelves">
+  <link name="world"/>
+  <link name="bookshelf_bottom">
+    <visual>
+      <geometry>
+        <box size="0.3 0.55 0.01"/>
+      </geometry>
+      <origin xyz="0.2375 0.0 0.05" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.2375 0.0 0.05" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.55 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bookshelf_bottom_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bookshelf_bottom"/>
+    <origin xyz="0.2375 0.0 0.05" rpy="0 0 0"/>
+  </joint>
+  <link name="bookshelf_shelf1">
+    <visual>
+      <geometry>
+        <box size="0.3 0.55 0.01"/>
+      </geometry>
+      <origin xyz="0.2375 0.0 0.15" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.2375 0.0 0.15" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.55 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bookshelf_shelf1_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bookshelf_shelf1"/>
+    <origin xyz="0.2375 0.0 0.15" rpy="0 0 0"/>
+  </joint>
+  <link name="bookshelf_shelf2">
+    <visual>
+      <geometry>
+        <box size="0.3 0.55 0.01"/>
+      </geometry>
+      <origin xyz="0.2375 0.0 0.25" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.2375 0.0 0.25" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.55 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bookshelf_shelf2_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bookshelf_shelf2"/>
+    <origin xyz="0.2375 0.0 0.25" rpy="0 0 0"/>
+  </joint>
+  <link name="bookshelf_top">
+    <visual>
+      <geometry>
+        <box size="0.3 0.55 0.01"/>
+      </geometry>
+      <origin xyz="0.2375 0.0 0.35" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.2375 0.0 0.35" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.55 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bookshelf_top_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bookshelf_top"/>
+    <origin xyz="0.2375 0.0 0.35" rpy="0 0 0"/>
+  </joint>
+  <link name="bookshelf_left_wall">
+    <visual>
+      <geometry>
+        <box size="0.3 0.01 0.7"/>
+      </geometry>
+      <origin xyz="0.2375 0.1375 0.175" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.2375 0.1375 0.175" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.01 0.7"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bookshelf_left_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bookshelf_left_wall"/>
+    <origin xyz="0.2375 0.1375 0.175" rpy="0 0 0"/>
+  </joint>
+  <link name="bookshelf_right_wall">
+    <visual>
+      <geometry>
+        <box size="0.3 0.01 0.7"/>
+      </geometry>
+      <origin xyz="0.2375 -0.1375 0.175" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.2375 -0.1375 0.175" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.01 0.7"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bookshelf_right_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bookshelf_right_wall"/>
+    <origin xyz="0.2375 -0.1375 0.175" rpy="0 0 0"/>
+  </joint>
+</robot>

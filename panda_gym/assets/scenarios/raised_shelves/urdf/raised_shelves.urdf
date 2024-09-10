@@ -1,0 +1,193 @@
+<robot name="raised_shelves">
+  <link name="world"/>
+  <link name="bookshelf_bottom">
+    <visual>
+      <geometry>
+        <box size="0.3 1.2 0.01"/>
+      </geometry>
+      <origin xyz="0.075 0.3 0.05" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.3 0.05" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 1.2 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bookshelf_bottom_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bookshelf_bottom"/>
+    <origin xyz="0.075 0.3 0.05" rpy="0 0 0"/>
+  </joint>
+  <link name="bookshelf_shelf1">
+    <visual>
+      <geometry>
+        <box size="0.3 1.2 0.01"/>
+      </geometry>
+      <origin xyz="0.075 0.3 0.15" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.3 0.15" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 1.2 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bookshelf_shelf1_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bookshelf_shelf1"/>
+    <origin xyz="0.075 0.3 0.15" rpy="0 0 0"/>
+  </joint>
+  <link name="bookshelf_shelf2">
+    <visual>
+      <geometry>
+        <box size="0.3 1.2 0.01"/>
+      </geometry>
+      <origin xyz="0.075 0.3 0.25" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.3 0.25" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 1.2 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bookshelf_shelf2_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bookshelf_shelf2"/>
+    <origin xyz="0.075 0.3 0.25" rpy="0 0 0"/>
+  </joint>
+  <link name="bookshelf_top">
+    <visual>
+      <geometry>
+        <box size="0.3 1.2 0.01"/>
+      </geometry>
+      <origin xyz="0.075 0.3 0.35" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.3 0.35" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 1.2 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bookshelf_top_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bookshelf_top"/>
+    <origin xyz="0.075 0.3 0.35" rpy="0 0 0"/>
+  </joint>
+  <link name="palette_bottom">
+    <visual>
+      <geometry>
+        <box size="0.9 0.25 0.01"/>
+      </geometry>
+      <origin xyz="0.375 0.5375 0.0375" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.375 0.5375 0.0375" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.9 0.25 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="palette_bottom_joint" type="fixed">
+    <parent link="world"/>
+    <child link="palette_bottom"/>
+    <origin xyz="0.375 0.5375 0.0375" rpy="0 0 0"/>
+  </joint>
+  <link name="palette_rail_1">
+    <visual>
+      <geometry>
+        <box size="0.075 0.25 0.075"/>
+      </geometry>
+      <origin xyz="0.25 0.5375 0.01875" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.25 0.5375 0.01875" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.075 0.25 0.075"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="palette_rail_1_joint" type="fixed">
+    <parent link="world"/>
+    <child link="palette_rail_1"/>
+    <origin xyz="0.25 0.5375 0.01875" rpy="0 0 0"/>
+  </joint>
+  <link name="palette_rail_2">
+    <visual>
+      <geometry>
+        <box size="0.075 0.25 0.075"/>
+      </geometry>
+      <origin xyz="0.375 0.5375 0.01875" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.375 0.5375 0.01875" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.075 0.25 0.075"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="palette_rail_2_joint" type="fixed">
+    <parent link="world"/>
+    <child link="palette_rail_2"/>
+    <origin xyz="0.375 0.5375 0.01875" rpy="0 0 0"/>
+  </joint>
+  <link name="palette_rail_3">
+    <visual>
+      <geometry>
+        <box size="0.075 0.25 0.075"/>
+      </geometry>
+      <origin xyz="0.5 0.5375 0.01875" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.5 0.5375 0.01875" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.075 0.25 0.075"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="palette_rail_3_joint" type="fixed">
+    <parent link="world"/>
+    <child link="palette_rail_3"/>
+    <origin xyz="0.5 0.5375 0.01875" rpy="0 0 0"/>
+  </joint>
+  <link name="bookshelf_left_wall">
+    <visual>
+      <geometry>
+        <box size="0.3 0.01 0.65"/>
+      </geometry>
+      <origin xyz="0.075 0.0025 0.1625" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.0025 0.1625" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.01 0.65"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bookshelf_left_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bookshelf_left_wall"/>
+    <origin xyz="0.075 0.0025 0.1625" rpy="0 0 0"/>
+  </joint>
+  <link name="bookshelf_right_wall">
+    <visual>
+      <geometry>
+        <box size="0.3 0.01 0.65"/>
+      </geometry>
+      <origin xyz="0.075 0.5975 0.1625" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.5975 0.1625" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.01 0.65"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bookshelf_right_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bookshelf_right_wall"/>
+    <origin xyz="0.075 0.5975 0.1625" rpy="0 0 0"/>
+  </joint>
+</robot>

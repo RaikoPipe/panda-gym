@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 
@@ -7,6 +8,9 @@ import gymnasium
 sys.modules["gym"] = gymnasium
 
 from sb3_contrib import TQC
+
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 
 import panda_gym
 import os
@@ -40,6 +44,7 @@ configuration = TrainConfig()
 # # register envs to gymnasium
 panda_gym.register_reach_ao(configuration.max_ep_steps[0])
 
+
 def main():
     # env = get_env(config, config.n_envs, config.stages[0])
     # model = TQC.load(r"run_data/wandb/morning-grass/files/best_model.zip", env=env, replay_buffer_class=config.replay_buffer_class,
@@ -55,6 +60,7 @@ def base_train(config):
     model, run = learn(config=config)
 
     return model, run
+
 
 def train_benchmark_scenarios():
     model_names = ["snowy-pine-131", "deep-frog-298", "glamorous-resonance-295", "firm-pond-79"]
@@ -117,14 +123,15 @@ if __name__ == "__main__":
     # goal_condition = 'halt'
     #
 
-    train_config_blind = TrainConfig(
-        stages=["wangexp_3"],
-        max_ep_steps=[300],
-        success_thresholds=[1.0],
-        ee_error_thresholds=[0.05])
-    train_config_curriculum_learning = TrainConfig()
 
 
-    for configuration in [train_config_curriculum_learning, train_config_blind]:
+    # train_config_blind = TrainConfig(
+    #     stages=["wangexp_3"],
+    #     max_ep_steps=[300],
+    #     success_thresholds=[1.0],
+    #     ee_error_thresholds=[0.05])
+    train_config_reach = TrainConfig()
+
+
+    for configuration in [train_config_reach]:
         train_base_model(config=configuration, iterations=5)
-

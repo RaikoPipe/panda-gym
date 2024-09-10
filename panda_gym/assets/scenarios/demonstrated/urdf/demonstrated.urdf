@@ -1,0 +1,60 @@
+<robot name="demonstrated">
+  <link name="world"/>
+  <link name="wall1">
+    <visual>
+      <geometry>
+        <box size="0.02 0.75 0.2"/>
+      </geometry>
+      <origin xyz="0.625 0.1875 0.05" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.625 0.1875 0.05" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.02 0.75 0.2"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="wall1_joint" type="fixed">
+    <parent link="world"/>
+    <child link="wall1"/>
+    <origin xyz="0.625 0.1875 0.05" rpy="0 0 0"/>
+  </joint>
+  <link name="wall2">
+    <visual>
+      <geometry>
+        <box size="0.75 0.02 0.2"/>
+      </geometry>
+      <origin xyz="0.1875 0.005 0.05" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.1875 0.005 0.05" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.75 0.02 0.2"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="wall2_joint" type="fixed">
+    <parent link="world"/>
+    <child link="wall2"/>
+    <origin xyz="0.1875 0.005 0.05" rpy="0 0 0"/>
+  </joint>
+  <link name="wall3">
+    <visual>
+      <geometry>
+        <box size="0.3 0.02 0.2"/>
+      </geometry>
+      <origin xyz="0.3 0.375 0.05" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.3 0.375 0.05" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.02 0.2"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="wall3_joint" type="fixed">
+    <parent link="world"/>
+    <child link="wall3"/>
+    <origin xyz="0.3 0.375 0.05" rpy="0 0 0"/>
+  </joint>
+</robot>

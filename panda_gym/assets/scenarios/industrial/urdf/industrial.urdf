@@ -1,0 +1,307 @@
+<robot name="industrial">
+  <link name="world"/>
+  <link name="front_table">
+    <visual>
+      <geometry>
+        <box size="0.2 0.7 0.01"/>
+      </geometry>
+      <origin xyz="0.1875 -0.025 0.175" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.1875 -0.025 0.175" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.2 0.7 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="front_table_joint" type="fixed">
+    <parent link="world"/>
+    <child link="front_table"/>
+    <origin xyz="0.1875 -0.025 0.175" rpy="0 0 0"/>
+  </joint>
+  <link name="side_table">
+    <visual>
+      <geometry>
+        <box size="0.55 0.15 0.01"/>
+      </geometry>
+      <origin xyz="0.1 -0.1625 0.175" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.1 -0.1625 0.175" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.55 0.15 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="side_table_joint" type="fixed">
+    <parent link="world"/>
+    <child link="side_table"/>
+    <origin xyz="0.1 -0.1625 0.175" rpy="0 0 0"/>
+  </joint>
+  <link name="bin_wall1">
+    <visual>
+      <geometry>
+        <box size="0.01 0.1 0.15"/>
+      </geometry>
+      <origin xyz="0.025 -0.175 0.2125" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.025 -0.175 0.2125" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.1 0.15"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bin_wall1_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bin_wall1"/>
+    <origin xyz="0.025 -0.175 0.2125" rpy="0 0 0"/>
+  </joint>
+  <link name="bin_wall2">
+    <visual>
+      <geometry>
+        <box size="0.01 0.1 0.15"/>
+      </geometry>
+      <origin xyz="0.075 -0.175 0.2125" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 -0.175 0.2125" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.1 0.15"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bin_wall2_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bin_wall2"/>
+    <origin xyz="0.075 -0.175 0.2125" rpy="0 0 0"/>
+  </joint>
+  <link name="bin_wall3">
+    <visual>
+      <geometry>
+        <box size="0.01 0.1 0.15"/>
+      </geometry>
+      <origin xyz="0.125 -0.175 0.2125" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.125 -0.175 0.2125" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.1 0.15"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bin_wall3_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bin_wall3"/>
+    <origin xyz="0.125 -0.175 0.2125" rpy="0 0 0"/>
+  </joint>
+  <link name="bin_bottom">
+    <visual>
+      <geometry>
+        <box size="0.21 0.15 0.01"/>
+      </geometry>
+      <origin xyz="0.075 -0.1625 0.1775" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 -0.1625 0.1775" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.21 0.15 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bin_bottom_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bin_bottom"/>
+    <origin xyz="0.075 -0.1625 0.1775" rpy="0 0 0"/>
+  </joint>
+  <link name="bin_short_wall1">
+    <visual>
+      <geometry>
+        <box size="0.01 0.05 0.03"/>
+      </geometry>
+      <origin xyz="0.025 -0.1375 0.1825" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.025 -0.1375 0.1825" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.05 0.03"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bin_short_wall1_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bin_short_wall1"/>
+    <origin xyz="0.025 -0.1375 0.1825" rpy="0 0 0"/>
+  </joint>
+  <link name="bin_short_wall2">
+    <visual>
+      <geometry>
+        <box size="0.01 0.05 0.03"/>
+      </geometry>
+      <origin xyz="0.075 -0.1375 0.1825" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 -0.1375 0.1825" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.05 0.03"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bin_short_wall2_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bin_short_wall2"/>
+    <origin xyz="0.075 -0.1375 0.1825" rpy="0 0 0"/>
+  </joint>
+  <link name="bin_short_wall3">
+    <visual>
+      <geometry>
+        <box size="0.01 0.05 0.03"/>
+      </geometry>
+      <origin xyz="0.125 -0.1375 0.1825" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.125 -0.1375 0.1825" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.05 0.03"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bin_short_wall3_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bin_short_wall3"/>
+    <origin xyz="0.125 -0.1375 0.1825" rpy="0 0 0"/>
+  </joint>
+  <link name="bin_short_front_wall">
+    <visual>
+      <geometry>
+        <box size="0.21 0.01 0.03"/>
+      </geometry>
+      <origin xyz="0.075 -0.125 0.1825" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 -0.125 0.1825" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.21 0.01 0.03"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bin_short_front_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bin_short_front_wall"/>
+    <origin xyz="0.075 -0.125 0.1825" rpy="0 0 0"/>
+  </joint>
+  <link name="bin_short_front_wall2">
+    <visual>
+      <geometry>
+        <box size="0.21 0.01 0.03"/>
+      </geometry>
+      <origin xyz="0.075 -0.1475 0.2325" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 -0.1475 0.2325" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.21 0.01 0.03"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bin_short_front_wall2_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bin_short_front_wall2"/>
+    <origin xyz="0.075 -0.1475 0.2325" rpy="0 0 0"/>
+  </joint>
+  <link name="bin_back_wall">
+    <visual>
+      <geometry>
+        <box size="0.21 0.01 0.17"/>
+      </geometry>
+      <origin xyz="0.075 -0.1975 0.2175" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 -0.1975 0.2175" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.21 0.01 0.17"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bin_back_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bin_back_wall"/>
+    <origin xyz="0.075 -0.1975 0.2175" rpy="0 0 0"/>
+  </joint>
+  <link name="bin_shelf">
+    <visual>
+      <geometry>
+        <box size="0.21 0.1 0.01"/>
+      </geometry>
+      <origin xyz="0.075 -0.175 0.225" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 -0.175 0.225" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.21 0.1 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bin_shelf_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bin_shelf"/>
+    <origin xyz="0.075 -0.175 0.225" rpy="0 0 0"/>
+  </joint>
+  <link name="oven_left">
+    <visual>
+      <geometry>
+        <box size="0.15 0.01 0.225"/>
+      </geometry>
+      <origin xyz="0.2 0.0625 0.23125" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.2 0.0625 0.23125" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.15 0.01 0.225"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="oven_left_joint" type="fixed">
+    <parent link="world"/>
+    <child link="oven_left"/>
+    <origin xyz="0.2 0.0625 0.23125" rpy="0 0 0"/>
+  </joint>
+  <link name="oven_right">
+    <visual>
+      <geometry>
+        <box size="0.15 0.01 0.225"/>
+      </geometry>
+      <origin xyz="0.2 -0.0625 0.23125" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.2 -0.0625 0.23125" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.15 0.01 0.225"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="oven_right_joint" type="fixed">
+    <parent link="world"/>
+    <child link="oven_right"/>
+    <origin xyz="0.2 -0.0625 0.23125" rpy="0 0 0"/>
+  </joint>
+  <link name="oven_top">
+    <visual>
+      <geometry>
+        <box size="0.15 0.26 0.01"/>
+      </geometry>
+      <origin xyz="0.2 -0.0 0.29" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.2 -0.0 0.29" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.15 0.26 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="oven_top_joint" type="fixed">
+    <parent link="world"/>
+    <child link="oven_top"/>
+    <origin xyz="0.2 -0.0 0.29" rpy="0 0 0"/>
+  </joint>
+</robot>

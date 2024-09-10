@@ -1,0 +1,60 @@
+<robot name="tunnel">
+  <link name="world"/>
+  <link name="bottom_wall">
+    <visual>
+      <geometry>
+        <box size="0.3 0.02 0.3"/>
+      </geometry>
+      <origin xyz="0.1625 -0.0375 0.1075" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.1625 -0.0375 0.1075" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.02 0.3"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="bottom_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="bottom_wall"/>
+    <origin xyz="0.1625 -0.0375 0.1075" rpy="0 0 0"/>
+  </joint>
+  <link name="top_wall">
+    <visual>
+      <geometry>
+        <box size="0.3 0.02 0.3"/>
+      </geometry>
+      <origin xyz="0.1625 -0.0375 0.305" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.1625 -0.0375 0.305" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.02 0.3"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="top_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="top_wall"/>
+    <origin xyz="0.1625 -0.0375 0.305" rpy="0 0 0"/>
+  </joint>
+  <link name="middle_wall">
+    <visual>
+      <geometry>
+        <box size="0.15 0.02 0.1"/>
+      </geometry>
+      <origin xyz="0.2 -0.0375 0.2075" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.2 -0.0375 0.2075" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.15 0.02 0.1"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="middle_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="middle_wall"/>
+    <origin xyz="0.2 -0.0375 0.2075" rpy="0 0 0"/>
+  </joint>
+</robot>

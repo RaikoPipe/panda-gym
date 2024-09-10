@@ -7,3 +7,5 @@ _build/
 build/
 .DS_Store
 sandbox
+/training/runs/
+/training/run_data/

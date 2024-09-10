@@ -1,0 +1,8 @@
+{
+            "industrial": {
+                "bodyName": "kitchen",
+                "fileName": "kitchen.urdf",
+                "basePosition": [0.8, -0.3, 0.0],
+                "useFixedBase": true
+            }
+        }
