@@ -352,7 +352,7 @@ class PyBullet:
             bodyUniqueId=self._bodies_idx[body], posObj=position, ornObj=orientation
         )
 
-    def set_base_velocity(self, body: str, velocity:np.ndarray, physics_client=None) -> None:
+    def set_base_velocity(self, body: str, velocity: np.ndarray, physics_client=None) -> None:
         """Set the position of the body.
 
         Args:
@@ -368,7 +368,7 @@ class PyBullet:
         )
 
     def set_base_pose_dummy(self, body_id: int, position: np.ndarray, orientation: np.ndarray,
-                      physics_client=None) -> None:
+                            physics_client=None) -> None:
         """Set the position of the body.
 
         Args:
@@ -385,7 +385,7 @@ class PyBullet:
             bodyUniqueId=body_id, posObj=position, ornObj=orientation
         )
 
-    def set_base_velocity_dummy(self, body_id: int, velocity:np.ndarray, physics_client=None) -> None:
+    def set_base_velocity_dummy(self, body_id: int, velocity: np.ndarray, physics_client=None) -> None:
         """Set the position of the body.
 
         Args:
@@ -421,7 +421,8 @@ class PyBullet:
         """
         self.physics_client.resetJointState(bodyUniqueId=self._bodies_idx[body], jointIndex=joint, targetValue=angle)
 
-    def control_joints(self, body: str, joints: np.ndarray, action: np.ndarray, forces: np.ndarray, control_mode: int) -> None:
+    def control_joints(self, body: str, joints: np.ndarray, action: np.ndarray, forces: np.ndarray,
+                       control_mode: int) -> None:
         """Control the joints motor.
 
         Args:
@@ -448,7 +449,8 @@ class PyBullet:
                     forces=forces,
                 )
 
-    def inverse_kinematics(self, body: str, link: int, position: np.ndarray, orientation: Optional[np.ndarray]) -> np.ndarray:
+    def inverse_kinematics(self, body: str, link: int, position: np.ndarray,
+                           orientation: Optional[np.ndarray]) -> np.ndarray:
         """Compute the inverse kinematics and return the new joint state.
 
         Args:
@@ -509,15 +511,10 @@ class PyBullet:
 
     def load_scenario(self, urdfs):
         indexes = []
-        for _, kwargs in urdfs.items():
-            indexes.append(self.loadURDF(body_name=kwargs["bodyName"],
-                          fileName = kwargs["fileName"],
-                          basePosition= kwargs["basePosition"],
-                          useFixedBase= kwargs["useFixedBase"]))
+        for body_name, kwargs in urdfs.items():
+            indexes.append(self.loadURDF(body_name, **kwargs))
 
         return indexes
-
-
 
     def create_box(
             self,
@@ -551,7 +548,6 @@ class PyBullet:
         """
         if physics_client is None:
             physics_client = self.physics_client
-
 
         rgba_color = rgba_color if rgba_color is not None else np.zeros(4)
         specular_color = specular_color if specular_color is not None else np.zeros(3)
@@ -592,7 +588,7 @@ class PyBullet:
             ghost: bool = False,
             lateral_friction: Optional[float] = None,
             spinning_friction: Optional[float] = None,
-            physics_client = None
+            physics_client=None
     ) -> int:
         """Create a cylinder.
 
@@ -647,7 +643,7 @@ class PyBullet:
             ghost: bool = False,
             lateral_friction: Optional[float] = None,
             spinning_friction: Optional[float] = None,
-            physics_client = None,
+            physics_client=None,
     ) -> int:
         """Create a sphere.
 
@@ -701,7 +697,7 @@ class PyBullet:
             spinning_friction: Optional[float] = None,
             visual_kwargs: Dict[str, Any] = {},
             collision_kwargs: Dict[str, Any] = {},
-            physics_client = None
+            physics_client=None
     ) -> int:
         """Create a geometry.
 
@@ -745,7 +741,7 @@ class PyBullet:
 
         return idx
 
-    def create_plane(self, z_offset: float, physics_client= None) -> int:
+    def create_plane(self, z_offset: float, physics_client=None) -> int:
         """Create a plane. (Actually, it is a thin box.)
 
         Args:
@@ -774,7 +770,7 @@ class PyBullet:
             x_offset: float = 0.0,
             lateral_friction: Optional[float] = None,
             spinning_friction: Optional[float] = None,
-            physics_client = None
+            physics_client=None
     ) -> int:
         """Create a fixed table. Top is z=0, centered in y.
 
@@ -797,7 +793,7 @@ class PyBullet:
             mass=0.0,
             position=np.array([x_offset, 0.0, -height / 2]),
             specular_color=np.zeros(3),
-            rgba_color=np.array([0.2, 0.2, 0.2, 1]),
+            rgba_color=np.array([0.3, 0.3, 0.3, 1]),
             lateral_friction=lateral_friction,
             spinning_friction=spinning_friction,
             physics_client=physics_client
@@ -840,17 +836,17 @@ class PyBullet:
                                                                    physicsClientId=self.physics_client._client,
                                                                    textPosition=position,
                                                                    textColorRGB=color,
-                                                                   replaceItemUniqueId= idx)
+                                                                   replaceItemUniqueId=idx)
 
         return idx
 
     def create_debug_line(self, start, end, id=0):
-        p.addUserDebugLine(lineFromXYZ=start, lineToXYZ=end, lineColorRGB=np.array([0,1,0]), physicsClientId=id)
+        p.addUserDebugLine(lineFromXYZ=start, lineToXYZ=end, lineColorRGB=np.array([0, 1, 0]), physicsClientId=id)
 
     def remove_debug_text(self, text_name):
 
         self.physics_client.removeUserDebugItem(itemUniqueId=self._string_idx[text_name],
-                                                physicsClientId = self.physics_client._client)
+                                                physicsClientId=self.physics_client._client)
         self._string_idx.pop(text_name)
 
     def remove_all_debug_text(self):
@@ -859,14 +855,12 @@ class PyBullet:
 
     def set_debug_object_color(
             self,
-            body_name:str,
+            body_name: str,
             color: Optional[str] = np.array([0.0, 1.0, 0.0])):
 
         p.setDebugObjectColor(objectUniqueId=self._bodies_idx[body_name], objectDebugColorRGB=color,
                               physicsClientId=self.physics_client.client,
                               linkIndex=-1)
-
-
 
     def set_lateral_friction(self, body: str, link: int, lateral_friction: float) -> None:
         """Set the lateral friction of a link.

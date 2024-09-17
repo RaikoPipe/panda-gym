@@ -1,6 +1,5 @@
 {
             "industrial": {
-                "bodyName": "tabletop",
                 "fileName": "tabletop.urdf",
                 "basePosition": [0.8, -0.3, 0.0],
                 "useFixedBase": true

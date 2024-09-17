@@ -18,7 +18,8 @@ from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.noise import NormalActionNoise, VectorizedActionNoise
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 from stable_baselines3.common.vec_env import SubprocVecEnv
-from training.learning_methods.imitation_learning import fill_replay_buffer_with_init_model, fill_replay_buffer_with_prior
+from training.learning_methods.imitation_learning import fill_replay_buffer_with_init_model, \
+    fill_replay_buffer_with_prior
 from evaluation.evaluate import perform_benchmark
 import pandas as pd
 from gymnasium.envs.registration import register
@@ -39,16 +40,16 @@ def get_env(config, scenario, ee_error_threshold, speed_threshold, force_render=
     }
     if config.n_envs > 1:
         return make_vec_env(config.env_name, n_envs=config.n_envs, seed=config.seed,
-                           env_kwargs=args,
-                           vec_env_cls=SubprocVecEnv if config.n_envs > 1 else None
-                           )
+                            env_kwargs=args,
+                            vec_env_cls=SubprocVecEnv if config.n_envs > 1 else None
+                            )
     else:
         return gymnasium.make(config.env_name,
-                       render=force_render,
-                       config=config,
-                       scenario=scenario,
-                       ee_error_threshold=ee_error_threshold,
-                       speed_threshold=speed_threshold)
+                              render=force_render,
+                              config=config,
+                              scenario=scenario,
+                              ee_error_threshold=ee_error_threshold,
+                              speed_threshold=speed_threshold)
     # else:
     #     # todo: check if obsolete
     #     # env = gym.make(config.env_name,
@@ -112,7 +113,8 @@ def get_model(config, run):
         raise Exception("Algorithm not found!")
 
     model = algorithm_type(
-        config.policy_type, env=get_env(config, config.stages[0], config.ee_error_thresholds[0], config.speed_thresholds[0]),
+        config.policy_type,
+        env=get_env(config, config.stages[0], config.ee_error_thresholds[0], config.speed_thresholds[0]),
         verbose=1, seed=config.seed,
         tensorboard_log=f"runs/{run.id}", device="cuda",
         replay_buffer_class=config.replay_buffer_class,
@@ -192,7 +194,19 @@ def learn(config: TrainConfig, initial_model: Optional[OffPolicyAlgorithm] = Non
             config.success_thresholds = success_thresholds[idx:]
 
     assert len(config.stages) == len(config.success_thresholds) == len(config.max_ep_steps) == len(
-        config.speed_thresholds)
+        config.ee_error_thresholds)
+
+    speed_thresholds = [None for _ in range(len(config.stages))]
+
+    if config.goal_condition == "halt":
+        assert len(config.stages) == len(config.speed_thresholds)
+        speed_thresholds = config.speed_thresholds
+
+    train_sequence = zip(config.stages,
+                         config.success_thresholds,
+                         config.max_ep_steps,
+                         config.ee_error_thresholds,
+                         speed_thresholds)
 
     # learn for each stage until reward threshold is reached
     if config.learning_starts:
@@ -213,11 +227,7 @@ def learn(config: TrainConfig, initial_model: Optional[OffPolicyAlgorithm] = Non
         model.replay_buffer = fill_replay_buffer_with_prior(env, model, config.prior_steps)
 
     iteration = 0
-    for stage, success_threshold, max_ep_steps, ee_error_threshold, speed_threshold in zip(config.stages,
-                                                                                           config.success_thresholds,
-                                                                                           config.max_ep_steps,
-                                                                                           config.ee_error_thresholds,
-                                                                                           config.speed_thresholds):
+    for stage, success_threshold, max_ep_steps, ee_error_threshold, speed_threshold in train_sequence:
         panda_gym.register_reach_ao(max_ep_steps)
 
         switch_model_env(model, get_env(config, stage, ee_error_threshold, speed_threshold))
@@ -279,16 +289,33 @@ def get_eval_env(config, stage, ee_error_threshold=None, speed_threshold=None):
 
 def benchmark_model(config, model, run):
     evaluation_results = {}
-    for evaluation_scenario in ["wangexp_3", "library1", "library2", "narrow_tunnel", "workshop"]:
-        # workaround because fetching results of multiple envs is not supported (yet)
+    for evaluation_scenario in [
+        "reachao1",
+        "reachao2",
+        "reachao3",
+        "wangexp-3",
+        "reachao_rand",
+        "reachao_rand_start",
+        "library1",
+        "library2",
+        "narrow_tunnel",
+        "tunnel",
+        "workshop",
+        "industrial"
+        "wall",
+    ]:
+        # workaround because fetching results with multiple envs is not supported (yet)
         config = deepcopy(config)
         config.n_envs = 1
 
+        # register max ep steps 300
+        panda_gym.register_reach_ao(300)
+
         env = get_env(config, evaluation_scenario, config.ee_error_thresholds[-1], config.speed_thresholds[-1])
         print(f"Evaluating {evaluation_scenario}")
-        best_model = model.load(path=f"{wandb.run.dir}\\model_wangexp_3_0.zip", env=env)
+        best_model = model.load(path=f"{wandb.run.dir}\\model_reachao3_0.zip", env=env)
 
-        results, metrics = perform_benchmark([best_model], env, human=False, num_episodes=500, deterministic=True,
+        results, metrics = perform_benchmark([best_model], env, human=False, num_episodes=100, deterministic=True,
                                              strategy="variance_only")
         evaluation_results[evaluation_scenario] = {"results": results, "metrics": metrics}
         env.close()

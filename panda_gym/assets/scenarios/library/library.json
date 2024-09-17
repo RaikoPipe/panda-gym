@@ -1,42 +1,36 @@
 {
             "left": {
-                "bodyName": "left",
+
                 "fileName": "left.urdf",
                 "basePosition": [-1.0, -0.5, 0.0],
                 "useFixedBase": true
             },
             "right": {
-                "bodyName": "right",
                 "fileName": "right.urdf",
                 "basePosition": [-1.0, -0.5, 0.0],
                 "useFixedBase": true
             },
             "row1": {
-                "bodyName": "row1",
                 "fileName": "row1.urdf",
                 "basePosition": [-1.0, -0.5, 0.0],
                 "useFixedBase": true
             },
             "row2": {
-                "bodyName": "row2",
                 "fileName": "row2.urdf",
                 "basePosition": [-1.0, -0.5, 0.0],
                 "useFixedBase": true
             },
             "row3": {
-                "bodyName": "row3",
                 "fileName": "row3.urdf",
                 "basePosition": [-1.0, -0.5, 0.0],
                 "useFixedBase": true
             },
             "top": {
-                "bodyName": "top",
                 "fileName": "top.urdf",
                 "basePosition": [-1.0, -0.5, 0.0],
                 "useFixedBase": true
             },
             "table": {
-                "bodyName": "table",
                 "fileName": "table.urdf",
                 "basePosition": [-0.5, -0.45, 0.15],
                 "useFixedBase": true

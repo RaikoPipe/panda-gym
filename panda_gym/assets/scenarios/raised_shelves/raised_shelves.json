@@ -1,6 +1,5 @@
 {
             "industrial": {
-                "bodyName": "raised_shelves",
                 "fileName": "raised_shelves.urdf",
                 "basePosition": [0.8, -0.3, 0.0],
                 "useFixedBase": true

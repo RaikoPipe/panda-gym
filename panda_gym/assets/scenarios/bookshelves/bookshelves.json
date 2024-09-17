@@ -1,8 +1,8 @@
 {
-            "industrial": {
-                "bodyName": "bookshelves",
+            "bookshelves": {
                 "fileName": "bookshelves.urdf",
-                "basePosition": [0.8, -0.3, 0.0],
+                "basePosition": [0.1, 0.0, 0.0],
+                "globalScaling": 1.4,
                 "useFixedBase": true
             }
         }

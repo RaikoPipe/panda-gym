@@ -15,7 +15,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.
 import panda_gym
 import os
 
-from stable_baselines3.her.her_replay_buffer import HerReplayBuffer, DictReplayBuffer
+from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
 
 from classes.train_config import TrainConfig
 
@@ -109,7 +109,7 @@ def train_base_model(config=TrainConfig(), iterations=None):
 
 
 if __name__ == "__main__":
-    from learning_methods.learning import learn, get_env, continue_learning
+    from training.utils.setup_training import learn, get_env, continue_learning
     import wandb
 
     wandb.login(key=os.getenv("wandb_key"))
@@ -130,7 +130,14 @@ if __name__ == "__main__":
     #     max_ep_steps=[300],
     #     success_thresholds=[1.0],
     #     ee_error_thresholds=[0.05])
-    train_config_reach = TrainConfig()
+    # train_config_reach = TrainConfig(
+    #     stages=["reachao1", "reachao2", "reachao3", "reachao_rand"],
+    #     max_ep_steps=[75, 150, 200, 250],
+    #     success_thresholds=[0.8, 0.8, 0.8, 0.8],
+    #     ee_error_thresholds=[0.05, 0.05, 0.05, 0.05],
+    # )
+
+    train_config_reach = TrainConfig(name="testing_configuration_v1")
 
 
     for configuration in [train_config_reach]:

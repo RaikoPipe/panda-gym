@@ -1,15 +1,29 @@
 import gymnasium as gym
 import panda_gym
 import numpy as np
-from train.train import configuration
+
+from classes.train_config import TrainConfig
 import time
 import pybullet
 
 panda_gym.register_reach_ao(100)
 
-env = gym.make(configuration["env_name"], render=True, show_goal_space=True, obs_type="js", control_type ="js",
-               show_debug_labels=False, scenario="library1", reward_type="kumar", randomize_robot_pose = False,
-               task_observations={'obstacles': "vectors", 'prior': None}, terminate_on_success=False, goal_condition="halt")
+configuration = TrainConfig()
+
+configuration.show_debug_labels = True
+configuration.show_goal_space = True
+
+scenario = "reachao3"
+
+# get env
+env = gym.make(configuration.env_name,
+    render=True,
+    config=configuration,
+                          scenario=scenario)
+
+env.unwrapped.task.sim.physics_client.configureDebugVisualizer(pybullet.COV_ENABLE_MOUSE_PICKING, 1)
+env.unwrapped.task.sim.physics_client.configureDebugVisualizer(pybullet.COV_ENABLE_MOUSE_PICKING, 1)
+
 env.reset()
 goals = []
 
@@ -43,6 +57,8 @@ while True:
     joint_angles = np.array([env.robot.get_joint_angle(joint=i) for i in range(7)])
     joint_angle_string = ", ".join([f"{angle:.3f}" for angle in joint_angles])
     print(f"Joint angles: [{joint_angle_string}]", flush=True)
+    print(terminated)
+    print(truncated)
 
 
 
