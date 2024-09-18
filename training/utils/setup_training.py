@@ -301,7 +301,7 @@ def benchmark_model(config, model, run):
         "narrow_tunnel",
         "tunnel",
         "workshop",
-        "industrial"
+        "industrial",
         "wall",
     ]:
         # workaround because fetching results with multiple envs is not supported (yet)
@@ -325,7 +325,7 @@ def benchmark_model(config, model, run):
     table = pd.DataFrame(results)
     table.index.name = "Criterias"
     print(table.to_markdown())
-    table["Criterias"] = list(results["library2"].keys())
+    table["Criterias"] = next(iter(results))
     table = wandb.Table(dataframe=table)
 
     run.log({"results": table})

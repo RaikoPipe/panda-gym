@@ -25,6 +25,7 @@ from copy import copy, deepcopy
 from multiprocessing import Process
 import panda_gym
 import pybullet
+from evaluation.ensemble_utils import action_selection
 
 
 def fuse_controllers(prior_mu, prior_sigma, policy_mu, policy_sigma):
@@ -169,23 +170,18 @@ def perform_benchmark(models, env, human=True, num_episodes=1000, deterministic=
                     distribution_stds.append(distribution_std)
 
             if strategy == "mean_actions":
-                # trick 17: Act together
-                action = np.sum(actions) / len(actions)
-            elif strategy == "variance_only":
-                min_variance = min(distribution_variances)
-                action_sovereignty = distribution_variances.index(min_variance)
-                action = actions[action_sovereignty]
+                action = action_selection.mean(actions)
+            elif strategy == "highest_confidence":
+                action, index = action_selection.confidence(actions, variances)
                 if show_model_actions:
                     env.task.sim.create_debug_text(f"Model Actions",
-                                                   f">>>Action: Model {action_sovereignty}<<<",
-                                                   color=model_colors[action_sovereignty])
-            elif strategy == "bcf":
-                # todo: implement
-                rl_sigmas = distribution_stds
-                rl_mus = variances
+                                                   f">>>Action: Model {index}<<<",
+                                                   color=model_colors[index])
+            elif strategy == "weighted_aggregation":
+                action = action_selection.weighted_aggregation(variances, actions)
 
-                mu_mcf, std_mcf = fuse_controllers(prior_action, 0.4, rl_mu, rl_sigma)
-                dist_hybrid = Normal(torch.tensor(mu_mcf).double().detach(), torch.tensor(std_mcf).double().detach())
+            elif strategy == "bayesian_fusion":
+                action = action_selection.bayesian_fusion(actions, variances)
 
             elif strategy == "prior_bcf":
                 rl_sigma = distribution_stds[0]
@@ -318,245 +314,6 @@ def perform_benchmark(models, env, human=True, num_episodes=1000, deterministic=
 
     return results, metrics
 
-
-def evaluate_ensemble_high_freq(models, env, human=True, num_episodes=1000, goals_to_achieve=None, deterministic=True,
-                                strategy="variance_only", scenario_name="", prior_orientation=None):
-    """
-    Evaluate a RL agent
-    :param model: (BaseRLModel object) the RL Agent
-    :param num_episodes: (int) number of timesteps to evaluate it
-    :return: (float) Mean reward for the last 100 episodes
-    """
-    # robot parameters
-    # env.robot.neutral_joint_values = np.array([0, -0.3, 0, -2.2, 0, 2.0, np.pi / 4, 0.00, 0.00])
-    # env.robot.neutral_joint_values = np.array([0, -0.3, 0, -2.2, 0, 2.0, np.pi / 4, 0.00, 0.00])
-
-    episode_rewards = [0.0]
-
-    # if goals_to_achieve:
-    #     env.task.goal = goals_to_achieve.pop(0)
-
-    done_events = []
-
-    goals = []
-    goals.append(env.task.goal)
-
-    end_effector_positions = []
-    path_success = []
-    end_effector_velocities = []
-    end_effector_speeds = []
-
-    efforts = []
-    jerks = []
-    manipulabilities = []
-
-    total_index_count = []
-    episode_index_count = []
-    ep_lengths = []
-    ep_lengths_success = []
-
-    # episode_action_sovereignty = 0
-    action_sovereignty = None
-
-    model_colors = {0: np.array([1.0, 0.0, 0.0]), 1: np.array([0.0, 0.0, 1.0]), 2: np.array([0.0, 0.0, 1.0]),
-                    3: np.array([0.0, 0.0, 1.0]), 4: np.array([0.0, 0.0, 1.0])}
-    seed = 0
-    obs, _ = env.reset(seed=seed)
-    for _ in tqdm(range(num_episodes), desc=scenario_name):
-        episode_reward = 0.0
-        ee_pos = []
-        ee_speed = []
-        ep_length = 0
-        total_effort = 0.0
-        total_manipulability = 0.0
-        jerk = []
-        j = 0
-
-        seed += 1
-        # get next goal
-        # env.task.goal = np.array(goals_to_achieve.pop(0))
-        if human:
-            # update goal location
-            env.task.sim.set_base_pose("target", env.task.goal, np.array([0.0, 0.0, 0.0, 1.0]))
-
-        while True:
-            actions = []
-            distribution_stds = []
-            distribution_variances = []
-            variances = []
-
-            if isinstance(models[0], str):
-                if prior_orientation == "fkine":
-                    prior_orientation = env.robot.inverse_kinematics(link=11, position=env.task.goal)[:7]
-                action = env.robot.compute_action_neo(env.task.goal, env.task.obstacles, env.task.collision_detector,
-                                                      prior_orientation)
-            else:
-                # get rl action distribution
-                for model in models:
-                    action, _states = model.predict(obs, deterministic=deterministic)
-
-                    distribution_std = model.actor.action_dist.distribution.stddev.squeeze().cpu().detach().numpy()
-                    distribution_variance = model.actor.action_dist.distribution.variance.squeeze().cpu().detach().numpy()
-                    actions.append(action)
-                    variances.append(distribution_variance)
-                    distribution_variances.append(np.sum(distribution_variance))
-                    distribution_stds.append(distribution_std)
-
-            if strategy == "mean_actions":
-                # trick 17: Act together
-                action = np.sum(actions) / len(actions)
-            elif strategy == "variance_only":
-                min_variance = min(distribution_variances)
-                action_sovereignty = distribution_variances.index(min_variance)
-                action = actions[action_sovereignty]
-                env.task.sim.create_debug_text(f"Model Actions",
-                                               f">>>Action: Model {action_sovereignty}<<<",
-                                               color=model_colors[action_sovereignty])
-            elif strategy == "bcf":
-                # todo: implement
-                rl_sigmas = distribution_stds
-                rl_mus = variances
-
-                mu_mcf, std_mcf = fuse_controllers(prior_action, 0.4, rl_mu, rl_sigma)
-                dist_hybrid = Normal(torch.tensor(mu_mcf).double().detach(), torch.tensor(std_mcf).double().detach())
-
-            elif strategy == "prior_bcf":
-                rl_sigma = distribution_stds[0]
-                rl_mu = variances[0]
-
-                prior_action = env.robot.compute_action_neo(env.task.goal, env.task.obstacles,
-                                                            env.task.collision_detector, "")
-
-                mu_mcf, std_mcf = fuse_controllers(prior_action, 0.4, rl_mu, rl_sigma)
-
-                dist_hybrid = Normal(torch.tensor(mu_mcf).double().detach(), torch.tensor(std_mcf).double().detach())
-
-                action = dist_hybrid.sample()
-                action = torch.tanh(action).numpy()
-            elif strategy == "prior_sum":
-                prior_action = env.robot.compute_action_neo(env.task.goal, env.task.obstacles,
-                                                            env.task.collision_detector, "back")
-                action = np.add(actions[0], prior_action) / 2
-            elif strategy == "prior":
-                prior_action = env.robot.compute_action_neo(env.task.goal, env.task.obstacles,
-                                                            env.task.collision_detector,
-                                                            "")
-                zipped = [sorted(zip(i, y)) for i, y in
-                          zip([distribution_variances[0], 0.4], [actions[0], prior_action])]
-                action = zipped[1][0]
-
-            total_index_count.append(action_sovereignty)
-            episode_index_count.append(action_sovereignty)
-
-            if not isinstance(models[0], str):
-                for i in range(len(models)):
-                    env.task.sim.create_debug_text(f"Model Action {i}",
-                                                   f">>>Model 0 Variance: {distribution_variances[i]}<<<",
-                                                   color=model_colors[i])
-
-            # if action_selection_strategy == "first_come":
-            #     # The first to reach 5 has sovereignty for the rest of the episode
-            #     if len(episode_index_count) == 9:
-            #         if episode_index_count.count(0) >= 5:
-            #             episode_action_sovereignty = 0
-            #         else:
-            #             episode_action_sovereignty = 1
-            #     elif len(episode_index_count) < 9:
-            #         episode_action_sovereignty = action_sovereignty
-            #
-            #     action_sovereignty = episode_action_sovereignty
-
-            obs, reward, done, truncated, info, = env.step(action)
-
-            if human:
-                pass
-                # sleep(0.01/8)  # for human eval
-
-            # add results and metrics
-            episode_reward += reward
-
-            total_effort += env.task.get_norm_effort()
-            if ep_length % 4 == 0:
-                j += env.task.get_norm_jerk()
-                jerk.append(j)
-                j = 0
-            else:
-                j += env.task.get_norm_jerk()
-
-            total_manipulability += env.task.manipulability
-            ee_pos.append(env.robot.get_ee_position())
-            ee_speed.append(np.linalg.norm(env.robot.get_ee_velocity()))
-            ep_length += 1
-
-            if done or truncated:
-                # sleep(2)
-                if info["is_success"]:
-                    # print("Success!")
-                    done_events.append(1)
-                    ep_lengths_success.append(ep_length)
-                    jerks.append(np.array(jerk))
-                    efforts.append(total_effort / ep_length)
-                    manipulabilities.append(total_manipulability / ep_length)
-                    end_effector_speeds.append(ee_speed)
-                    path_success.append(ee_pos)
-                elif info["is_truncated"]:
-                    # print("Collision...")
-                    done_events.append(-1)
-                    if human:
-                        sleep(1)
-                else:
-                    # print("Timeout...")
-                    done_events.append(0)
-                obs, _ = env.reset(seed=seed)
-
-                episode_index_count = []
-
-                # add episode results and metrics
-                episode_rewards.append(episode_reward)
-                ep_lengths.append(ep_length)
-
-                end_effector_positions.append(ee_pos)
-
-                # finish episode
-                break
-
-            # episode_action_sovereignty = 0
-        # evaluation_step(efforts, done_events, end_effector_positions, end_effector_velocities, episode_rewards,
-        #                 goals, human, joint_positions, joint_velocities, manipulabilities, model, obs, goals_to_achieve)
-    # Compute mean reward for the last 100 episodes
-
-    results = {"mean_reward": np.round(np.mean(episode_rewards), 4),
-               "success_rate": np.round(done_events.count(1) / len(done_events), 4),
-               "collision_rate": np.round(done_events.count(-1) / len(done_events), 4),
-               "timeout_rate": np.round(done_events.count(0) / len(done_events), 4),
-               "num_episodes": np.round(len(done_events), 4),
-               "mean_ep_length": np.round(np.mean(ep_lengths), 4),
-               "mean_ep_length_success": np.round(np.mean(ep_lengths_success), 4),
-               "mean_num_sim_steps": np.round(np.mean([i * configuration.n_substeps for i in ep_lengths]), 4),
-               "mean_num_sim_steps_success": np.round(
-                   np.mean([i * configuration.n_substeps for i in ep_lengths_success]), 4),
-               "mean_effort": np.round(np.mean(efforts), 4),
-               "mean_manipulability": np.round(np.mean(manipulabilities), 4),
-               "mean_norm_jerk": np.round(np.mean(np.array([item for l in jerks for item in l])), 4),
-               "mean_ee_speed": np.round(np.mean(np.array([item for l in end_effector_speeds for item in l])), 4)
-               }
-
-    idx = 0
-    for _ in models:
-        results[f"model_{idx}_action_rate"] = total_index_count.count(idx) / num_episodes
-        idx = idx + 1
-
-    metrics = {
-        "end_effector_positions": end_effector_positions,
-        "end_effector_speeds": end_effector_speeds,
-        "end_effector_velocities": end_effector_velocities,
-        "path_success": path_success,
-        "goals": goals,
-        "jerks": jerks
-    }
-
-    return results, metrics
-
 def evaluate_agents(agents, human=False, eval_type="basic", strategy="mean_actions",
                     obstacle_observation=None, num_episodes=100):
     # default path options
@@ -566,7 +323,7 @@ def evaluate_agents(agents, human=False, eval_type="basic", strategy="mean_actio
 
     # model paths
     model_paths = [f"{default_path}/{model_name}/{default_model_location}" for model_name in agents]
-    # %%
+
     from classes.train_config import TrainConfig
     import yaml
 
@@ -614,8 +371,7 @@ def evaluate_agents(agents, human=False, eval_type="basic", strategy="mean_actio
                                                                                     dtype=np.float32)}))
 
     evaluation_results = {}
-    for evaluation_scenario in ["wangexp_3", "narrow_tunnel", "library2", "workshop",
-                                "wall"]:  # "wang_3", "library2", "library1", "narrow_tunnel", "wall"
+    for evaluation_scenario in ["reachao3"]:  # "wang_3", "library2", "library1", "narrow_tunnel", "wall"
         # get env
         env = gymnasium.make(configuration.env_name,
                                   render=False,
@@ -722,7 +478,7 @@ if __name__ == "__main__":
     # evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval2", strategy="variance_only")
     # evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval", strategy="variance_only")
     # evaluate_agent_ensemble(trained_models["mt_cl"], human=True, eval_type="base_eval", strategy="variance_only")
-    evaluate_agents(["learning_test_blind"], human=False, eval_type="base_eval", strategy="variance_only",
+    evaluate_agents(trained_models["mt_cl"], human=True, eval_type="base_eval", strategy="weighted_aggregation",
                     num_episodes=200)
 
     # evaluate_prior(human=False, eval_type=eval_type)

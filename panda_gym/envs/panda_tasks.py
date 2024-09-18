@@ -141,7 +141,7 @@ class PandaReachAOEnv(RobotTaskEnv):
 
     def __init__(self, render: bool = False, ee_error_threshold: float = 0.05,
                  speed_threshold=0.1,
-                 scenario: str = "wangexp_3",
+                 scenario: str = "reachao1",
                  config=TrainConfig()
                  ) -> None:
         sim = PyBullet(render=render, n_substeps=config.n_substeps)

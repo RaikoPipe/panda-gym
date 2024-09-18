@@ -137,7 +137,7 @@ if __name__ == "__main__":
     #     ee_error_thresholds=[0.05, 0.05, 0.05, 0.05],
     # )
 
-    train_config_reach = TrainConfig(name="testing_configuration_v1")
+    train_config_reach = TrainConfig(name="testing_configuration_v3")
 
 
     for configuration in [train_config_reach]:

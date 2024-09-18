@@ -36,13 +36,13 @@ class TrainConfig:
     speed_thresholds: list[float] = field(default_factory=lambda: [0.5, 0.1, 0.01])
 
     # temporal settings
-    max_timesteps: int = 300_000
-    max_ep_steps: list[int] = field(default_factory=lambda: [75, 150, 200])
+    max_timesteps: int = 600_000
+    max_ep_steps: list[int] = field(default_factory=lambda: [50, 75, 100])
     n_substeps: int = 20
 
     # curriculum setup
     stages: list[str] = field(default_factory=lambda: ["reachao1", "reachao2", "reachao3"])
-    success_thresholds: list[float] = field(default_factory=lambda: [0.8, 0.8, 1.0])
+    success_thresholds: list[float] = field(default_factory=lambda: [0.9, 0.9, 1.0])
     eval_freq: int = 5000
 
     # observations and actions
@@ -50,7 +50,7 @@ class TrainConfig:
     control_type: str = "js"
     action_limiter: str = "clip"
     limiter: str = "sim"
-    task_observations: dict = field(default_factory=lambda: {'obstacles': "vectors", 'prior': None})
+    task_observations: dict = field(default_factory=lambda: {'obstacles': "vectors+closest_per_link", 'prior': None})
 
     # visualization
     render: bool = False

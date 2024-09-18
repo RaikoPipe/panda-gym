@@ -96,4 +96,18 @@ class Hyperparameters:
     # set default values
     algorithm: str = "TQC"
 
+# TQC PandaReach-v1
+# buffer_size: 1_000_000
+# gamma: 0.95
+# learning_rage: 0.001
+# normalize: True
 
+# HER Defaults
+# buffer_size: 1_000_000
+# gamma: 0.95
+# learning_rate: 1e6
+# tau: 0.05
+
+# Policy kwargs decreasing neurons with each layer
+# net_arch: [128, 64, 32]
+# net_arch: [256, 128, 64]

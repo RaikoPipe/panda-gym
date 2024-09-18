@@ -264,9 +264,9 @@ class Panda(PyBulletRobot):
 
         if "ee" in self.obs_type:
             # end-effector position and velocity
-            # position = np.array(self.get_ee_position()) # this observation might be unnecessary because of achieved goal
+            position = np.array(self.get_ee_position())
             velocity = np.array(self.get_ee_velocity())
-            observation.extend([velocity])
+            observation.extend([position, velocity])
 
         if "js" in self.obs_type:
             # joint angles and joint velocities
