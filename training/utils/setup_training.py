@@ -325,7 +325,7 @@ def benchmark_model(config, model, run):
     table = pd.DataFrame(results)
     table.index.name = "Criterias"
     print(table.to_markdown())
-    table["Criterias"] = next(iter(results))
+    table["Criterias"] = results["reachao1"].keys()
     table = wandb.Table(dataframe=table)
 
     run.log({"results": table})

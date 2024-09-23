@@ -3,8 +3,6 @@ import sys
 import time
 
 import gymnasium
-
-# from pygame import mixer
 sys.modules["gym"] = gymnasium
 
 from sb3_contrib import TQC
@@ -18,6 +16,7 @@ import os
 from stable_baselines3.her.her_replay_buffer import HerReplayBuffer
 
 from classes.train_config import TrainConfig
+from classes.hyperparameters import Hyperparameters
 
 reach_stages = ["reach1", "reach2", "reach3", "reach4"]
 reach_max_ep_steps = [50, 50, 50, 50]
@@ -137,8 +136,7 @@ if __name__ == "__main__":
     #     ee_error_thresholds=[0.05, 0.05, 0.05, 0.05],
     # )
 
-    train_config_reach = TrainConfig(name="testing_configuration_v3")
 
 
-    for configuration in [train_config_reach]:
-        train_base_model(config=configuration, iterations=5)
+    for configuration in [TrainConfig()]:
+        train_base_model(config=configuration, iterations=1)

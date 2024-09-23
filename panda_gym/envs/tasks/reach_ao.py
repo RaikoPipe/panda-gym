@@ -186,8 +186,9 @@ class ReachAO(Task):
             """Step the simulation and check for collision at each step."""
             for _ in range(config.n_substeps):
                 self.sim.physics_client.stepSimulation()
-                if not self.is_collided:
-                    self.is_collided = self.check_collided()
+                self.is_collided = self.check_collided()
+                if self.is_collided:
+                    break
 
         def step_check_collision_once():
             """Step the simulation for n steps and check for collision once after (Higher performance, but can lead to
@@ -535,12 +536,12 @@ class ReachAO(Task):
         self.allow_overlapping_obstacles = True
 
         num_obs = 6
-        goal_radius_minor = 0.5
+        goal_radius_minor = 0.45
         goal_radius_major = 0.75
 
         self._sample_goal = lambda: self.sample_within_hollow_sphere(goal_radius_minor, goal_radius_major,
                                                                      upper_half_only=True)
-        self._sample_obstacle = lambda: self.sample_reachao3_obstacle()
+        self._sample_obstacle = lambda: self.sample_obstacle_wang()
         for i in range(6):
             self.create_obstacle_cuboid(size=self.cube_size_large)
             self.create_obstacle_sphere(radius=0.05)
