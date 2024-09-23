@@ -314,20 +314,26 @@ def perform_benchmark(models, env, human=True, num_episodes=1000, deterministic=
 
     return results, metrics
 
-def evaluate_agents(agents, human=False, eval_type="basic", strategy="mean_actions",
-                    obstacle_observation=None, num_episodes=100):
+def evaluate_ensemble(ensemble_name, human=False, eval_type="basic", strategy="mean_actions",
+                      obstacle_observation=None, num_episodes=100):
     # default path options
-    default_path = "../training/run_data/wandb"
+    default_path = f"../training/run_data"
     default_model_location = 'files/best_model.zip'
     default_yaml_location = "files/config.yaml"
 
-    # model paths
-    model_paths = [f"{default_path}/{model_name}/{default_model_location}" for model_name in agents]
+    ensemble_path = f"{default_path}/{ensemble_name}/wandb"
+
+    ensemble_model_paths = []
+    ensemble_yaml_paths = []
+    # walk through ensemble path
+    for dir in os.listdir(ensemble_path):
+        ensemble_model_paths.append(f"{ensemble_path}/{dir}/{default_model_location}")
+        ensemble_yaml_paths.append(f"{ensemble_path}/{dir}/{default_yaml_location}")
 
     from classes.train_config import TrainConfig
     import yaml
 
-    with open(f"{default_path}/{agents[0]}/{default_yaml_location}", 'r') as stream:
+    with open(ensemble_yaml_paths[0], 'r') as stream:
         try:
             yaml_config = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
@@ -345,17 +351,17 @@ def evaluate_agents(agents, human=False, eval_type="basic", strategy="mean_actio
         obstacle_observation = {'obstacles': "vectors", 'prior': None}
 
     agent_type = None
-    if len(agents) > 1:
+    if len(ensemble_model_paths) > 1:
         agent_type = "ensemble"
-    elif len(agents) == 1:
+    elif len(ensemble_model_paths) == 1:
         agent_type = "single"
-    elif agents == "prior":
+    elif ensemble_name == "prior":
         agent_type = "prior"
     else:
         logging.error("No agents to evaluate")
         return
 
-    logging.info(f"Evaluating {agents}")
+    logging.info(f"Evaluating {ensemble_name}")
     n_substeps, reward_type, goal_condition = set_eval_type(eval_type)
 
     with open("scenario_goals", "r") as file:
@@ -365,16 +371,16 @@ def evaluate_agents(agents, human=False, eval_type="basic", strategy="mean_actio
     env = gymnasium.make(configuration.env_name)
 
     models = []
-    for model_name in agents:
-        models.append(TQC.load(fr"../training/run_data/wandb/{model_name}/files/best_model.zip", env=env,
+    for model_path in ensemble_model_paths:
+        models.append(TQC.load(model_path, env=env,
                                custom_objects={"action_space": gymnasium.spaces.Box(-1.0, 1.0, shape=(7,),
                                                                                     dtype=np.float32)}))
 
     evaluation_results = {}
-    for evaluation_scenario in ["reachao3"]:  # "wang_3", "library2", "library1", "narrow_tunnel", "wall"
+    for evaluation_scenario in ["narrow_tunnel"]:  # "wang_3", "library2", "library1", "narrow_tunnel", "wall"
         # get env
         env = gymnasium.make(configuration.env_name,
-                                  render=False,
+                                  render=human,
                                   config=configuration,
                                   scenario=evaluation_scenario,
                                   ee_error_threshold=configuration.ee_error_thresholds[-1],
@@ -382,7 +388,7 @@ def evaluate_agents(agents, human=False, eval_type="basic", strategy="mean_actio
 
         print(f"Evaluating {evaluation_scenario}")
 
-        goals_to_achieve = copy(scenario_goals[evaluation_scenario])
+        # goals_to_achieve = copy(scenario_goals[evaluation_scenario])
 
         results, metrics = perform_benchmark(models, env, human=human, num_episodes=num_episodes, deterministic=True,
                                              strategy=strategy,
@@ -471,15 +477,10 @@ trained_models = {
 if __name__ == "__main__":
     eval_type = "base_eval"  # optimized; basic
 
-    # evaluate_agent_ensemble(trained_models["bench"], human=False, eval_type=eval_type, strategy="variance_only")
-    # evaluate_agent_ensemble(trained_models["few_shot"], human=False, eval_type=eval_type, strategy="variance_only")
-    # evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type=eval_type, strategy="variance_only")
+    ensemble = "test_configuration_v3"
 
-    # evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval2", strategy="variance_only")
-    # evaluate_agent_ensemble(trained_models["mt_cl"], human=False, eval_type="optim_eval", strategy="variance_only")
-    # evaluate_agent_ensemble(trained_models["mt_cl"], human=True, eval_type="base_eval", strategy="variance_only")
-    evaluate_agents(trained_models["mt_cl"], human=True, eval_type="base_eval", strategy="weighted_aggregation",
-                    num_episodes=200)
+    evaluate_ensemble("test_configuration_v3", human=False, eval_type="base_eval", strategy="weighted_aggregation",
+                      num_episodes=200)
 
     # evaluate_prior(human=False, eval_type=eval_type)
     # evaluate_rl_agent(agents=trained_models["mt_cl"], human=False, eval_type=eval_type)

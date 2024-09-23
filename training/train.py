@@ -136,6 +136,7 @@ if __name__ == "__main__":
     #     ee_error_thresholds=[0.05, 0.05, 0.05, 0.05],
     # )
 
+    configuration = TrainConfig(name="set_name", group="experiment_name", job_type="train")
 
 
     for configuration in [TrainConfig()]:

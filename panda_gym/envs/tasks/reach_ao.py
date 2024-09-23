@@ -271,6 +271,7 @@ class ReachAO(Task):
         self.sim.create_plane(z_offset=-0.4)
         # self.sim.create_table(length=1.1, width=0.7, height=0.4, x_offset=0.3)
         self.bodies["table"] = self.sim.create_table(length=2.0, width=1.3, height=0.4)
+        self.collision_objects.append(NamedCollisionObject("table"))
 
         self.sim.create_sphere(
             body_name="target",

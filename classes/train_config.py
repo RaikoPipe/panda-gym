@@ -7,6 +7,7 @@ class TrainConfig:
     # wandb settings
     name: str = 'default'
     job_type: str = 'train'
+    group = "default"
 
     # learning settings
     algorithm: str = 'TQC'

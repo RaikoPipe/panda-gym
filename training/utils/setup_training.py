@@ -152,10 +152,10 @@ def init_wandb(config, tags):
         project=f"{project}",
         config=config,
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
-        dir="run_data",
+        dir=f"run_data/{config.group}",
         tags=tags,
-        group=config.stages[-1],  # last stage is job goal
-        monitor_gym=True,  # auto-upload the videos of agents playing the game
+        group=config.group,
+        monitor_gym=False,  # auto-upload the videos of agents playing the game
         save_code=True,  # optional
         job_type=config.job_type,
         name=config.name
@@ -256,7 +256,7 @@ def learn(config: TrainConfig, initial_model: Optional[OffPolicyAlgorithm] = Non
         model.learn(
             total_timesteps=config.max_timesteps,
             callback=[WandbCallback(
-                model_save_path=wandb.run.dir,
+                model_save_path=run.dir,
                 model_save_freq=20_000
             ), eval_callback, custom_metrics_callback],
             progress_bar=True,
@@ -264,7 +264,7 @@ def learn(config: TrainConfig, initial_model: Optional[OffPolicyAlgorithm] = Non
         )
 
         # save model
-        model.save(f"{wandb.run.dir}/model_{stage}_{iteration}")
+        model.save(f"{run.dir}/model_{stage}_{iteration}")
 
         eval_env.close()
 

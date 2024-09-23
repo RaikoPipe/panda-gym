@@ -13,7 +13,7 @@ configuration = TrainConfig()
 configuration.show_debug_labels = True
 configuration.show_goal_space = True
 
-scenario = "reachao3"
+scenario = "reachao_rand_start"
 
 # get env
 env = gym.make(configuration.env_name,
@@ -47,8 +47,8 @@ while True:
 
     observation, reward, terminated, truncated, info = env.step(np.array([0,0,0,0,0,0,0]))
     #print(env.task.goal_reached)
-    #time.sleep(0.5)
-    #env.reset()
+    time.sleep(0.5)
+    env.reset()
     camera = pybullet.getDebugVisualizerCamera()
     print(
         f"cameraTargetPosition = {camera[11]}\ncameraDistance = {camera[10]} \ncameraPitch = {camera[9]}\ncameraYaw = {camera[8]}", flush=True)
