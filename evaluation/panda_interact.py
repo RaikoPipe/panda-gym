@@ -8,20 +8,20 @@ import pybullet
 
 panda_gym.register_reach_ao(100)
 
-configuration = TrainConfig()
+configuration = TrainConfig(render=True)
 
 configuration.show_debug_labels = True
 configuration.show_goal_space = True
+configuration.debug_collision = True
 
-scenario = "reachao_rand_start"
+scenario = "library1"
 
 # get env
 env = gym.make(configuration.env_name,
-    render=True,
+               render=configuration.render,
     config=configuration,
                           scenario=scenario)
 
-env.unwrapped.task.sim.physics_client.configureDebugVisualizer(pybullet.COV_ENABLE_MOUSE_PICKING, 1)
 env.unwrapped.task.sim.physics_client.configureDebugVisualizer(pybullet.COV_ENABLE_MOUSE_PICKING, 1)
 
 env.reset()
@@ -47,18 +47,15 @@ while True:
 
     observation, reward, terminated, truncated, info = env.step(np.array([0,0,0,0,0,0,0]))
     #print(env.task.goal_reached)
-    time.sleep(0.5)
-    env.reset()
     camera = pybullet.getDebugVisualizerCamera()
     print(
         f"cameraTargetPosition = {camera[11]}\ncameraDistance = {camera[10]} \ncameraPitch = {camera[9]}\ncameraYaw = {camera[8]}", flush=True)
-    # time.sleep(0.5)
+    #time.sleep(0.5)
     #env.reset()
     joint_angles = np.array([env.robot.get_joint_angle(joint=i) for i in range(7)])
     joint_angle_string = ", ".join([f"{angle:.3f}" for angle in joint_angles])
     print(f"Joint angles: [{joint_angle_string}]", flush=True)
-    print(terminated)
-    print(truncated)
+    print(info)
 
 
 

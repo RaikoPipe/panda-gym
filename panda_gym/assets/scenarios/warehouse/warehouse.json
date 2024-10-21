@@ -1,8 +1,8 @@
 {
-            "industrial": {
-                "bodyName": "warehouse",
+            "warehouse": {
                 "fileName": "warehouse.urdf",
-                "basePosition": [0.8, -0.3, 0.0],
-                "useFixedBase": true
+                "basePosition": [0.0, 0.0, 0.0],
+                "useFixedBase": true,
+                "globalScaling": 1.4
             }
         }

@@ -2,16 +2,17 @@ from dataclasses import dataclass, field
 from stable_baselines3.her.her_replay_buffer import HerReplayBuffer, DictReplayBuffer
 from classes.hyperparameters import Hyperparameters
 
+
 @dataclass
 class TrainConfig:
     # wandb settings
     name: str = 'default'
     job_type: str = 'train'
-    group = "default"
+    group: str = "default"
 
     # learning settings
     algorithm: str = 'TQC'
-    replay_buffer_class: str = HerReplayBuffer
+    replay_buffer_class: object = HerReplayBuffer
     policy_type: str = 'MultiInputPolicy'
     learning_starts: int = 10000
     prior_steps: int = 0
@@ -35,6 +36,7 @@ class TrainConfig:
     goal_condition: str = 'reach'
     ee_error_thresholds: list[float] = field(default_factory=lambda: [0.05, 0.05, 0.05])
     speed_thresholds: list[float] = field(default_factory=lambda: [0.5, 0.1, 0.01])
+    safety_distance: float = 0.0
 
     # temporal settings
     max_timesteps: int = 600_000
@@ -44,7 +46,7 @@ class TrainConfig:
     # curriculum setup
     stages: list[str] = field(default_factory=lambda: ["reachao1", "reachao2", "reachao3"])
     success_thresholds: list[float] = field(default_factory=lambda: [0.9, 0.9, 1.0])
-    eval_freq: int = 5000
+    eval_freq: int = 10_000
 
     # observations and actions
     obs_type: tuple = ("ee", "js")
@@ -57,7 +59,7 @@ class TrainConfig:
     render: bool = False
     show_goal_space: bool = False
     show_debug_labels: bool = False
+    debug_collision: bool = False
 
     # hyperparams
     hyperparams: Hyperparameters = field(default_factory=lambda: Hyperparameters(algorithm='TQC'))
-

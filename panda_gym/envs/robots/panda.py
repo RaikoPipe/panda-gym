@@ -12,6 +12,8 @@ import pybullet as p
 import roboticstoolbox as rtb
 from spatialmath import SE3
 
+from definitions import PROJECT_PATH
+
 import qpsolvers as qp
 
 
@@ -49,12 +51,12 @@ class Panda(PyBulletRobot):
         # path_to_urdf = "C:\\Users\\eclip\\Documents\\GitHub\\panda-gym\\panda_gym\\URDF\\robots\\franka_panda_custom\\panda.urdf"
         # get absolute path to urdf file
 
-        path_to_urdf = os.path.join(os.path.dirname(__file__), "URDF/robots/franka_panda_custom/panda.urdf")
+        path_to_urdf = os.path.join(PROJECT_PATH, r"panda_gym/assets/robots/franka_panda_custom/panda.urdf")
 
         super().__init__(
             sim,
             body_name="panda",
-            file_name='franka_panda/panda.urdf',
+            file_name=path_to_urdf,
             base_position=base_position,
             action_space=action_space,
             joint_indices=np.array([0, 1, 2, 3, 4, 5, 6, 9, 10]),
@@ -63,7 +65,7 @@ class Panda(PyBulletRobot):
 
         self.fingers_indices = np.array([9, 10])
         self.neutral_joint_values = np.array([0, -0.3, 0, -2.2, 0, 2.0, np.pi / 4, 0.00, 0.00])
-        self.ee_link = 11
+        self.ee_link = 11 # 17
         self.sim.set_lateral_friction(self.body_name, self.fingers_indices[0], lateral_friction=1.0)
         self.sim.set_lateral_friction(self.body_name, self.fingers_indices[1], lateral_friction=1.0)
         self.sim.set_spinning_friction(self.body_name, self.fingers_indices[0], spinning_friction=0.001)
@@ -218,7 +220,7 @@ class Panda(PyBulletRobot):
     def rtb_ik(self, target):
         Tep = self.panda_rtb.fkine(self.neutral_joint_values[:7])
         Tep.A[:3, 3] = target
-        sol = self.panda_rtb.ik_lm_chan(Tep)
+        sol = self.panda_rtb.ik_lm_chan(Tep, ilimit=100, tol = 0.01, slimit=100, q0=self.neutral_joint_values[:7])
         return sol[0]
 
     def ee_displacement_to_target_arm_angles(self, ee_displacement: np.ndarray) -> np.ndarray:

@@ -3,6 +3,6 @@
                 "fileName": "tunnel.urdf",
                 "basePosition": [0.0, 0.0, 0.0],
                 "useFixedBase": true,
-              "globalScaling": 1.4
+                "globalScaling": 1.4
             }
         }

@@ -334,5 +334,5 @@
     <child link="panda_grasptarget"/>
     <origin rpy="0 0 0" xyz="0 0 0.105"/>
   </joint>
-
+  
 </robot>

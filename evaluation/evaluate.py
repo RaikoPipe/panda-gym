@@ -26,7 +26,9 @@ from multiprocessing import Process
 import panda_gym
 import pybullet
 from evaluation.ensemble_utils import action_selection
-
+from utils import load_model_util
+from classes.train_config import TrainConfig
+import yaml
 
 def fuse_controllers(prior_mu, prior_sigma, policy_mu, policy_sigma):
     # The policy mu and sigma are from the stochastic SAC output
@@ -85,7 +87,7 @@ def visualize_trajectory(env, done_event, trajectory):
 
 def perform_benchmark(models, env, human=True, num_episodes=1000, deterministic=True,
                       strategy=None, scenario_name="", prior_orientation=None, pre_calc_metrics=None,
-                      show_model_actions=False, configuration=TrainConfig()):
+                      show_model_actions=False, configuration=TrainConfig(safety_distance=0.0)):
     """
     Evaluate a RL agent
     :param model: (BaseRLModel object) the RL Agent
@@ -315,40 +317,21 @@ def perform_benchmark(models, env, human=True, num_episodes=1000, deterministic=
     return results, metrics
 
 def evaluate_ensemble(ensemble_name, human=False, eval_type="basic", strategy="mean_actions",
-                      obstacle_observation=None, num_episodes=100):
-    # default path options
-    default_path = f"../training/run_data"
-    default_model_location = 'files/best_model.zip'
-    default_yaml_location = "files/config.yaml"
+                      obstacle_observation=None, num_episodes=100,
+                      evaluation_scenarios=None):
 
-    ensemble_path = f"{default_path}/{ensemble_name}/wandb"
+    ensemble_model_paths = load_model_util.get_group_model_paths(ensemble_name)
+    ensemble_yaml_paths = load_model_util.get_group_yaml_paths(ensemble_name)
 
-    ensemble_model_paths = []
-    ensemble_yaml_paths = []
-    # walk through ensemble path
-    for dir in os.listdir(ensemble_path):
-        ensemble_model_paths.append(f"{ensemble_path}/{dir}/{default_model_location}")
-        ensemble_yaml_paths.append(f"{ensemble_path}/{dir}/{default_yaml_location}")
+    configuration = load_model_util.get_train_config_from_yaml(ensemble_yaml_paths[0])
 
-    from classes.train_config import TrainConfig
-    import yaml
-
-    with open(ensemble_yaml_paths[0], 'r') as stream:
-        try:
-            yaml_config = yaml.safe_load(stream)
-        except yaml.YAMLError as exc:
-            print(exc)
-
-    configuration = TrainConfig()
-    # omit wandb version
-    for key, value in yaml_config.items():
-        if isinstance(value, dict):
-            setattr(configuration, key, value["value"])
-
+    configuration.render = human
 
     # get agent type
     if obstacle_observation is None:
         obstacle_observation = {'obstacles': "vectors", 'prior': None}
+
+    panda_gym.register_reach_ao(150)
 
     agent_type = None
     if len(ensemble_model_paths) > 1:
@@ -362,7 +345,6 @@ def evaluate_ensemble(ensemble_name, human=False, eval_type="basic", strategy="m
         return
 
     logging.info(f"Evaluating {ensemble_name}")
-    n_substeps, reward_type, goal_condition = set_eval_type(eval_type)
 
     with open("scenario_goals", "r") as file:
         scenario_goals = json.load(file)
@@ -377,10 +359,10 @@ def evaluate_ensemble(ensemble_name, human=False, eval_type="basic", strategy="m
                                                                                     dtype=np.float32)}))
 
     evaluation_results = {}
-    for evaluation_scenario in ["narrow_tunnel"]:  # "wang_3", "library2", "library1", "narrow_tunnel", "wall"
+    for evaluation_scenario in evaluation_scenarios:  #
         # get env
         env = gymnasium.make(configuration.env_name,
-                                  render=human,
+                                  render=configuration.render,
                                   config=configuration,
                                   scenario=evaluation_scenario,
                                   ee_error_threshold=configuration.ee_error_thresholds[-1],
@@ -421,40 +403,6 @@ def display_and_save_benchmark_results(agent_type, eval_type, evaluation_results
     table.to_excel(f"{path}/{agent_type}-{strategy}.xlsx")
 
 
-def set_eval_type(eval_type):
-    if eval_type == "optim_eval2":
-        reward_type = "kumar_her"
-        goal_condition = "reach"
-        n_substeps = 2
-        panda_gym.register_reach_ao(800)
-    elif eval_type == "base_eval":
-        reward_type = "kumar_her"
-        goal_condition = "halt"
-        n_substeps = 20
-        panda_gym.register_reach_ao(200)
-    elif eval_type == "optim_eval":
-        reward_type = "kumar_her"
-        goal_condition = "reach"
-        n_substeps = 5
-        panda_gym.register_reach_ao(400)
-    elif eval_type == "optim_eval10":
-        reward_type = "kumar_her"
-        goal_condition = "reach"
-        n_substeps = 10
-        panda_gym.register_reach_ao(400)
-    elif eval_type == "base_eval2":
-        reward_type = "kumar_her"
-        goal_condition = "halt"
-        n_substeps = 20
-        panda_gym.register_reach_ao(200)
-    else:
-        reward_type = "sparse"
-        goal_condition = "reach"
-        n_substeps = 20
-        panda_gym.register_reach_ao(100)
-    return n_substeps, reward_type, goal_condition
-
-
 trained_models = {
     "mt_cl": ["gallant-serenity-299", "deep-frog-298", "solar-microwave-297", "revived-serenity-296",
               "glamorous-resonance-295"],
@@ -477,10 +425,12 @@ trained_models = {
 if __name__ == "__main__":
     eval_type = "base_eval"  # optimized; basic
 
-    ensemble = "test_configuration_v3"
+    ensemble = "v6-large-model-test-rand-shape"
 
-    evaluate_ensemble("test_configuration_v3", human=False, eval_type="base_eval", strategy="weighted_aggregation",
-                      num_episodes=200)
+    evaluation_scenarios = ["library1", "workshop2", "library2", "narrow_tunnel", "workshop"]
+
+    evaluate_ensemble(ensemble, human=True, eval_type="base_eval", strategy="weighted_aggregation",
+                      num_episodes=200, evaluation_scenarios=evaluation_scenarios)
 
     # evaluate_prior(human=False, eval_type=eval_type)
     # evaluate_rl_agent(agents=trained_models["mt_cl"], human=False, eval_type=eval_type)

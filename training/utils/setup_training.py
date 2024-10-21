@@ -1,10 +1,11 @@
 import logging
-import sys
+import sys, os
 from copy import deepcopy
 
 import gymnasium
 
 from classes.train_config import TrainConfig
+from utils import load_model_util
 
 sys.modules["gym"] = gymnasium
 
@@ -12,8 +13,9 @@ from typing import Optional
 import numpy as np
 from stable_baselines3 import SAC, TD3, DDPG, PPO, HerReplayBuffer
 from sb3_contrib import TQC
-from stable_baselines3.common.callbacks import EvalSuccessCallback, StopTrainingOnSuccessThreshold, EvalCallback, \
-    StopTrainingOnRewardThreshold, StopTrainingOnSuccessRateCallback, RecordCustomMetricsCallback
+from sb3_extensions.replay_buffers import CustomHerReplayBuffer
+from sb3_extensions.callbacks import RecordCustomMetricsCallback, StopTrainingOnSuccessThreshold, EvalSuccessCallback
+from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnRewardThreshold
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.noise import NormalActionNoise, VectorizedActionNoise
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
@@ -76,8 +78,6 @@ def get_env(config, scenario, ee_error_threshold, speed_threshold, force_render=
     #                                    "show_debug_labels": False,
     #                                    "n_substeps": config.n_substeps
     #                                    })
-
-    return env
 
 
 def get_model(config, run):
@@ -148,11 +148,18 @@ def get_tags(config):
 def init_wandb(config, tags):
     env_name = config.env_name
     project = f"{env_name}"
+
+    run_dir = f"./training/run_data/{config.group}"
+
+    # create run directory if not exists
+    if not os.path.exists(run_dir):
+        os.makedirs(run_dir)
+
     run = wandb.init(
         project=f"{project}",
         config=config,
         sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
-        dir=f"run_data/{config.group}",
+        dir=run_dir,
         tags=tags,
         group=config.group,
         monitor_gym=False,  # auto-upload the videos of agents playing the game
@@ -165,7 +172,7 @@ def init_wandb(config, tags):
 
 def switch_model_env(model, env) -> None:
     model.set_env(env, force_reset=True)
-    if isinstance(model.replay_buffer, HerReplayBuffer):
+    if isinstance(model.replay_buffer, (HerReplayBuffer, CustomHerReplayBuffer)):
         model.replay_buffer.set_env(env)
 
 
@@ -193,21 +200,6 @@ def learn(config: TrainConfig, initial_model: Optional[OffPolicyAlgorithm] = Non
             config.stages = stages[idx:]
             config.success_thresholds = success_thresholds[idx:]
 
-    assert len(config.stages) == len(config.success_thresholds) == len(config.max_ep_steps) == len(
-        config.ee_error_thresholds)
-
-    speed_thresholds = [None for _ in range(len(config.stages))]
-
-    if config.goal_condition == "halt":
-        assert len(config.stages) == len(config.speed_thresholds)
-        speed_thresholds = config.speed_thresholds
-
-    train_sequence = zip(config.stages,
-                         config.success_thresholds,
-                         config.max_ep_steps,
-                         config.ee_error_thresholds,
-                         speed_thresholds)
-
     # learn for each stage until reward threshold is reached
     if config.learning_starts:
         if initial_model:
@@ -227,38 +219,75 @@ def learn(config: TrainConfig, initial_model: Optional[OffPolicyAlgorithm] = Non
         model.replay_buffer = fill_replay_buffer_with_prior(env, model, config.prior_steps)
 
     iteration = 0
+    model = train_model(config, iteration, model, run)
+
+    # evaluate trained model
+    benchmark_model(config, model, run)
+
+    return model, run
+
+
+def train_model(config, iteration, model, run):
+    assert len(config.stages) == len(config.success_thresholds) == len(config.max_ep_steps) == len(
+        config.ee_error_thresholds)
+
+    speed_thresholds = [None for _ in range(len(config.stages))]
+
+    if config.goal_condition == "halt":
+        assert len(config.stages) == len(config.speed_thresholds)
+        speed_thresholds = config.speed_thresholds
+
+    train_sequence = zip(config.stages,
+                         config.success_thresholds,
+                         config.max_ep_steps,
+                         config.ee_error_thresholds,
+                         speed_thresholds)
+
     for stage, success_threshold, max_ep_steps, ee_error_threshold, speed_threshold in train_sequence:
         panda_gym.register_reach_ao(max_ep_steps)
 
         switch_model_env(model, get_env(config, stage, ee_error_threshold, speed_threshold))
 
-        eval_env = get_env(config, stage, ee_error_threshold, speed_threshold)
-        if success_threshold > 1.0:
-            stop_train_callback = StopTrainingOnRewardThreshold(reward_threshold=success_threshold, verbose=1)
-            eval_callback = EvalCallback(eval_env=eval_env,
-                                         eval_freq=max(config.eval_freq // config.n_envs, 1),
-                                         callback_after_eval=stop_train_callback, verbose=1, n_eval_episodes=100,
-                                         best_model_save_path=wandb.run.dir)
-        else:
-            stop_train_callback = StopTrainingOnSuccessThreshold(success_threshold=success_threshold, verbose=1)
+        eval_training_env = get_env(config, stage, ee_error_threshold, speed_threshold)
 
-            eval_callback = EvalSuccessCallback(eval_env=eval_env,
-                                                eval_freq=max(config.eval_freq // config.n_envs,
-                                                              1),
-                                                callback_after_eval=stop_train_callback, verbose=1, n_eval_episodes=100,
-                                                best_model_save_path=wandb.run.dir)
+        callbacks = []
 
-            #eval_callback = StopTrainingOnSuccessRateCallback(check_freq=config.eval_freq, success_threshold=success_threshold,
-            #                                                  window_size=100, verbose=0)
+        # get eval callbacks for benchmark environments
+        eval_benchmark_scenes = [
+            "library1",
+            "library2",
+            "narrow_tunnel",
+            "workshop",
+            "workshop2",
+        ]
 
-        custom_metrics_callback = RecordCustomMetricsCallback({'stage': stage})
+        eval_benchmark_config = deepcopy(config)
+        eval_benchmark_config.n_envs = 4
+        eval_benchmark_envs = [
+            get_env(eval_benchmark_config, scene, config.ee_error_thresholds[-1], config.speed_thresholds[-1])
+            for scene in eval_benchmark_scenes]
+
+        if stage not in ["reachao1", "reachao2"]:
+            for eval_benchmark_scene, eval_benchmark_env in zip(eval_benchmark_scenes, eval_benchmark_envs):
+                callbacks.append(
+                    get_eval_success_callbacks(config, eval_benchmark_env,
+                                               best_model_save_path=f"{run.dir}/{eval_benchmark_scene}",
+                                               eval_log_name=f"{eval_benchmark_scene}_eval"))
+
+        callbacks.append(RecordCustomMetricsCallback({'stage': stage}))
+        callbacks.append(WandbCallback(
+            model_save_path=run.dir,
+            model_save_freq=20_000
+        ))
+
+        stop_train_callback = StopTrainingOnSuccessThreshold(success_threshold=success_threshold, verbose=1)
+
+        callbacks.append(get_eval_success_callbacks(config, eval_training_env, stop_train_callback,
+                                                    best_model_save_path=f"{run.dir}/training_scene"))
 
         model.learn(
             total_timesteps=config.max_timesteps,
-            callback=[WandbCallback(
-                model_save_path=run.dir,
-                model_save_freq=20_000
-            ), eval_callback, custom_metrics_callback],
+            callback=callbacks,
             progress_bar=True,
             log_interval=4
         )
@@ -266,12 +295,21 @@ def learn(config: TrainConfig, initial_model: Optional[OffPolicyAlgorithm] = Non
         # save model
         model.save(f"{run.dir}/model_{stage}_{iteration}")
 
-        eval_env.close()
+        # close eval environments
+        eval_training_env.close()
+        for eval_benchmark_env in eval_benchmark_envs:
+            eval_benchmark_env.close()
 
-    # evaluate trained model
-    benchmark_model(config, model, run)
+    return model
 
-    return model, run
+
+def get_eval_success_callbacks(config, eval_env, stop_train_callback=None, best_model_save_path=None, eval_log_name=None):
+    return EvalSuccessCallback(eval_env=eval_env,
+                               eval_freq=max(config.eval_freq // config.n_envs,
+                                             1),
+                               callback_after_eval=stop_train_callback, verbose=1, n_eval_episodes=200,
+                               best_model_save_path=best_model_save_path,
+                               eval_log_name=eval_log_name)
 
 
 def get_eval_env(config, stage, ee_error_threshold=None, speed_threshold=None):
@@ -308,6 +346,9 @@ def benchmark_model(config, model, run):
         config = deepcopy(config)
         config.n_envs = 1
 
+        # deactivate safety distance
+        config.safety_distance = 0.0
+
         # register max ep steps 300
         panda_gym.register_reach_ao(300)
 
@@ -333,40 +374,43 @@ def benchmark_model(config, model, run):
         run.log({key: value["success_rate"]})
 
 
-def continue_learning(model, config, run=None):
+def continue_learning(model_group_name, run=None, name=None, config=None):
+    # load model
+    model_paths = load_model_util.get_group_model_paths(model_group_name)
+    model_yaml_paths = load_model_util.get_group_yaml_paths(model_group_name)
+
+    # find model with name
+    model_path = None
+    model_yaml_path = None
+    if name is None:
+        model_path = model_paths[0]
+        model_yaml_path = model_yaml_paths[0]
+    else:
+        for path, yaml_path in zip(model_paths, model_yaml_paths):
+            if name in path:
+                model_path = path
+                model_yaml_path = yaml_path
+                break
+
+    if config is None:
+        config = load_model_util.get_train_config_from_yaml(model_yaml_path)
+
+    model = TQC.load(model_path, env=get_env(config, config.stages[0], config.ee_error_thresholds[0],
+                                             config.speed_thresholds[0]),
+                     )
+
     if run is None:
         tags = get_tags(config)
-        tags.append("pre-trained")
+        tags.append("from-pre-trained")
         run = init_wandb(config, tags)
 
-    panda_gym.register_reach_ao(config.max_ep_steps[0])
-    eval_env = get_eval_env(config, stage=config.stages[0])
+    # fill replay buffer to prevent performing training step with empty buffer
+    if config.learning_starts:
+        model.learn(total_timesteps=2000)
 
-    stop_train_callback = StopTrainingOnSuccessThreshold(success_threshold=config.success_thresholds[0], verbose=1)
+    model = train_model(config, 0, model, run)
 
-    eval_callback = EvalSuccessCallback(eval_env=eval_env,
-                                        eval_freq=max(config.eval_freq // config.n_envs, 1),
-                                        callback_after_eval=stop_train_callback, verbose=1, n_eval_episodes=100,
-                                        best_model_save_path=wandb.run.dir)
-
-    # model.env.close()
-
-    # env = get_env(config, config.n_envs, config.stages[0])
-    # model.set_env(env)
-    #
-    # if config.replay_buffer_class == VecHerReplayBuffer:
-    #     model.replay_buffer.close_env()
-    #     model.replay_buffer.set_env(env)
-
-    model.learn(
-        total_timesteps=config.max_timesteps,
-        callback=[WandbCallback(
-            model_save_path=wandb.run.dir,
-            model_save_freq=20_000
-        ), eval_callback],
-
-    )
-
+    # evaluate trained model
     benchmark_model(config, model, run)
 
     return model, run

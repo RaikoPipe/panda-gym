@@ -1,22 +1,896 @@
-<robot name="tabletop">
+<robot name="tabletop2">
   <link name="world"/>
-  <link name="tabletop">
+  <link name="fridge_top">
     <visual>
       <geometry>
-        <box size="0.35 0.65 0.01"/>
+        <box size="0.3 0.355 0.01"/>
       </geometry>
-      <origin xyz="0.175 0.0 0.175" rpy="0 0 0"/>
+      <origin xyz="0.075 0.08875 0.375" rpy="0 0 0"/>
     </visual>
     <collision>
-    <origin xyz="0.175 0.0 0.175" rpy="0 0 0"/>
+    <origin xyz="0.075 0.08875 0.375" rpy="0 0 0"/>
       <geometry>
-        <box size="0.35 0.65 0.01"/>
+        <box size="0.3 0.355 0.01"/>
       </geometry>
     </collision>
   </link>
-  <joint name="tabletop_joint" type="fixed">
+  <joint name="fridge_top_joint" type="fixed">
     <parent link="world"/>
-    <child link="tabletop"/>
-    <origin xyz="0.175 0.0 0.175" rpy="0 0 0"/>
+    <child link="fridge_top"/>
+    <origin xyz="0.075 0.08875 0.375" rpy="0 0 0"/>
+  </joint>
+  <link name="fridge_door">
+    <visual>
+      <geometry>
+        <box size="0.35 0.01 0.45"/>
+      </geometry>
+      <origin xyz="0.1625 0.0025 0.265" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.1625 0.0025 0.265" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.35 0.01 0.45"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="fridge_door_joint" type="fixed">
+    <parent link="world"/>
+    <child link="fridge_door"/>
+    <origin xyz="0.1625 0.0025 0.265" rpy="0 0 0"/>
+  </joint>
+  <link name="fridge_shelf1">
+    <visual>
+      <geometry>
+        <box size="0.295 0.35 0.01"/>
+      </geometry>
+      <origin xyz="0.075 0.0875 0.3075" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.0875 0.3075" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.295 0.35 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="fridge_shelf1_joint" type="fixed">
+    <parent link="world"/>
+    <child link="fridge_shelf1"/>
+    <origin xyz="0.075 0.0875 0.3075" rpy="0 0 0"/>
+  </joint>
+  <link name="fridge_shelf2">
+    <visual>
+      <geometry>
+        <box size="0.295 0.35 0.01"/>
+      </geometry>
+      <origin xyz="0.075 0.0875 0.23" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.0875 0.23" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.295 0.35 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="fridge_shelf2_joint" type="fixed">
+    <parent link="world"/>
+    <child link="fridge_shelf2"/>
+    <origin xyz="0.075 0.0875 0.23" rpy="0 0 0"/>
+  </joint>
+  <link name="fridge_shelf3">
+    <visual>
+      <geometry>
+        <box size="0.295 0.35 0.01"/>
+      </geometry>
+      <origin xyz="0.075 0.0875 0.15" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.0875 0.15" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.295 0.35 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="fridge_shelf3_joint" type="fixed">
+    <parent link="world"/>
+    <child link="fridge_shelf3"/>
+    <origin xyz="0.075 0.0875 0.15" rpy="0 0 0"/>
+  </joint>
+  <link name="freezer_door">
+    <visual>
+      <geometry>
+        <box size="0.01 0.35 0.3"/>
+      </geometry>
+      <origin xyz="0.15 0.0875 0.075" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.15 0.0875 0.075" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.35 0.3"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="freezer_door_joint" type="fixed">
+    <parent link="world"/>
+    <child link="freezer_door"/>
+    <origin xyz="0.15 0.0875 0.075" rpy="0 0 0"/>
+  </joint>
+  <link name="freezer_handle_left">
+    <visual>
+      <geometry>
+        <box size="0.035 0.015 0.015"/>
+      </geometry>
+      <origin xyz="0.1575 0.05 0.1375" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.1575 0.05 0.1375" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.035 0.015 0.015"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="freezer_handle_left_joint" type="fixed">
+    <parent link="world"/>
+    <child link="freezer_handle_left"/>
+    <origin xyz="0.1575 0.05 0.1375" rpy="0 0 0"/>
+  </joint>
+  <link name="freezer_handle_right">
+    <visual>
+      <geometry>
+        <box size="0.035 0.015 0.015"/>
+      </geometry>
+      <origin xyz="0.1575 0.125 0.1375" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.1575 0.125 0.1375" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.035 0.015 0.015"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="freezer_handle_right_joint" type="fixed">
+    <parent link="world"/>
+    <child link="freezer_handle_right"/>
+    <origin xyz="0.1575 0.125 0.1375" rpy="0 0 0"/>
+  </joint>
+  <link name="freezer_handle">
+    <visual>
+      <geometry>
+        <box size="0.015 0.15 0.015"/>
+      </geometry>
+      <origin xyz="0.1625 0.0875 0.1375" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.1625 0.0875 0.1375" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.015 0.15 0.015"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="freezer_handle_joint" type="fixed">
+    <parent link="world"/>
+    <child link="freezer_handle"/>
+    <origin xyz="0.1625 0.0875 0.1375" rpy="0 0 0"/>
+  </joint>
+  <link name="fridge_left_wall">
+    <visual>
+      <geometry>
+        <box size="0.3 0.01 0.75"/>
+      </geometry>
+      <origin xyz="0.075 0.0025 0.1875" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.0025 0.1875" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.01 0.75"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="fridge_left_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="fridge_left_wall"/>
+    <origin xyz="0.075 0.0025 0.1875" rpy="0 0 0"/>
+  </joint>
+  <link name="fridge_right_wall">
+    <visual>
+      <geometry>
+        <box size="0.3 0.01 0.75"/>
+      </geometry>
+      <origin xyz="0.075 0.175 0.1875" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.175 0.1875" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.01 0.75"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="fridge_right_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="fridge_right_wall"/>
+    <origin xyz="0.075 0.175 0.1875" rpy="0 0 0"/>
+  </joint>
+  <link name="fridge_back_wall">
+    <visual>
+      <geometry>
+        <box size="0.01 0.35 0.75"/>
+      </geometry>
+      <origin xyz="0.005 0.0875 0.1875" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.005 0.0875 0.1875" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.35 0.75"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="fridge_back_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="fridge_back_wall"/>
+    <origin xyz="0.005 0.0875 0.1875" rpy="0 0 0"/>
+  </joint>
+  <link name="countertop_left">
+    <visual>
+      <geometry>
+        <box size="0.3 0.3 0.01"/>
+      </geometry>
+      <origin xyz="0.075 0.2525 0.1875" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.2525 0.1875" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.3 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="countertop_left_joint" type="fixed">
+    <parent link="world"/>
+    <child link="countertop_left"/>
+    <origin xyz="0.075 0.2525 0.1875" rpy="0 0 0"/>
+  </joint>
+  <link name="countertop_right">
+    <visual>
+      <geometry>
+        <box size="0.3 0.26 0.01"/>
+      </geometry>
+      <origin xyz="0.075 0.535 0.1875" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.535 0.1875" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.26 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="countertop_right_joint" type="fixed">
+    <parent link="world"/>
+    <child link="countertop_right"/>
+    <origin xyz="0.075 0.535 0.1875" rpy="0 0 0"/>
+  </joint>
+  <link name="sink_bottom">
+    <visual>
+      <geometry>
+        <box size="0.3 0.3 0.01"/>
+      </geometry>
+      <origin xyz="0.075 0.4 0.125" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.4 0.125" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.3 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="sink_bottom_joint" type="fixed">
+    <parent link="world"/>
+    <child link="sink_bottom"/>
+    <origin xyz="0.075 0.4 0.125" rpy="0 0 0"/>
+  </joint>
+  <link name="sink_left_wall">
+    <visual>
+      <geometry>
+        <box size="0.3 0.01 0.125"/>
+      </geometry>
+      <origin xyz="0.075 0.325 0.15625" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.325 0.15625" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.01 0.125"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="sink_left_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="sink_left_wall"/>
+    <origin xyz="0.075 0.325 0.15625" rpy="0 0 0"/>
+  </joint>
+  <link name="sink_right_wall">
+    <visual>
+      <geometry>
+        <box size="0.3 0.01 0.125"/>
+      </geometry>
+      <origin xyz="0.075 0.475 0.15625" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.475 0.15625" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.01 0.125"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="sink_right_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="sink_right_wall"/>
+    <origin xyz="0.075 0.475 0.15625" rpy="0 0 0"/>
+  </joint>
+  <link name="back_wall">
+    <visual>
+      <geometry>
+        <box size="0.01 1.2 1.0"/>
+      </geometry>
+      <origin xyz="0.0025 0.3 0.25" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.0025 0.3 0.25" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 1.2 1.0"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="back_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="back_wall"/>
+    <origin xyz="0.0025 0.3 0.25" rpy="0 0 0"/>
+  </joint>
+  <link name="sink_back_wall">
+    <visual>
+      <geometry>
+        <box size="0.01 0.31 0.38"/>
+      </geometry>
+      <origin xyz="0.0075 0.4 0.095" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.0075 0.4 0.095" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.31 0.38"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="sink_back_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="sink_back_wall"/>
+    <origin xyz="0.0075 0.4 0.095" rpy="0 0 0"/>
+  </joint>
+  <link name="sink_front_wall">
+    <visual>
+      <geometry>
+        <box size="0.01 0.32 0.38"/>
+      </geometry>
+      <origin xyz="0.15 0.4 0.095" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.15 0.4 0.095" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.32 0.38"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="sink_front_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="sink_front_wall"/>
+    <origin xyz="0.15 0.4 0.095" rpy="0 0 0"/>
+  </joint>
+  <link name="dishwasher_right_side">
+    <visual>
+      <geometry>
+        <box size="0.3 0.01 0.375"/>
+      </geometry>
+      <origin xyz="0.075 0.5975 0.09375" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.5975 0.09375" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.01 0.375"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="dishwasher_right_side_joint" type="fixed">
+    <parent link="world"/>
+    <child link="dishwasher_right_side"/>
+    <origin xyz="0.075 0.5975 0.09375" rpy="0 0 0"/>
+  </joint>
+  <link name="dishwasher_left_side">
+    <visual>
+      <geometry>
+        <box size="0.3 0.01 0.375"/>
+      </geometry>
+      <origin xyz="0.075 0.4775 0.09375" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.4775 0.09375" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.01 0.375"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="dishwasher_left_side_joint" type="fixed">
+    <parent link="world"/>
+    <child link="dishwasher_left_side"/>
+    <origin xyz="0.075 0.4775 0.09375" rpy="0 0 0"/>
+  </joint>
+  <link name="dishwasher_bottom_wall">
+    <visual>
+      <geometry>
+        <box size="0.01 0.24 0.08"/>
+      </geometry>
+      <origin xyz="0.15 0.54 0.02" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.15 0.54 0.02" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.24 0.08"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="dishwasher_bottom_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="dishwasher_bottom_wall"/>
+    <origin xyz="0.15 0.54 0.02" rpy="0 0 0"/>
+  </joint>
+  <link name="dishwasher_front_top_wall">
+    <visual>
+      <geometry>
+        <box size="0.01 0.24 0.04"/>
+      </geometry>
+      <origin xyz="0.1525 0.54 0.18" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.1525 0.54 0.18" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.24 0.04"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="dishwasher_front_top_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="dishwasher_front_top_wall"/>
+    <origin xyz="0.1525 0.54 0.18" rpy="0 0 0"/>
+  </joint>
+  <link name="dishwasher_back_wall">
+    <visual>
+      <geometry>
+        <box size="0.01 0.24 0.37"/>
+      </geometry>
+      <origin xyz="0.005 0.5375 0.0875" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.005 0.5375 0.0875" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.24 0.37"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="dishwasher_back_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="dishwasher_back_wall"/>
+    <origin xyz="0.005 0.5375 0.0875" rpy="0 0 0"/>
+  </joint>
+  <link name="dishwasher_door">
+    <visual>
+      <geometry>
+        <box size="0.3 0.24 0.01"/>
+      </geometry>
+      <origin xyz="0.225 0.54 0.04" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.225 0.54 0.04" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.24 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="dishwasher_door_joint" type="fixed">
+    <parent link="world"/>
+    <child link="dishwasher_door"/>
+    <origin xyz="0.225 0.54 0.04" rpy="0 0 0"/>
+  </joint>
+  <link name="dishwasher_bottom">
+    <visual>
+      <geometry>
+        <box size="0.28 0.24 0.01"/>
+      </geometry>
+      <origin xyz="0.075 0.5375 0.025" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.5375 0.025" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.28 0.24 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="dishwasher_bottom_joint" type="fixed">
+    <parent link="world"/>
+    <child link="dishwasher_bottom"/>
+    <origin xyz="0.075 0.5375 0.025" rpy="0 0 0"/>
+  </joint>
+  <link name="dishwasher_handle_left">
+    <visual>
+      <geometry>
+        <box size="0.015 0.015 0.035"/>
+      </geometry>
+      <origin xyz="0.275 0.5 0.03" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.275 0.5 0.03" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.015 0.015 0.035"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="dishwasher_handle_left_joint" type="fixed">
+    <parent link="world"/>
+    <child link="dishwasher_handle_left"/>
+    <origin xyz="0.275 0.5 0.03" rpy="0 0 0"/>
+  </joint>
+  <link name="dishwasher_handle_right">
+    <visual>
+      <geometry>
+        <box size="0.015 0.015 0.035"/>
+      </geometry>
+      <origin xyz="0.275 0.575 0.03" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.275 0.575 0.03" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.015 0.015 0.035"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="dishwasher_handle_right_joint" type="fixed">
+    <parent link="world"/>
+    <child link="dishwasher_handle_right"/>
+    <origin xyz="0.275 0.575 0.03" rpy="0 0 0"/>
+  </joint>
+  <link name="dishwasher_handle">
+    <visual>
+      <geometry>
+        <box size="0.015 0.165 0.015"/>
+      </geometry>
+      <origin xyz="0.275 0.5375 0.02" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.275 0.5375 0.02" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.015 0.165 0.015"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="dishwasher_handle_joint" type="fixed">
+    <parent link="world"/>
+    <child link="dishwasher_handle"/>
+    <origin xyz="0.275 0.5375 0.02" rpy="0 0 0"/>
+  </joint>
+  <link name="faucet_platform">
+    <visual>
+      <geometry>
+        <box size="0.04 0.3 0.01"/>
+      </geometry>
+      <origin xyz="0.01 0.4 0.1875" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.01 0.4 0.1875" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.04 0.3 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="faucet_platform_joint" type="fixed">
+    <parent link="world"/>
+    <child link="faucet_platform"/>
+    <origin xyz="0.01 0.4 0.1875" rpy="0 0 0"/>
+  </joint>
+  <link name="hot_water_knob">
+    <visual>
+      <geometry>
+        <box size="0.015 0.015 0.03"/>
+      </geometry>
+      <origin xyz="0.01 0.425 0.195" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.01 0.425 0.195" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.015 0.015 0.03"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="hot_water_knob_joint" type="fixed">
+    <parent link="world"/>
+    <child link="hot_water_knob"/>
+    <origin xyz="0.01 0.425 0.195" rpy="0 0 0"/>
+  </joint>
+  <link name="cold_water_knob">
+    <visual>
+      <geometry>
+        <box size="0.015 0.015 0.03"/>
+      </geometry>
+      <origin xyz="0.01 0.375 0.195" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.01 0.375 0.195" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.015 0.015 0.03"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cold_water_knob_joint" type="fixed">
+    <parent link="world"/>
+    <child link="cold_water_knob"/>
+    <origin xyz="0.01 0.375 0.195" rpy="0 0 0"/>
+  </joint>
+  <link name="faucet_1">
+    <visual>
+      <geometry>
+        <box size="0.015 0.015 0.15"/>
+      </geometry>
+      <origin xyz="0.01 0.4 0.225" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.01 0.4 0.225" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.015 0.015 0.15"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="faucet_1_joint" type="fixed">
+    <parent link="world"/>
+    <child link="faucet_1"/>
+    <origin xyz="0.01 0.4 0.225" rpy="0 0 0"/>
+  </joint>
+  <link name="faucet_2">
+    <visual>
+      <geometry>
+        <box size="0.125 0.015 0.015"/>
+      </geometry>
+      <origin xyz="0.0375 0.4 0.2625" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.0375 0.4 0.2625" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.125 0.015 0.015"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="faucet_2_joint" type="fixed">
+    <parent link="world"/>
+    <child link="faucet_2"/>
+    <origin xyz="0.0375 0.4 0.2625" rpy="0 0 0"/>
+  </joint>
+  <link name="faucet_3">
+    <visual>
+      <geometry>
+        <box size="0.01 0.01 0.025"/>
+      </geometry>
+      <origin xyz="0.06625 0.4 0.25625" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.06625 0.4 0.25625" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.01 0.025"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="faucet_3_joint" type="fixed">
+    <parent link="world"/>
+    <child link="faucet_3"/>
+    <origin xyz="0.06625 0.4 0.25625" rpy="0 0 0"/>
+  </joint>
+  <link name="cabinet_left_wall">
+    <visual>
+      <geometry>
+        <box size="0.2 0.01 0.35"/>
+      </geometry>
+      <origin xyz="0.05 0.185 0.3875" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.05 0.185 0.3875" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.2 0.01 0.35"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cabinet_left_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="cabinet_left_wall"/>
+    <origin xyz="0.05 0.185 0.3875" rpy="0 0 0"/>
+  </joint>
+  <link name="cabinet_right_wall">
+    <visual>
+      <geometry>
+        <box size="0.2 0.01 0.35"/>
+      </geometry>
+      <origin xyz="0.05 0.5975 0.3875" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.05 0.5975 0.3875" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.2 0.01 0.35"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cabinet_right_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="cabinet_right_wall"/>
+    <origin xyz="0.05 0.5975 0.3875" rpy="0 0 0"/>
+  </joint>
+  <link name="cabinet_middle_wall">
+    <visual>
+      <geometry>
+        <box size="0.2 0.01 0.35"/>
+      </geometry>
+      <origin xyz="0.05 0.405 0.3875" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.05 0.405 0.3875" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.2 0.01 0.35"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cabinet_middle_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="cabinet_middle_wall"/>
+    <origin xyz="0.05 0.405 0.3875" rpy="0 0 0"/>
+  </joint>
+  <link name="cabinet_bottom">
+    <visual>
+      <geometry>
+        <box size="0.2 0.835 0.01"/>
+      </geometry>
+      <origin xyz="0.05 0.39125 0.3" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.05 0.39125 0.3" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.2 0.835 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cabinet_bottom_joint" type="fixed">
+    <parent link="world"/>
+    <child link="cabinet_bottom"/>
+    <origin xyz="0.05 0.39125 0.3" rpy="0 0 0"/>
+  </joint>
+  <link name="cabinet_top">
+    <visual>
+      <geometry>
+        <box size="0.2 0.835 0.01"/>
+      </geometry>
+      <origin xyz="0.05 0.39125 0.475" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.05 0.39125 0.475" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.2 0.835 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cabinet_top_joint" type="fixed">
+    <parent link="world"/>
+    <child link="cabinet_top"/>
+    <origin xyz="0.05 0.39125 0.475" rpy="0 0 0"/>
+  </joint>
+  <link name="cabinet_shelf">
+    <visual>
+      <geometry>
+        <box size="0.2 0.835 0.01"/>
+      </geometry>
+      <origin xyz="0.05 0.39125 0.3875" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.05 0.39125 0.3875" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.2 0.835 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="cabinet_shelf_joint" type="fixed">
+    <parent link="world"/>
+    <child link="cabinet_shelf"/>
+    <origin xyz="0.05 0.39125 0.3875" rpy="0 0 0"/>
+  </joint>
+  <link name="lower_cabinet_right_wall">
+    <visual>
+      <geometry>
+        <box size="0.3 0.01 0.38"/>
+      </geometry>
+      <origin xyz="0.075 0.3225 0.095" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.3225 0.095" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.01 0.38"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="lower_cabinet_right_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="lower_cabinet_right_wall"/>
+    <origin xyz="0.075 0.3225 0.095" rpy="0 0 0"/>
+  </joint>
+  <link name="lower_cabinet_left_wall">
+    <visual>
+      <geometry>
+        <box size="0.3 0.01 0.38"/>
+      </geometry>
+      <origin xyz="0.075 0.18 0.095" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.18 0.095" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.01 0.38"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="lower_cabinet_left_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="lower_cabinet_left_wall"/>
+    <origin xyz="0.075 0.18 0.095" rpy="0 0 0"/>
+  </joint>
+  <link name="lower_cabinet_back_wall">
+    <visual>
+      <geometry>
+        <box size="0.01 0.3 0.375"/>
+      </geometry>
+      <origin xyz="0.005 0.25 0.0925" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.005 0.25 0.0925" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 0.3 0.375"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="lower_cabinet_back_wall_joint" type="fixed">
+    <parent link="world"/>
+    <child link="lower_cabinet_back_wall"/>
+    <origin xyz="0.005 0.25 0.0925" rpy="0 0 0"/>
+  </joint>
+  <link name="lower_cabinet_shelf">
+    <visual>
+      <geometry>
+        <box size="0.3 0.3 0.01"/>
+      </geometry>
+      <origin xyz="0.075 0.25 0.0875" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.25 0.0875" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.3 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="lower_cabinet_shelf_joint" type="fixed">
+    <parent link="world"/>
+    <child link="lower_cabinet_shelf"/>
+    <origin xyz="0.075 0.25 0.0875" rpy="0 0 0"/>
+  </joint>
+  <link name="lower_cabinet_bottom">
+    <visual>
+      <geometry>
+        <box size="0.3 0.3 0.01"/>
+      </geometry>
+      <origin xyz="0.075 0.25 0.0025" rpy="0 0 0"/>
+    </visual>
+    <collision>
+    <origin xyz="0.075 0.25 0.0025" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.3 0.3 0.01"/>
+      </geometry>
+    </collision>
+  </link>
+  <joint name="lower_cabinet_bottom_joint" type="fixed">
+    <parent link="world"/>
+    <child link="lower_cabinet_bottom"/>
+    <origin xyz="0.075 0.25 0.0025" rpy="0 0 0"/>
   </joint>
 </robot>

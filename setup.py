@@ -24,6 +24,7 @@ setup(
     install_requires=["gymnasium~=0.29.1", "pybullet", "numpy", "scipy", "torch", "wandb", "ruckig", "seaborn"
                         "pyb_utils @ git+ssh://git@github.com/RaikoPipe/pyb_utils",
                       "stable_baselines3 @ git+ssh://git@github.com/RaikoPipe/stable-baselines3",
+                      "sb3_extensions @ git+ssh://git@github.com/RaikoPipe/sb3_extensions"
                       "sb3-contrib",
                       "roboticstoolbox-python @ git+ssh://github.com/RaikoPipe/robotics-toolbox-python", "tensorboard"],
     dependency_links=["https://download.pytorch.org/whl/cu121"],

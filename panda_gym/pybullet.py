@@ -101,6 +101,19 @@ class PyBullet:
         """
         self.physics_client.removeState(state_id)
 
+    def remove_body(self, body_name: str) -> str:
+        """Remove a body from the simulation.
+
+        Args:
+            body_name (str): Body unique name.
+        Returns:
+            str: The body name.
+        """
+        self.physics_client.removeBody(self._bodies_idx[body_name])
+        del self._bodies_idx[body_name]
+
+        return body_name
+
     def render(
             self,
             mode: str = "human",
@@ -474,6 +487,8 @@ class PyBullet:
                 bodyIndex=self._bodies_idx[body],
                 endEffectorLinkIndex=link,
                 targetPosition=position,
+                #maxNumIterations=1000,
+                #residualThreshold=0.05
             )
         return np.array(joint_state)
 
@@ -840,8 +855,8 @@ class PyBullet:
 
         return idx
 
-    def create_debug_line(self, start, end, id=0):
-        p.addUserDebugLine(lineFromXYZ=start, lineToXYZ=end, lineColorRGB=np.array([0, 1, 0]), physicsClientId=id)
+    def create_debug_line(self, start, end, id=0, color=np.array([0, 1, 0])):
+        p.addUserDebugLine(lineFromXYZ=start, lineToXYZ=end, lineColorRGB=color, physicsClientId=id)
 
     def remove_debug_text(self, text_name):
 

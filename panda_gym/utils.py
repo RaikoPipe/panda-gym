@@ -12,7 +12,8 @@ def distance(a: np.ndarray, b: np.ndarray) -> np.ndarray:
         np.ndarray: The distance between the arrays.
     """
     assert a.shape == b.shape
-    return np.linalg.norm(a - b, axis=-1)
+    dist = np.linalg.norm(a - b, axis=-1)
+    return np.round(dist, 6)
 
 
 def angle_distance(a: np.ndarray, b: np.ndarray) -> np.ndarray:
@@ -28,3 +29,7 @@ def angle_distance(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     assert a.shape == b.shape
     dist = 1 - np.inner(a, b) ** 2
     return dist
+
+def unit_vector(a, b):
+    vector = b - a
+    return np.nan_to_num(np.divide(vector, np.linalg.norm(vector), out=vector))
