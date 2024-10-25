@@ -146,6 +146,9 @@ def get_tags(config):
 
 
 def init_wandb(config, tags):
+    wandb_config = asdict(config)
+    wandb_config["hyperparams"] = config.hyperparams.__dict__
+
     env_name = config.env_name
     project = f"{env_name}"
 
@@ -222,7 +225,7 @@ def learn(config: TrainConfig, initial_model: Optional[OffPolicyAlgorithm] = Non
     model = train_model(config, iteration, model, run)
 
     # evaluate trained model
-    benchmark_model(config, model, run)
+    # benchmark_model(config, model, run)
 
     return model, run
 
@@ -248,8 +251,6 @@ def train_model(config, iteration, model, run):
 
         switch_model_env(model, get_env(config, stage, ee_error_threshold, speed_threshold))
 
-        eval_training_env = get_env(config, stage, ee_error_threshold, speed_threshold)
-
         callbacks = []
 
         # get eval callbacks for benchmark environments
@@ -262,28 +263,30 @@ def train_model(config, iteration, model, run):
         ]
 
         eval_benchmark_config = deepcopy(config)
-        eval_benchmark_config.n_envs = 4
+        eval_benchmark_config.eval_freq = 50_000
+        eval_benchmark_config.n_eval_episodes = 200
         eval_benchmark_envs = [
             get_env(eval_benchmark_config, scene, config.ee_error_thresholds[-1], config.speed_thresholds[-1])
             for scene in eval_benchmark_scenes]
 
-        if stage not in ["reachao1", "reachao2"]:
+        eval_training_env = None
+        if stage == config.stages[-1]: # final stage
             for eval_benchmark_scene, eval_benchmark_env in zip(eval_benchmark_scenes, eval_benchmark_envs):
                 callbacks.append(
-                    get_eval_success_callbacks(config, eval_benchmark_env,
+                    get_eval_success_callbacks(eval_benchmark_config, eval_benchmark_env,
                                                best_model_save_path=f"{run.dir}/{eval_benchmark_scene}",
                                                eval_log_name=f"{eval_benchmark_scene}_eval"))
+        else:
+            stop_train_callback = StopTrainingOnSuccessThreshold(success_threshold=success_threshold, verbose=1)
+            eval_training_env = get_env(config, stage, ee_error_threshold, speed_threshold)
+            callbacks.append(get_eval_success_callbacks(config, eval_training_env, stop_train_callback,
+                                                        best_model_save_path=f"{run.dir}/training_scene"))
 
         callbacks.append(RecordCustomMetricsCallback({'stage': stage}))
         callbacks.append(WandbCallback(
             model_save_path=run.dir,
             model_save_freq=20_000
         ))
-
-        stop_train_callback = StopTrainingOnSuccessThreshold(success_threshold=success_threshold, verbose=1)
-
-        callbacks.append(get_eval_success_callbacks(config, eval_training_env, stop_train_callback,
-                                                    best_model_save_path=f"{run.dir}/training_scene"))
 
         model.learn(
             total_timesteps=config.max_timesteps,
@@ -296,18 +299,21 @@ def train_model(config, iteration, model, run):
         model.save(f"{run.dir}/model_{stage}_{iteration}")
 
         # close eval environments
-        eval_training_env.close()
+        if eval_training_env:
+            eval_training_env.close()
         for eval_benchmark_env in eval_benchmark_envs:
             eval_benchmark_env.close()
 
     return model
 
 
-def get_eval_success_callbacks(config, eval_env, stop_train_callback=None, best_model_save_path=None, eval_log_name=None):
+def get_eval_success_callbacks(config, eval_env, stop_train_callback=None, best_model_save_path=None,
+                               eval_log_name=None):
     return EvalSuccessCallback(eval_env=eval_env,
-                               eval_freq=max(config.eval_freq // config.n_envs,
-                                             1),
-                               callback_after_eval=stop_train_callback, verbose=1, n_eval_episodes=200,
+                               eval_freq=max(config.eval_freq // config.n_envs, 1),
+                               callback_after_eval=stop_train_callback,
+                               verbose=1,
+                               n_eval_episodes=config.n_eval_episodes,
                                best_model_save_path=best_model_save_path,
                                eval_log_name=eval_log_name)
 
