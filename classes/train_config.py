@@ -46,7 +46,10 @@ class TrainConfig:
     # curriculum setup
     stages: list[str] = field(default_factory=lambda: ["reachao1", "reachao2", "reachao3"])
     success_thresholds: list[float] = field(default_factory=lambda: [0.9, 0.9, 1.0])
+
+    # evaluation settings
     eval_freq: int = 10_000
+    n_eval_episodes = 100
 
     # observations and actions
     obs_type: tuple = ("ee", "js")

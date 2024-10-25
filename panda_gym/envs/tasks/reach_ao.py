@@ -636,16 +636,12 @@ class ReachAO(Task):
         rand = self.np_random.random()
         if rand > 0.5:
             # sample near goal
-            sample = self.sample_within_hollow_sphere(0.1, 0.25, upper_half_only, front_half_only)
+            sample = self.sample_within_hollow_sphere(0.1, 0.5, upper_half_only, front_half_only)
             return sample + self.goal
-        elif rand > 0.3:
-            # sample near ee
-            sample = self.sample_within_hollow_sphere(0.1, 0.4, upper_half_only, front_half_only)
-            return self.robot.get_ee_position() + sample
         else:
-            # sample near base
-            sample = self.sample_within_hollow_sphere(0.3, 0.6, True)
-            return sample + self.robot.get_link_position(0)
+            # sample near ee
+            sample = self.sample_within_hollow_sphere(0.1, 0.5, upper_half_only, front_half_only)
+            return self.robot.get_ee_position() + sample
 
     def create_scenario_wang(self):
         goal_radius_minor = 0.4

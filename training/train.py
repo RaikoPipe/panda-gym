@@ -121,31 +121,18 @@ if __name__ == "__main__":
 
     #custom_hyperparams.replay_buffer_kwargs = {"n_sampled_goal": 4, "goal_selection_strategy": "future_except_final"}
 
-    #hyperparams = Hyperparameters()
-    #hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=[512, 1024, 512])
-    hyperparams = Hyperparameters()
-    hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=[128, 128])
+
+    hyperparams = Hyperparameters(algorithm="TQC_v2")
+    hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=[512,512,512])
     train_config = TrainConfig(
-        group="v6-benchmark-eval",
+        group="benchmark-eval-512-152-512",
         job_type="train",
-        name="small_model",
+        name="512-152-512",
         max_timesteps=1_000_000,
         hyperparams=hyperparams
     )
 
-    hyperparams2 = copy(hyperparams)
-    hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=[256, 256])
-    train_config2 = copy(train_config)
-    train_config2.name = "medium_model"
-    train_config2.hyperparams = hyperparams2
+    for configuration in [train_config]:
+        train_base_model(config=configuration, iterations=5)
 
-    hyperparams3 = copy(hyperparams)
-    hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=[512, 512, 512])
-    train_config3 = copy(train_config)
-    train_config3.name = "large_model"
-    train_config3.hyperparams = hyperparams2
-
-    for configuration in [train_config2]:
-        train_base_model(config=configuration, iterations=1)
-
-    # continue_learning("v6-large-model-test", config=train_config)
+    # continue_learning("v6-benchmark-eval-small-model", config=train_config)

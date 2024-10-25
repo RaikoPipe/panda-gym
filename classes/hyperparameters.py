@@ -18,6 +18,19 @@ class Hyperparameters:
             self.ent_coef = "auto"
             self.use_sde = True
             self.policy_kwargs = dict(log_std_init=-3, net_arch=[256, 256])
+        elif algorithm == "TQC_v2":
+            self.learning_rate = 7.3e-4
+            self.buffer_size = 1_000_000
+            self.batch_size = 256
+            self.top_quantiles_to_drop_per_net = 5
+            self.use_sde = True
+            self.policy_kwargs = dict(log_std_init=-3, net_arch=[400, 300])
+            self.gamma = 0.98
+            self.tau = 0.02
+            self.gradient_steps = 8
+            self.train_freq = 8
+
+
         elif algorithm == "TD3":
             self.learning_rate = 1e-3
             self.gamma = 0.98

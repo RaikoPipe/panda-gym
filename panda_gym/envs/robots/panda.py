@@ -51,7 +51,7 @@ class Panda(PyBulletRobot):
         # path_to_urdf = "C:\\Users\\eclip\\Documents\\GitHub\\panda-gym\\panda_gym\\URDF\\robots\\franka_panda_custom\\panda.urdf"
         # get absolute path to urdf file
 
-        path_to_urdf = os.path.join(PROJECT_PATH, r"panda_gym/assets/robots/franka_panda_custom/panda.urdf")
+        path_to_urdf = os.path.join(PROJECT_PATH, r"panda_gym/assets/robots/franka_panda_custom_0/panda.urdf")
 
         super().__init__(
             sim,
