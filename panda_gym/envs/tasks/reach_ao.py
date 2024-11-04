@@ -22,7 +22,8 @@ from classes.train_config import TrainConfig
 sys.modules["gym"] = gymnasium
 
 ROOT_DIR = Path(__file__).parent.parent.parent
-SCENARIO_DIR = f"{ROOT_DIR}\\assets\\scenarios"
+SCENARIO_DIR = fr"{ROOT_DIR}/assets/scenarios"
+
 
 
 class ReachAO(Task):
