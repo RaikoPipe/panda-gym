@@ -266,12 +266,13 @@ def train_model(config, iteration, model, run):
         eval_benchmark_config.eval_freq = 10_000
         eval_benchmark_config.n_eval_episodes = 200
         eval_benchmark_config.n_envs = 8
-        eval_benchmark_envs = [
-            get_env(eval_benchmark_config, scene, config.ee_error_thresholds[-1], config.speed_thresholds[-1])
-            for scene in eval_benchmark_scenes]
+        eval_benchmark_envs = []
 
         eval_training_env = None
         if stage == config.stages[-1]: # final stage
+            eval_benchmark_envs = [
+                get_env(eval_benchmark_config, scene, config.ee_error_thresholds[-1], config.speed_thresholds[-1])
+                for scene in eval_benchmark_scenes]
             for eval_benchmark_scene, eval_benchmark_env in zip(eval_benchmark_scenes, eval_benchmark_envs):
                 callbacks.append(
                     get_eval_success_callbacks(eval_benchmark_config, eval_benchmark_env,

@@ -19,9 +19,9 @@ class Hyperparameters:
             self.use_sde = True
             self.policy_kwargs = dict(log_std_init=-3, net_arch=[256, 256])
         elif algorithm == "TQC_v2":
-            self.learning_rate = 7.3e-4
+            self.learning_rate = 3e-4
             self.buffer_size = 1_000_000
-            self.batch_size = 256
+            self.batch_size = 1024
             self.top_quantiles_to_drop_per_net = 5
             self.use_sde = True
             self.policy_kwargs = dict(log_std_init=-3, net_arch=[400, 300])

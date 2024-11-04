@@ -20,6 +20,16 @@ from classes.train_config import TrainConfig
 from classes.hyperparameters import Hyperparameters
 from sb3_extensions.replay_buffers import CustomHerReplayBuffer
 
+from stable_baselines3.common.utils import configure_logger
+import torch
+
+
+# optimizations
+# Enable mixed precision
+torch.backends.cuda.matmul.allow_tf32 = True
+torch.backends.cudnn.allow_tf32 = True
+
+
 reach_stages = ["reach1", "reach2", "reach3", "reach4"]
 reach_max_ep_steps = [50, 50, 50, 50]
 reach_succ_thresholds = [1.0, 1.0, 1.0, 1.0]
