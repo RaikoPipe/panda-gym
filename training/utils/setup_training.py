@@ -291,7 +291,6 @@ def train_model(config, iteration, model, run):
         model.learn(
             total_timesteps=config.max_timesteps,
             callback=callbacks,
-            progress_bar=True,
             log_interval=4
         )
 

@@ -15,7 +15,7 @@ def get_ordered_hypers(variables):
     return HYPERS
 def start_wandb(project_log, task, seed, method, hypers):
 
-    wandb.login(key=os.getenv("wandb_key"))
+    wandb.login(key=os.getenv("wandb_key"), verify=False)
     wandb.init(project=project_log)
 
     t = time.asctime().replace(' ', '_').replace(":", "_")
