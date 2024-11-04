@@ -123,12 +123,12 @@ if __name__ == "__main__":
 
 
     hyperparams = Hyperparameters(algorithm="TQC_v2")
-    hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=[512,512,512])
+    hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=[128,128])
     train_config = TrainConfig(
-        group="benchmark-eval-512-152-512",
+        group="benchmark-eval-128-128",
         job_type="train",
-        name="512-152-512",
-        max_timesteps=1_000_000,
+        name="128-128",
+        max_timesteps=2_000_000,
         hyperparams=hyperparams
     )
 
