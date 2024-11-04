@@ -95,7 +95,7 @@ class Panda(PyBulletRobot):
         self.current_joint_jerk = np.zeros(7)
 
         self.rtb = use_robotics_toolbox
-        self.panda_rtb = rtb.models.Panda()
+        self.panda_rtb = rtb.models.DH.Panda()
 
         if self.rtb:
             # init roboticstoolbox panda
