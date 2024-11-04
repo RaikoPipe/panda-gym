@@ -26,7 +26,7 @@ from multiprocessing import Process
 import panda_gym
 import pybullet
 from evaluation.ensemble_utils import action_selection
-from utils import load_model_util
+from model_utils import load_model_utils
 from classes.train_config import TrainConfig
 import yaml
 
@@ -320,10 +320,10 @@ def evaluate_ensemble(ensemble_name, human=False, eval_type="basic", strategy="m
                       obstacle_observation=None, num_episodes=100,
                       evaluation_scenarios=None):
 
-    ensemble_model_paths = load_model_util.get_group_model_paths(ensemble_name)
-    ensemble_yaml_paths = load_model_util.get_group_yaml_paths(ensemble_name)
+    ensemble_model_paths = load_model_utils.get_group_model_paths(ensemble_name)
+    ensemble_yaml_paths = load_model_utils.get_group_yaml_paths(ensemble_name)
 
-    configuration = load_model_util.get_train_config_from_yaml(ensemble_yaml_paths[0])
+    configuration = load_model_utils.get_train_config_from_yaml(ensemble_yaml_paths[0])
 
     configuration.render = human
 

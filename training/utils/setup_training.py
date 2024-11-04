@@ -152,7 +152,7 @@ def init_wandb(config, tags):
     env_name = config.env_name
     project = f"{env_name}"
 
-    run_dir = f"./training/run_data/{config.group}"
+    run_dir = fr"/beegfs2/scratch/rreider/run_data/{config.group}"
 
     # create run directory if not exists
     if not os.path.exists(run_dir):
@@ -360,7 +360,7 @@ def benchmark_model(config, model, run):
 
         env = get_env(config, evaluation_scenario, config.ee_error_thresholds[-1], config.speed_thresholds[-1])
         print(f"Evaluating {evaluation_scenario}")
-        best_model = model.load(path=f"{wandb.run.dir}\\model_reachao3_0.zip", env=env)
+        best_model = model.load(path=fr"{wandb.run.dir}/model_reachao3_0.zip", env=env)
 
         results, metrics = perform_benchmark([best_model], env, human=False, num_episodes=100, deterministic=True,
                                              strategy="variance_only")
