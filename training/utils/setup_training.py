@@ -5,7 +5,7 @@ from copy import deepcopy
 import gymnasium
 
 from classes.train_config import TrainConfig
-from utils import load_model_util
+from model_utils import load_model_utils
 
 sys.modules["gym"] = gymnasium
 
@@ -382,8 +382,8 @@ def benchmark_model(config, model, run):
 
 def continue_learning(model_group_name, run=None, name=None, config=None):
     # load model
-    model_paths = load_model_util.get_group_model_paths(model_group_name)
-    model_yaml_paths = load_model_util.get_group_yaml_paths(model_group_name)
+    model_paths = load_model_utils.get_group_model_paths(model_group_name)
+    model_yaml_paths = load_model_utils.get_group_yaml_paths(model_group_name)
 
     # find model with name
     model_path = None
@@ -399,7 +399,7 @@ def continue_learning(model_group_name, run=None, name=None, config=None):
                 break
 
     if config is None:
-        config = load_model_util.get_train_config_from_yaml(model_yaml_path)
+        config = load_model_utils.get_train_config_from_yaml(model_yaml_path)
 
     model = TQC.load(model_path, env=get_env(config, config.stages[0], config.ee_error_thresholds[0],
                                              config.speed_thresholds[0]),
