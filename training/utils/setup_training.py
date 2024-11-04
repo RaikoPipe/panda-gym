@@ -263,7 +263,7 @@ def train_model(config, iteration, model, run):
         ]
 
         eval_benchmark_config = deepcopy(config)
-        eval_benchmark_config.eval_freq = 50_000
+        eval_benchmark_config.eval_freq = 10_000
         eval_benchmark_config.n_eval_episodes = 200
         eval_benchmark_config.n_envs = 8
         eval_benchmark_envs = [
