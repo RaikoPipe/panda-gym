@@ -1,6 +1,7 @@
 import logging
 import sys, os
 from copy import deepcopy
+import time
 
 import gymnasium
 
@@ -264,14 +265,15 @@ def train_model(config, iteration, model, run):
 
         eval_benchmark_config = deepcopy(config)
         eval_benchmark_config.eval_freq = 10_000
-        eval_benchmark_config.n_eval_episodes = 200
+        eval_benchmark_config.n_eval_episodes = 100
         eval_benchmark_config.n_envs = 8
-        eval_benchmark_envs = [
-            get_env(eval_benchmark_config, scene, config.ee_error_thresholds[-1], config.speed_thresholds[-1])
-            for scene in eval_benchmark_scenes]
+        eval_benchmark_envs = []
 
         eval_training_env = None
         if stage == config.stages[-1]: # final stage
+            eval_benchmark_envs = [
+                get_env(eval_benchmark_config, scene, config.ee_error_thresholds[-1], config.speed_thresholds[-1])
+                for scene in eval_benchmark_scenes]
             for eval_benchmark_scene, eval_benchmark_env in zip(eval_benchmark_scenes, eval_benchmark_envs):
                 callbacks.append(
                     get_eval_success_callbacks(eval_benchmark_config, eval_benchmark_env,
@@ -289,11 +291,18 @@ def train_model(config, iteration, model, run):
             model_save_freq=20_000
         ))
 
+        # start timer
+        start = time.time()
+
         model.learn(
             total_timesteps=config.max_timesteps,
             callback=callbacks,
             log_interval=4
         )
+
+        # end timer
+        end = time.time()
+        print(f"Training took {end - start} seconds")
 
         # save model
         model.save(f"{run.dir}/model_{stage}_{iteration}")

@@ -37,28 +37,61 @@ class PyBullet:
         if render:
             options += " --mp4=\"test.mp4\" --mp4fps=60"
 
+        # Performance optimized connection options
+        options += "--mp4="" "  # Disable video recording
+        options += "--numSolverIterations=4 "  # Reduced from default 20
+        options += "--constraint_solver_type=SOLVER_TYPE_SEQUENTIAL_IMPULSE " # Faster constraint solver
+        options += "--warm_starting=1 "
+        options += "--deterministic_overlapping_pairs=0 "  # Faster collision detection
+        options += "--enable_file_caching=1"
+
         self.physics_client = bc.BulletClient(connection_mode=self.connection_mode, options=options)
         # self.dummy_collision_client = None
         # if dummy_client:
         #     self.dummy_collision_client = bc.BulletClient(connection_mode=p.DIRECT)
         # self.physics_client = bc.BulletClient(connection_mode=p.DIRECT, options=options)
         # self.dummy_collision_client = bc.BulletClient(connection_mode=p.GUI)
-        self.physics_client.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
-        self.physics_client.configureDebugVisualizer(p.COV_ENABLE_MOUSE_PICKING, 0)
+
+        if self.connection_mode == p.DIRECT:
+            self.physics_client.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+            self.physics_client.configureDebugVisualizer(p.COV_ENABLE_MOUSE_PICKING, 0)
+            self.physics_client.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 0)
+            self.physics_client.configureDebugVisualizer(p.COV_ENABLE_TINY_RENDERER, 0)
 
         self.n_substeps = n_substeps
         self.timestep = 1.0 / 500
-        self.physics_client.setTimeStep(self.timestep)
-        self.physics_client.resetSimulation()
-        self.physics_client.setAdditionalSearchPath(pybullet_data.getDataPath())
-        self.physics_client.setGravity(0, 0, -9.81)
-        self._bodies_idx = {}
-        self._string_idx = {}
-        self._string_positions = {}
+
+        self._bodies_idx = dict()
+        self._string_idx = dict()
+        self._string_positions = dict()
+
+        # initialize simulation with optimized parameters
+        self._initialize_simulation()
 
         if self.render_env:
             self.physics_client.configureDebugVisualizer(p.COV_ENABLE_RENDERING, 1)
             self.physics_client.configureDebugVisualizer(p.COV_ENABLE_SINGLE_STEP_RENDERING, 1)
+
+    def _initialize_simulation(self):
+        """Initialize simulation with optimized physics parameters."""
+        self.physics_client.resetSimulation()
+
+        # Set optimized physics parameters
+        self.physics_client.setPhysicsEngineParameter(
+            fixedTimeStep=self.timestep,
+            numSolverIterations=4,  # Reduced from default 20
+            numSubSteps=self.n_substeps,
+            enableFileCaching=1,  # Enable for performance
+            enableConeFriction=0,  # Disable for performance
+            deterministicOverlappingPairs=0,  # Faster collision detection
+            contactBreakingThreshold=0.01,  # Increased for fewer contacts
+            allowedCcdPenetration=0.0001,  # Optimized CCD
+        )
+
+        # Basic simulation setup
+        self.physics_client.setTimeStep(self.timestep)
+        self.physics_client.setAdditionalSearchPath(pybullet_data.getDataPath())
+        self.physics_client.setGravity(0, 0, -9.81)
 
     @property
     def dt(self):

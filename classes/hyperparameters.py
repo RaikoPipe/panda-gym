@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from torch import nn
+import torch
 
 
 # hyperparameters are from rl-baselines3 zoo and https://arxiv.org/pdf/2106.13687.pdf
@@ -19,16 +20,46 @@ class Hyperparameters:
             self.use_sde = True
             self.policy_kwargs = dict(log_std_init=-3, net_arch=[256, 256])
         elif algorithm == "TQC_v2":
-            self.learning_rate = 7.3e-4
-            self.buffer_size = 1_000_000
-            self.batch_size = 256
-            self.top_quantiles_to_drop_per_net = 5
-            self.use_sde = True
-            self.policy_kwargs = dict(log_std_init=-3, net_arch=[400, 300])
-            self.gamma = 0.98
-            self.tau = 0.02
-            self.gradient_steps = 8
-            self.train_freq = 8
+            # Core hyperparameters
+            self.learning_rate = 3e-4  # Current setting is good for TQC
+            self.buffer_size = 1_000_000  # Keep current size for sufficient experience storage
+            self.batch_size = 2048  # Increased from 1024 to better utilize GPU
+
+            # TQC-specific parameters
+            self.top_quantiles_to_drop_per_net = 2  # Reduced from 5 for more stable learning
+
+            # Policy parameters
+            self.use_sde = True  # Keep SDE for exploration
+            self.sde_sample_freq = 4  # Sample frequency for SDE
+            self.use_sde_at_warmup = True  # Enable SDE during initial exploration
+
+            # Architecture and optimization
+            self.policy_kwargs = dict(
+                log_std_init=-3,  # Keep current setting
+                net_arch=[512, 512],  # Increased from [400, 300] for more capacity
+                optimizer_class=torch.optim.AdamW,  # Switch to AdamW
+                optimizer_kwargs=dict(
+                    weight_decay=1e-5,  # L2 regularization
+                    betas=(0.9, 0.999),
+                    eps=1e-8,
+                    maximise=False
+                ),
+                share_features_extractor=False,  # Separate feature extractors for actor and critic
+                n_critics=5,  # n_critics parameter
+                n_quantiles=25,  # n_quantiles parameter
+            )
+
+            # Learning parameters
+            self.gamma = 0.98  # Keep current discount factor
+            self.tau = 0.01  # Reduced from 0.02 for more stable target network updates
+            self.gradient_steps = 16  # Increased from 8 for more learning per experience
+            self.train_freq = 16  # Increased to match gradient_steps
+
+            # Regularization and stability
+            self.target_entropy = "auto"  # Automatic entropy target
+            self.ent_coef = "auto"  # Automatic entropy coefficient
+            self.target_update_interval = 1  # Update target network every gradient step
+
 
 
         elif algorithm == "TD3":
