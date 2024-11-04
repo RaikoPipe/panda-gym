@@ -265,6 +265,7 @@ def train_model(config, iteration, model, run):
         eval_benchmark_config = deepcopy(config)
         eval_benchmark_config.eval_freq = 50_000
         eval_benchmark_config.n_eval_episodes = 200
+        eval_benchmark_config.n_envs = 8
         eval_benchmark_envs = [
             get_env(eval_benchmark_config, scene, config.ee_error_thresholds[-1], config.speed_thresholds[-1])
             for scene in eval_benchmark_scenes]
