@@ -291,15 +291,15 @@ class ReachAO(Task):
         )
 
     def setup_benchmark_scenario(self, scenario_name):
-        scenario_dir = f"{SCENARIO_DIR}\\{scenario_name}"
+        scenario_dir = fr"{SCENARIO_DIR}/{scenario_name}"
 
-        with open(f"{scenario_dir}\\{scenario_name}.json") as t:
+        with open(fr"{scenario_dir}/{scenario_name}.json") as t:
             urdfs = json.load(t)
 
         # append path
         for urdf in urdfs.values():
             fileName = urdf["fileName"]
-            urdf["fileName"] = f"{scenario_dir}\\urdf\\{fileName}"
+            urdf["fileName"] = fr"{scenario_dir}/urdf/{fileName}"
 
         indexes = self.sim.load_scenario(urdfs)
         for idx, body_name, urdf in zip(indexes, urdfs.keys(), urdfs.values()):
