@@ -152,7 +152,7 @@ def init_wandb(config, tags):
     env_name = config.env_name
     project = f"{env_name}"
 
-    run_dir = f"./training/run_data/{config.group}"
+    run_dir = f"/beegfs2/scratch/rreider/run_data/{config.group}"
 
     # create run directory if not exists
     if not os.path.exists(run_dir):
