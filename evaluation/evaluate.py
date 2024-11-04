@@ -26,7 +26,7 @@ from multiprocessing import Process
 import panda_gym
 import pybullet
 from evaluation.ensemble_utils import action_selection
-from utils import load_model_util
+from model_utils import load_model_utils
 from classes.train_config import TrainConfig
 import yaml
 
