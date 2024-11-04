@@ -220,7 +220,7 @@ class Panda(PyBulletRobot):
     def rtb_ik(self, target):
         Tep = self.panda_rtb.fkine(self.neutral_joint_values[:7])
         Tep.A[:3, 3] = target
-        sol = self.panda_rtb.ik_lm(Tep, ilimit=100, tol = 0.01, slimit=100, q0=self.neutral_joint_values[:7])
+        sol = self.panda_rtb.ik_LM(Tep, ilimit=100, tol = 0.01, slimit=100, q0=self.neutral_joint_values[:7])
         return sol[0]
 
     def ee_displacement_to_target_arm_angles(self, ee_displacement: np.ndarray) -> np.ndarray:
