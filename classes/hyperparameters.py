@@ -24,7 +24,6 @@ class Hyperparameters:
             self.learning_rate = 3e-4  # Current setting is good for TQC
             self.buffer_size = 1_000_000  # Keep current size for sufficient experience storage
             self.batch_size = 2048  # Increased from 1024 to better utilize GPU
-            self.learning_starts = 10000  # Start learning after collecting sufficient experience
 
             # TQC-specific parameters
             self.top_quantiles_to_drop_per_net = 2  # Reduced from 5 for more stable learning
