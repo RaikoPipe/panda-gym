@@ -27,8 +27,6 @@ class Hyperparameters:
 
             # TQC-specific parameters
             self.top_quantiles_to_drop_per_net = 2  # Reduced from 5 for more stable learning
-            self.n_critics = 5  # Increased number of critics for better value estimation
-            self.n_quantiles = 25  # Increased for better value distribution estimation
 
             # Policy parameters
             self.use_sde = True  # Keep SDE for exploration
@@ -46,7 +44,8 @@ class Hyperparameters:
                     eps=1e-8,
                 ),
                 share_features_extractor=False,  # Separate feature extractors for actor and critic
-                n_critics=5,  # Match n_critics parameter
+                n_critics=5,  # n_critics parameter
+                n_quantiles=25,  # n_quantiles parameter
             )
 
             # Learning parameters
