@@ -4,13 +4,12 @@ import time
 
 import gymnasium
 import torch.multiprocessing as mp
-import panda_gym
 
 sys.modules["gym"] = gymnasium
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 
-import os
+import panda_gym
 
 from classes.train_config import TrainConfig
 from classes.hyperparameters import Hyperparameters
