@@ -4,6 +4,7 @@ import time
 
 import gymnasium
 import torch.multiprocessing as mp
+import panda_gym
 
 sys.modules["gym"] = gymnasium
 
@@ -27,6 +28,11 @@ torch.set_num_threads(int(os.environ.get('SLURM_CPUS_PER_TASK', '32')))
 # Enable multi-GPU if available
 if torch.cuda.device_count() > 1:
     torch.cuda.set_device(0)  # Use primary GPU
+
+configuration = TrainConfig()
+
+# # register envs to gymnasium
+panda_gym.register_reach_ao(configuration.max_ep_steps[0])
 
 
 def optimize_env(env):
