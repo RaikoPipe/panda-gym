@@ -100,7 +100,7 @@ if __name__ == "__main__":
         name="512-512",
         max_timesteps=10_000,
         hyperparams=hyperparams,
-        n_envs=int(os.environ.get('SLURM_CPUS_PER_TASK', '32')),  # Parallel environments
+        n_envs=16,  # Parallel environments
     )
 
     # Configure buffer size based on available memory
