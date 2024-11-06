@@ -95,10 +95,10 @@ if __name__ == "__main__":
 
     hyperparams = get_optimized_hyperparams()
     train_config = TrainConfig(
-        group="benchmark-eval-128-128",
+        group="benchmark-eval-512-512",
         job_type="train",
-        name="128-128",
-        max_timesteps=2_000_000,
+        name="512-512",
+        max_timesteps=10_000,
         hyperparams=hyperparams,
         n_envs=int(os.environ.get('SLURM_CPUS_PER_TASK', '32')),  # Parallel environments
     )
@@ -108,5 +108,8 @@ if __name__ == "__main__":
     buffer_size = min(int(1e6), int((total_memory_gb * 0.6) * 1e5))  # Use 60% of GPU memory
     train_config.hyperparams.buffer_size = buffer_size
 
+
     for configuration in [train_config]:
-        train_base_model(config=configuration, iterations=5)
+        train_base_model(config=configuration, iterations=1)
+
+

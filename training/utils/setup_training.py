@@ -1,6 +1,7 @@
 import logging
 import sys, os
 from copy import deepcopy
+import time
 
 import gymnasium
 
@@ -290,11 +291,18 @@ def train_model(config, iteration, model, run):
             model_save_freq=20_000
         ))
 
+        # start timer
+        start = time.time()
+
         model.learn(
             total_timesteps=config.max_timesteps,
             callback=callbacks,
             log_interval=4
         )
+
+        # end timer
+        end = time.time()
+        print(f"Training took {end - start} seconds")
 
         # save model
         model.save(f"{run.dir}/model_{stage}_{iteration}")

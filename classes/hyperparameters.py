@@ -59,16 +59,6 @@ class Hyperparameters:
             self.ent_coef = "auto"  # Automatic entropy coefficient
             self.target_update_interval = 1  # Update target network every gradient step
 
-            # Hardware optimization
-            if torch.cuda.is_available():
-                # Adjust batch size based on GPU memory
-                gpu_mem = torch.cuda.get_device_properties(0).total_memory / 1024 ** 3  # GB
-                if gpu_mem >= 24:  # A30 has 24GB
-                    self.batch_size = 2048
-                    self.policy_kwargs["net_arch"] = [512, 512]
-                else:
-                    self.batch_size = 1024
-                    self.policy_kwargs["net_arch"] = [400, 300]
 
 
         elif algorithm == "TD3":
