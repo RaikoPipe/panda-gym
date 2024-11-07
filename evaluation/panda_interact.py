@@ -14,7 +14,7 @@ configuration.show_debug_labels = True
 configuration.show_goal_space = True
 configuration.debug_collision = True
 
-scenario = "library1"
+scenario = "countertop"
 
 # get env
 env = gym.make(configuration.env_name,
@@ -27,7 +27,7 @@ env.unwrapped.task.sim.physics_client.configureDebugVisualizer(pybullet.COV_ENAB
 env.reset()
 goals = []
 
-robotId = env.robot.id
+robot = env.unwrapped.robot
 joint_sliders = []
 joint_indices = np.array([0, 1, 2, 3, 4, 5, 6, 9, 10])
 
@@ -52,7 +52,7 @@ while True:
         f"cameraTargetPosition = {camera[11]}\ncameraDistance = {camera[10]} \ncameraPitch = {camera[9]}\ncameraYaw = {camera[8]}", flush=True)
     #time.sleep(0.5)
     #env.reset()
-    joint_angles = np.array([env.robot.get_joint_angle(joint=i) for i in range(7)])
+    joint_angles = np.array([robot.get_joint_angle(joint=i) for i in range(7)])
     joint_angle_string = ", ".join([f"{angle:.3f}" for angle in joint_angles])
     print(f"Joint angles: [{joint_angle_string}]", flush=True)
     print(info)

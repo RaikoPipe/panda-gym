@@ -36,7 +36,7 @@ class Hyperparameters:
             # Architecture and optimization
             self.policy_kwargs = dict(
                 log_std_init=-3,  # Keep current setting
-                net_arch=[512, 512],  # Increased from [400, 300] for more capacity
+                net_arch=[512, 512, 256],  # Increased from [400, 300] for more capacity
                 optimizer_class=torch.optim.AdamW,  # Switch to AdamW
                 optimizer_kwargs=dict(
                     weight_decay=1e-5,  # L2 regularization

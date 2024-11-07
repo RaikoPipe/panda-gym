@@ -4,8 +4,11 @@ from copy import deepcopy
 import time
 
 import gymnasium
+import torch
+from stable_baselines3.common.env_util import make_vec_env
 
 from classes.train_config import TrainConfig
+from definitions import PROJECT_PATH
 from model_utils import load_model_utils
 
 sys.modules["gym"] = gymnasium
@@ -15,9 +18,10 @@ import numpy as np
 from stable_baselines3 import SAC, TD3, DDPG, PPO, HerReplayBuffer
 from sb3_contrib import TQC
 from sb3_extensions.replay_buffers import CustomHerReplayBuffer
-from sb3_extensions.callbacks import RecordCustomMetricsCallback, StopTrainingOnSuccessThreshold, EvalSuccessCallback
+from sb3_extensions.callbacks import RecordCustomMetricsCallback, StopTrainingOnSuccessThreshold, EvalSuccessCallback, \
+    ResourceMonitorCallback, PeriodicSaveCallback
 from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnRewardThreshold
-from stable_baselines3.common.env_util import make_vec_env
+
 from stable_baselines3.common.noise import NormalActionNoise, VectorizedActionNoise
 from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
 from stable_baselines3.common.vec_env import SubprocVecEnv
@@ -41,18 +45,10 @@ def get_env(config, scenario, ee_error_threshold, speed_threshold, force_render=
         "speed_threshold": speed_threshold,
         "scenario": scenario,
     }
-    if config.n_envs > 1:
-        return make_vec_env(config.env_name, n_envs=config.n_envs, seed=config.seed,
-                            env_kwargs=args,
-                            vec_env_cls=SubprocVecEnv if config.n_envs > 1 else None
-                            )
-    else:
-        return gymnasium.make(config.env_name,
-                              render=force_render,
-                              config=config,
-                              scenario=scenario,
-                              ee_error_threshold=ee_error_threshold,
-                              speed_threshold=speed_threshold)
+
+    return make_vec_env(config.env_name, n_envs=config.n_envs,
+                        env_kwargs=args, seed=config.seed, vec_env_cls=SubprocVecEnv)
+
     # else:
     #     # todo: check if obsolete
     #     # env = gym.make(config.env_name,
@@ -113,11 +109,20 @@ def get_model(config, run):
         logging.warning("Algorithm not found. Aborting")
         raise Exception("Algorithm not found!")
 
+    if torch.cuda.is_available():
+        # get all available GPUs
+        print("CUDA available:", torch.cuda.is_available())
+        print("CUDA device count:", torch.cuda.device_count())
+        print("CUDA device:", torch.cuda.get_device_name(0))
+        print("CUDA version:", torch.version.cuda)
+
+    device = torch.device("cuda:0")
+
     model = algorithm_type(
         config.policy_type,
         env=get_env(config, config.stages[0], config.ee_error_thresholds[0], config.speed_thresholds[0]),
         verbose=1, seed=config.seed,
-        tensorboard_log=f"runs/{run.id}", device="cuda",
+        tensorboard_log=f"runs/{run.id}", device=device,
         replay_buffer_class=config.replay_buffer_class,
         learning_starts=config.learning_starts,
         action_noise=action_noise,
@@ -153,24 +158,27 @@ def init_wandb(config, tags):
     env_name = config.env_name
     project = f"{env_name}"
 
-    run_dir = fr"/beegfs2/scratch/rreider/run_data/{config.group}"
+    run_dir = fr"{PROJECT_PATH}/run_data/{config.group}"
 
     # create run directory if not exists
     if not os.path.exists(run_dir):
         os.makedirs(run_dir)
 
+    wandb.tensorboard.patch(root_logdir=fr"{PROJECT_PATH}/run_data/")
+
     run = wandb.init(
         project=f"{project}",
         config=config,
-        sync_tensorboard=True,  # auto-upload sb3's tensorboard metrics
+        sync_tensorboard=True,
         dir=run_dir,
         tags=tags,
         group=config.group,
         monitor_gym=False,  # auto-upload the videos of agents playing the game
         save_code=True,  # optional
         job_type=config.job_type,
-        name=config.name
+        name=config.name,
     )
+
     return run
 
 
@@ -266,11 +274,11 @@ def train_model(config, iteration, model, run):
         eval_benchmark_config = deepcopy(config)
         eval_benchmark_config.eval_freq = 10_000
         eval_benchmark_config.n_eval_episodes = 100
-        eval_benchmark_config.n_envs = 8
+        eval_benchmark_config.n_envs = 32
         eval_benchmark_envs = []
 
         eval_training_env = None
-        if stage == config.stages[-1]: # final stage
+        if stage == config.stages[-1]:  # final stage
             eval_benchmark_envs = [
                 get_env(eval_benchmark_config, scene, config.ee_error_thresholds[-1], config.speed_thresholds[-1])
                 for scene in eval_benchmark_scenes]
@@ -291,8 +299,10 @@ def train_model(config, iteration, model, run):
             model_save_freq=20_000
         ))
 
-        # start timer
-        start = time.time()
+        # add resource monitor callback
+        callbacks.append(ResourceMonitorCallback())
+        # Add periodic save callback
+        #callbacks.append(PeriodicSaveCallback(run.dir, f"{run.dir}/model_snapshots"))
 
         model.learn(
             total_timesteps=config.max_timesteps,
@@ -300,12 +310,8 @@ def train_model(config, iteration, model, run):
             log_interval=4
         )
 
-        # end timer
-        end = time.time()
-        print(f"Training took {end - start} seconds")
-
         # save model
-        model.save(f"{run.dir}/model_{stage}_{iteration}")
+        # model.save(f"{run.dir}/model_{stage}_{iteration}")
 
         # close eval environments
         if eval_training_env:

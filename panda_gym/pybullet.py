@@ -26,15 +26,18 @@ class PyBullet:
                  background_color: Optional[np.ndarray] = None, ) -> None:
         background_color = background_color if background_color is not None else np.array([0.0, 134.0, 201.0])
         self.background_color = background_color.astype(np.float32) / 255
-        options = "--background_color_red={} \
-                    --background_color_green={} \
-                    --background_color_blue={}".format(
-            *self.background_color
-        )
+
+        options = ""
+
 
         self.connection_mode = p.GUI if render else p.DIRECT
         self.render_env = render
         if render:
+            options += "--background_color_red={} \
+                                --background_color_green={} \
+                                --background_color_blue={} ".format(
+                *self.background_color
+            )
             options += " --mp4=\"test.mp4\" --mp4fps=60"
 
         # Performance optimized connection options
@@ -43,7 +46,7 @@ class PyBullet:
         options += "--constraint_solver_type=SOLVER_TYPE_SEQUENTIAL_IMPULSE " # Faster constraint solver
         options += "--warm_starting=1 "
         options += "--deterministic_overlapping_pairs=0 "  # Faster collision detection
-        options += "--enable_file_caching=1"
+        options += "--enable_file_caching=1 "
 
         self.physics_client = bc.BulletClient(connection_mode=self.connection_mode, options=options)
         # self.dummy_collision_client = None
