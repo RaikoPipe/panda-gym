@@ -12,9 +12,9 @@ configuration = TrainConfig(render=True)
 
 configuration.show_debug_labels = True
 configuration.show_goal_space = True
-configuration.debug_collision = True
+configuration.debug_collision = False
 
-scenario = "countertop"
+scenario = "reachao3"
 
 # get env
 env = gym.make(configuration.env_name,

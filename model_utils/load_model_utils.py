@@ -7,7 +7,7 @@ from classes.train_config import TrainConfig
 from definitions import PROJECT_PATH
 
 # default path options
-default_path = f"training/run_data"
+default_path = f"run_data"
 default_model_location = 'files/best_model.zip'
 default_yaml_location = "files/config.yaml"
 

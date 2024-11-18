@@ -97,6 +97,9 @@ def perform_benchmark(models, env, human=True, num_episodes=1000, deterministic=
     # robot parameters
     # env.robot.neutral_joint_values = np.array([0, -0.3, 0, -2.2, 0, 2.0, np.pi / 4, 0.00, 0.00])
     # env.robot.neutral_joint_values = np.array([0, -0.3, 0, -2.2, 0, 2.0, np.pi / 4, 0.00, 0.00])
+    env_og = env
+    # unwrap environment
+    env = env.unwrapped
 
     episode_rewards = [0.0]
 
@@ -128,7 +131,7 @@ def perform_benchmark(models, env, human=True, num_episodes=1000, deterministic=
     model_colors = {0: np.array([1.0, 0.0, 0.0]), 1: np.array([0.0, 0.0, 1.0]), 2: np.array([0.0, 0.0, 1.0]),
                     3: np.array([0.0, 0.0, 1.0]), 4: np.array([0.0, 0.0, 1.0])}
     seed = 0
-    obs, _ = env.reset(seed=seed)
+    obs, _ = env_og.reset(seed=seed)
     for i in tqdm(range(num_episodes), desc=scenario_name):
         episode_reward = 0.0
         ee_pos = []
@@ -231,7 +234,7 @@ def perform_benchmark(models, env, human=True, num_episodes=1000, deterministic=
             #
             #     action_sovereignty = episode_action_sovereignty
 
-            obs, reward, done, truncated, info, = env.step(action)
+            obs, reward, done, truncated, info, = env_og.step(action)
 
             if human:
                 sleep(0.01/2)  # for human eval
@@ -265,7 +268,7 @@ def perform_benchmark(models, env, human=True, num_episodes=1000, deterministic=
                 else:
                     # print("Timeout...")
                     done_events.append(0)
-                obs, _ = env.reset(seed=seed)
+                obs, _ = env_og.reset(seed=seed)
 
                 episode_index_count = []
 
@@ -425,9 +428,9 @@ trained_models = {
 if __name__ == "__main__":
     eval_type = "base_eval"  # optimized; basic
 
-    ensemble = "v6-large-model-test-rand-shape"
+    ensemble = "benchmark-eval-400-300"
 
-    evaluation_scenarios = ["library1", "workshop2", "library2", "narrow_tunnel", "workshop"]
+    evaluation_scenarios = ["exp-10"]#, "library1", "workshop2", "library2", "narrow_tunnel", "workshop"]
 
     evaluate_ensemble(ensemble, human=True, eval_type="base_eval", strategy="weighted_aggregation",
                       num_episodes=200, evaluation_scenarios=evaluation_scenarios)

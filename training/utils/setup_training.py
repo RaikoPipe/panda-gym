@@ -36,6 +36,8 @@ import panda_gym
 
 from dataclasses import asdict
 
+from model_utils.load_model_utils import get_group_model_paths
+
 
 def get_env(config, scenario, ee_error_threshold, speed_threshold, force_render=False):
     config.render = config.render if not force_render else False
@@ -155,19 +157,16 @@ def init_wandb(config, tags):
     wandb_config = asdict(config)
     wandb_config["hyperparams"] = config.hyperparams.__dict__
 
-    env_name = config.env_name
-    project = f"{env_name}"
-
     run_dir = fr"{PROJECT_PATH}/run_data/{config.group}"
 
     # create run directory if not exists
     if not os.path.exists(run_dir):
         os.makedirs(run_dir)
 
-    wandb.tensorboard.patch(root_logdir=fr"{PROJECT_PATH}/run_data/")
+    #wandb.tensorboard.patch(root_logdir=fr"{PROJECT_PATH}/run_data/")
 
     run = wandb.init(
-        project=f"{project}",
+        project="panda-gym",
         config=config,
         sync_tensorboard=True,
         dir=run_dir,
@@ -188,21 +187,33 @@ def switch_model_env(model, env) -> None:
         model.replay_buffer.set_env(env)
 
 
-def learn(config: TrainConfig, initial_model: Optional[OffPolicyAlgorithm] = None,
+def learn(config: TrainConfig, pretrained_model_name = None,
           starting_stage: Optional[str] = None):
     panda_gym.register_reach_ao(config.max_ep_steps[0])
 
     tags = get_tags(config)
-    if initial_model:
+    if pretrained_model_name:
         tags.append("pre-trained")
+
     run = init_wandb(config, tags)
 
-    if not initial_model:
+    if not pretrained_model_name:
 
         model = get_model(config, run)
 
     else:
-        model = initial_model
+        # get first model from group name
+        path = get_group_model_paths(pretrained_model_name)[0]
+        # load model assuming TQC
+        model = TQC.load(path, env=get_env(config, config.stages[0], config.ee_error_thresholds[0],
+                                           config.speed_thresholds[0]))
+
+        # fill replay buffer of model, otherwise HER will not work
+        # model.replay_buffer = fill_replay_buffer_with_init_model(model,
+        #                                                          env=get_env(config,
+        #                                                                      1, scenario=config.stages[0]),
+        #                                                          num_steps=config.learning_starts)
+
         stages: list = config.stages
         success_thresholds = config.success_thresholds
         if starting_stage:
@@ -214,14 +225,6 @@ def learn(config: TrainConfig, initial_model: Optional[OffPolicyAlgorithm] = Non
 
     # learn for each stage until reward threshold is reached
     if config.learning_starts:
-        if initial_model:
-            pass
-            # model.replay_buffer = fill_replay_buffer_with_init_model(model,
-            #                                                          env=get_env(config,
-            #                                                                      1,
-            #                                                                      scenario=config.stages[0]),
-            #                                                          num_steps=config.learning_starts)
-        elif config.prior_steps or len(config.stages) > 1:
             model.learn(total_timesteps=config.learning_starts)
             model.learning_starts = 0
 
@@ -272,7 +275,7 @@ def train_model(config, iteration, model, run):
         ]
 
         eval_benchmark_config = deepcopy(config)
-        eval_benchmark_config.eval_freq = 10_000
+        eval_benchmark_config.eval_freq = 50_000
         eval_benchmark_config.n_eval_episodes = 100
         eval_benchmark_config.n_envs = 32
         eval_benchmark_envs = []
