@@ -174,6 +174,8 @@ class ReachAO(Task):
         self.ee_collision_detector = CollisionDetector(col_id=self.sim_id, bodies=self.bodies,
                                                        named_collision_pairs=self.named_collision_pairs_rob_ee)
 
+        self.check_self_collision = False
+
         if self.config.render:
             # set camera
             p.resetDebugVisualizerCamera(cameraDistance=self.cameraDistance, cameraYaw=self.cameraYaw,
@@ -574,6 +576,7 @@ class ReachAO(Task):
     def create_scenario_reachao3(self):
         self.randomize_obstacle_position = True
         self.random_num_obs = False
+        self.check_self_collision = True
         goal_radius_minor = 0.3
         goal_radius_major = 0.8
 
@@ -596,6 +599,7 @@ class ReachAO(Task):
         self.randomize_obstacle_position = True
         self.random_num_obs = True
         self.allow_overlapping_obstacles = True
+        self.check_self_collision = True
 
         self._sample_obstacle = lambda: self.sample_obstacle_experimental()
         for i in range(3):
@@ -722,6 +726,7 @@ class ReachAO(Task):
         self.sample_size_obs = [num_obstacles, num_obstacles]
         self.random_num_obs = False
         self.allow_overlapping_obstacles = True
+        self.check_self_collision = True
 
         for i in range(num_obstacles):
             # self.create_obstacle_cuboid(size=self.cube_size_large)
@@ -900,15 +905,15 @@ class ReachAO(Task):
         return goal
 
     def check_collided(self, safety_distance=0.0) -> bool:
-        self.distances_closest_obstacles = self.collision_detector.get_distances_per_link(max_distance=999.0)
-        distances_to_table = self.collision_detector.get_link_object_distance(object_name="table",
-                                                                           ignore_link=["panda_link0", "panda_link1"])
-        distances_ee_to_links = self.ee_collision_detector.get_distances_per_link(max_distance=999.0)
+        collided = []
+        collided.append(min(self.collision_detector.get_distances_per_link(max_distance=999.0)) <= safety_distance)
+        collided.append(min(self.collision_detector.get_link_object_distance(object_name="table",
+                                                                             ignore_link=["panda_link0",
+                                                                                          "panda_link1"]) <= safety_distance))
+        if self.check_self_collision:
+            collided.append(min(self.ee_collision_detector.get_distances_per_link(max_distance=999.0)) <= safety_distance)
 
-        return (min(self.distances_closest_obstacles) <= safety_distance
-                or min(distances_to_table) <= safety_distance
-                or min(distances_ee_to_links) <= safety_distance)
-
+        return any(collided)
 
     def get_obs(self) -> np.ndarray:
 
