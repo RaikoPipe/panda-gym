@@ -84,9 +84,9 @@ if __name__ == "__main__":
     hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=[400, 300])
 
     train_config = TrainConfig(
-        group="benchmark-eval-400-300",
+        group="benchmark-eval-400-300-v1",
         job_type="train",
-        name="400-300",
+        name="400-300-v1",
         #stages=["exp-20"],
         #success_thresholds=[0.9],
         #ee_error_thresholds=[0.05],

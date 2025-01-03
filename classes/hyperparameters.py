@@ -12,7 +12,7 @@ class Hyperparameters:
             self.learning_rate = 7.3e-4
             self.gamma = 0.98
             self.tau = 0.02
-            self.buffer_size = 1_000_000
+            self.buffer_size = 2_000_000
             self.batch_size = 256
             self.gradient_steps = 8
             self.train_freq = 8
