@@ -430,7 +430,7 @@ if __name__ == "__main__":
 
     ensemble = "benchmark-eval-400-300"
 
-    evaluation_scenarios = ["exp-10"]#, "library1", "workshop2", "library2", "narrow_tunnel", "workshop"]
+    evaluation_scenarios = ["exp-20"]#, "library1", "workshop2", "library2", "narrow_tunnel", "workshop"]
 
     evaluate_ensemble(ensemble, human=True, eval_type="base_eval", strategy="weighted_aggregation",
                       num_episodes=200, evaluation_scenarios=evaluation_scenarios)

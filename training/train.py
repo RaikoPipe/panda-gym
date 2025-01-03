@@ -95,7 +95,7 @@ if __name__ == "__main__":
         n_envs=32,  # Parallel environments
     )
 
-    train_model(seeds=args.seeds, pretrained_model_name="benchmark-eval-400-300")
+    train_model(seeds=args.seeds)
 
     # Configure buffer size based on available memory
     # total_memory_gb = torch.cuda.get_device_properties(0).total_memory / 1024 ** 3
