@@ -48,8 +48,9 @@ def optimize_env(env):
         env.num_envs = int(os.environ.get('SLURM_CPUS_PER_TASK', '32'))
     return env
 
-def train_model(seeds=None, pretrained_model_name=None):
-    for config in [train_config]:
+
+def train_model(configs, seeds=None, pretrained_model_name=None):
+    for config in configs:
         mp.set_start_method('spawn', force=True)  # Better CUDA compatibility
 
         if seeds is None:
@@ -67,6 +68,7 @@ def train_model(seeds=None, pretrained_model_name=None):
 
             del model
 
+
 if __name__ == "__main__":
     # start timer
     start_time = time.time()
@@ -78,24 +80,33 @@ if __name__ == "__main__":
     if torch.cuda.is_available():
         torch.cuda.set_device(0)
 
-    wandb.login(key=os.getenv("wandb_key"))
+    #wandb.login(key=os.getenv("wandb_key"))
 
     hyperparams = Hyperparameters(algorithm="TQC")
-    hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=[400, 300])
+    #hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=[400, 300])
 
     train_config = TrainConfig(
-        group="benchmark-eval-400-300-v1",
+        group="Benchmark-Eval",
         job_type="train",
-        name="400-300-v1",
-        #stages=["exp-20"],
-        #success_thresholds=[0.9],
+        name="400-300-reset-test",
+        #stages=["reachao3"],
+        #success_thresholds=[1.0],
         #ee_error_thresholds=[0.05],
         #max_ep_steps=[100],
         max_timesteps=1_000_000,
-        n_envs=32,  # Parallel environments
+        n_envs=8,  # Parallel environments
+        n_eval_envs=32,
+        n_benchmark_eval_episodes=100,
+        n_eval_episodes=100,
+        eval_freq=20_000,
+        benchmark_eval_freq=50_000,
+        algorithm="TQC",
+        learning_starts=10000
     )
 
-    train_model(seeds=args.seeds)
+    train_config.hyperparams = hyperparams
+
+    train_model(seeds=args.seeds, configs=[train_config])
 
     # Configure buffer size based on available memory
     # total_memory_gb = torch.cuda.get_device_properties(0).total_memory / 1024 ** 3

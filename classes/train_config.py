@@ -48,8 +48,11 @@ class TrainConfig:
     success_thresholds: list[float] = field(default_factory=lambda: [0.9, 0.9, 1.0])
 
     # evaluation settings
+    n_eval_envs: int = 32
     eval_freq: int = 10_000
-    n_eval_episodes = 100
+    benchmark_eval_freq: int = 50_000
+    n_eval_episodes: int = 100
+    n_benchmark_eval_episodes: int = 100
 
     # observations and actions
     obs_type: tuple = ("ee", "js")
@@ -63,6 +66,9 @@ class TrainConfig:
     show_goal_space: bool = False
     show_debug_labels: bool = False
     debug_collision: bool = False
+
+    # snapshot settings
+    snapshot_freq: int = 50_000
 
     # hyperparams
     hyperparams: Hyperparameters = field(default_factory=lambda: Hyperparameters(algorithm='TQC'))

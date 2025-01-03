@@ -14,7 +14,7 @@ configuration.show_debug_labels = True
 configuration.show_goal_space = True
 configuration.debug_collision = False
 
-scenario = "reachao3"
+scenario = "narrow_tunnel"
 
 # get env
 env = gym.make(configuration.env_name,

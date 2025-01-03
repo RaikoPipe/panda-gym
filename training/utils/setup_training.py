@@ -16,7 +16,7 @@ sys.modules["gym"] = gymnasium
 from typing import Optional
 import numpy as np
 from stable_baselines3 import SAC, TD3, DDPG, PPO, HerReplayBuffer
-from sb3_contrib import TQC
+from sb3_contrib import TQC, crossq
 from sb3_extensions.replay_buffers import CustomHerReplayBuffer
 from sb3_extensions.callbacks import RecordCustomMetricsCallback, StopTrainingOnSuccessThreshold, EvalSuccessCallback, \
     ResourceMonitorCallback, PeriodicSaveCallback
@@ -50,6 +50,12 @@ def get_env(config, scenario, ee_error_threshold, speed_threshold, force_render=
 
     return make_vec_env(config.env_name, n_envs=config.n_envs,
                         env_kwargs=args, seed=config.seed, vec_env_cls=SubprocVecEnv)
+
+
+def get_eval_env(config, stage, ee_error_threshold=None, speed_threshold=None):
+    eval_config = deepcopy(config)
+    eval_config.n_envs = config.n_eval_envs
+    return get_env(eval_config, stage, ee_error_threshold, speed_threshold)
 
     # else:
     #     # todo: check if obsolete
@@ -106,6 +112,8 @@ def get_model(config, run):
             algorithm_type = SAC
         case "TQC":
             algorithm_type = TQC
+        case "CrossQ":
+            algorithm_type = crossq.CrossQ
 
     if algorithm_type is None:
         logging.warning("Algorithm not found. Aborting")
@@ -155,7 +163,8 @@ def get_tags(config):
 
 def init_wandb(config, tags):
     wandb_config = asdict(config)
-    wandb_config["hyperparams"] = config.hyperparams.__dict__
+    wandb_config.update(config.hyperparams.__dict__)
+    del wandb_config["hyperparams"]
 
     run_dir = fr"{PROJECT_PATH}/run_data/{config.group}"
 
@@ -163,19 +172,19 @@ def init_wandb(config, tags):
     if not os.path.exists(run_dir):
         os.makedirs(run_dir)
 
-    #wandb.tensorboard.patch(root_logdir=fr"{PROJECT_PATH}/run_data/")
+    # wandb.tensorboard.patch(root_logdir=fr"{PROJECT_PATH}/run_data/")
 
     run = wandb.init(
         project="panda-gym",
-        config=config,
+        config=wandb_config,
         sync_tensorboard=True,
         dir=run_dir,
         tags=tags,
-        group=config.group,
+        group=wandb_config["group"],
         monitor_gym=False,  # auto-upload the videos of agents playing the game
         save_code=True,  # optional
-        job_type=config.job_type,
-        name=config.name,
+        job_type=wandb_config["job_type"],
+        name=wandb_config["name"],
     )
 
     return run
@@ -187,7 +196,7 @@ def switch_model_env(model, env) -> None:
         model.replay_buffer.set_env(env)
 
 
-def learn(config: TrainConfig, pretrained_model_name = None,
+def learn(config: TrainConfig, pretrained_model_name=None,
           starting_stage: Optional[str] = None):
     panda_gym.register_reach_ao(config.max_ep_steps[0])
 
@@ -225,8 +234,8 @@ def learn(config: TrainConfig, pretrained_model_name = None,
 
     # learn for each stage until reward threshold is reached
     if config.learning_starts:
-            model.learn(total_timesteps=config.learning_starts)
-            model.learning_starts = 0
+        model.learn(total_timesteps=config.learning_starts)
+        model.learning_starts = 0
 
     if config.prior_steps:
         assert config.n_envs == 1
@@ -274,38 +283,46 @@ def train_model(config, iteration, model, run):
             "workshop2",
         ]
 
-        eval_benchmark_config = deepcopy(config)
-        eval_benchmark_config.eval_freq = 50_000
-        eval_benchmark_config.n_eval_episodes = 100
-        eval_benchmark_config.n_envs = 32
-        eval_benchmark_envs = []
-
         eval_training_env = None
-        if stage == config.stages[-1]:  # final stage
+        eval_benchmark_envs = []
+        if config.n_eval_episodes:
+            # get eval env for training scene
+            eval_training_env = get_eval_env(config, stage, ee_error_threshold, speed_threshold)
+            # add eval for training scene callback
+            stop_train_callback = StopTrainingOnSuccessThreshold(success_threshold=success_threshold, verbose=1)
+            callbacks.append(get_eval_success_callbacks(
+                eval_training_env, eval_freq=config.eval_freq, n_envs=config.n_eval_envs,
+                n_episodes=config.n_eval_episodes,
+                stop_train_callback=stop_train_callback,
+                best_model_save_path=f"{run.dir}"))
+
+        if config.n_benchmark_eval_episodes > 0 and stage == config.stages[-1]:
+            # create eval envs for benchmark scenes
             eval_benchmark_envs = [
-                get_env(eval_benchmark_config, scene, config.ee_error_thresholds[-1], config.speed_thresholds[-1])
+                get_eval_env(config, scene, config.ee_error_thresholds[-1], config.speed_thresholds[-1])
                 for scene in eval_benchmark_scenes]
+            # create success callbacks for each benchmark scene
             for eval_benchmark_scene, eval_benchmark_env in zip(eval_benchmark_scenes, eval_benchmark_envs):
                 callbacks.append(
-                    get_eval_success_callbacks(eval_benchmark_config, eval_benchmark_env,
-                                               best_model_save_path=f"{run.dir}/{eval_benchmark_scene}",
-                                               eval_log_name=f"{eval_benchmark_scene}_eval"))
-        else:
-            stop_train_callback = StopTrainingOnSuccessThreshold(success_threshold=success_threshold, verbose=1)
-            eval_training_env = get_env(config, stage, ee_error_threshold, speed_threshold)
-            callbacks.append(get_eval_success_callbacks(config, eval_training_env, stop_train_callback,
-                                                        best_model_save_path=f"{run.dir}/training_scene"))
+                    get_eval_success_callbacks(
+                        eval_benchmark_env,
+                        eval_freq=config.benchmark_eval_freq,
+                        n_envs=config.n_eval_envs,
+                        n_episodes=config.n_benchmark_eval_episodes,
+                        best_model_save_path=f"{run.dir}/{eval_benchmark_scene}",
+                        eval_log_name=f"{eval_benchmark_scene}_eval"))
 
         callbacks.append(RecordCustomMetricsCallback({'stage': stage}))
         callbacks.append(WandbCallback(
             model_save_path=run.dir,
-            model_save_freq=20_000
+            model_save_freq=50_000
         ))
+
+        # add periodic save callback
+        # callbacks.append(PeriodicSaveCallback(save_freq = config.snapshot_freq // config.n_envs, save_path=f"{run.dir}/model_snapshots", name_prefix=f"model_{stage}"))
 
         # add resource monitor callback
         callbacks.append(ResourceMonitorCallback())
-        # Add periodic save callback
-        #callbacks.append(PeriodicSaveCallback(run.dir, f"{run.dir}/model_snapshots"))
 
         model.learn(
             total_timesteps=config.max_timesteps,
@@ -319,19 +336,21 @@ def train_model(config, iteration, model, run):
         # close eval environments
         if eval_training_env:
             eval_training_env.close()
-        for eval_benchmark_env in eval_benchmark_envs:
-            eval_benchmark_env.close()
+        if config.n_benchmark_eval_episodes > 0:
+            for eval_benchmark_env in eval_benchmark_envs:
+                eval_benchmark_env.close()
 
     return model
 
 
-def get_eval_success_callbacks(config, eval_env, stop_train_callback=None, best_model_save_path=None,
+def get_eval_success_callbacks(env, eval_freq=10000, n_envs=1, n_episodes=100, stop_train_callback=None,
+                               best_model_save_path=None,
                                eval_log_name=None):
-    return EvalSuccessCallback(eval_env=eval_env,
-                               eval_freq=max(config.eval_freq // config.n_envs, 1),
+    return EvalSuccessCallback(eval_env=env,
+                               eval_freq=max(eval_freq // n_envs, 1),
                                callback_after_eval=stop_train_callback,
                                verbose=1,
-                               n_eval_episodes=config.n_eval_episodes,
+                               n_eval_episodes=n_episodes,
                                best_model_save_path=best_model_save_path,
                                eval_log_name=eval_log_name)
 

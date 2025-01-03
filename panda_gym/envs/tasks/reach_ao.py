@@ -550,39 +550,52 @@ class ReachAO(Task):
     def create_scenario_reachao2(self):
         self.randomize_obstacle_position = True
         self.random_num_obs = False
-        goal_radius_minor = 0.4
-        goal_radius_major = 0.7
+        self.check_self_collision = False
+        goal_radius_minor = 0.5
+        goal_radius_major = 0.8
 
         # PandaReach with 1 obstacle
         def sample_reachao2_goal():
             return self.sample_sphere(goal_radius_minor, goal_radius_major, upper_half_only=True,
-                                      front_half_only=False)
+                                      front_half_only=True)
 
         self._sample_goal = sample_reachao2_goal
-        self._sample_obstacle = self.sample_obstacle_wang
+        self._sample_obstacle = self.sample_reachao_obstacle
 
         for i in range(2):
             self.create_obstacle_sphere(radius=0.05)
 
         self.robot_pose_randomizer = lambda: self.set_robot_random_joint_position_ik_goal_space(sample_reachao2_goal)
 
+        if self.config.show_goal_space:
+            self.visualize_circle(goal_radius_minor)
+            self.visualize_circle(goal_radius_major)
+
     def sample_reachao3_goal(self, goal_radius_minor, goal_radius_major):
         return self.sample_sphere(goal_radius_minor, goal_radius_major, upper_half_only=True)
 
-    def sample_reachao3_obstacle(self):
-        sample = self.sample_sphere(0.1, 0.5)
-        return sample + self.goal
+    def sample_reachao_obstacle(self):
+        if self.np_random.random() > 0.3:
+            # move to goal
+            sample = self.sample_sphere(0.2, 0.6)
+            return sample + self.goal
+        else:
+            sample = self.sample_sphere(0.2, 0.4)
+            return self.robot.get_ee_position() + sample
+
+        # sample = self.sample_sphere(0.1, 0.5)
+        # return sample + self.goal
 
     def create_scenario_reachao3(self):
         self.randomize_obstacle_position = True
         self.random_num_obs = False
         self.check_self_collision = True
-        goal_radius_minor = 0.3
+        goal_radius_minor = 0.5
         goal_radius_major = 0.8
 
         self._sample_goal = lambda: self.sample_sphere(goal_radius_minor, goal_radius_major,
                                                        upper_half_only=True)
-        self._sample_obstacle = lambda: self.sample_obstacle_wang()
+        self._sample_obstacle = lambda: self.sample_reachao_obstacle
         for i in range(3):
             self.create_obstacle_sphere(radius=0.05)
 
@@ -638,7 +651,7 @@ class ReachAO(Task):
             return self.robot.get_ee_position() + sample
         else:
             # sample near base
-            sample = self.sample_sphere(0.3, 0.8, True)
+            sample = self.sample_sphere(0.3, 0.6, True)
             return sample + self.robot.get_link_position(0)
 
     def sample_obstacle_experimental(self, front_half_only=False, upper_half_only=False):
@@ -905,13 +918,13 @@ class ReachAO(Task):
         return goal
 
     def check_collided(self, safety_distance=0.0) -> bool:
-        collided = []
-        collided.append(min(self.collision_detector.get_distances_per_link(max_distance=999.0)) <= safety_distance)
-        collided.append(min(self.collision_detector.get_link_object_distance(object_name="table",
-                                                                             ignore_link=["panda_link0",
-                                                                                          "panda_link1"]) <= safety_distance))
+        collided = [min(self.collision_detector.get_distances_per_link(max_distance=999.0)) <= safety_distance,
+                    min(self.collision_detector.get_link_object_distance(object_name="table",
+                                                                         ignore_link=["panda_link0",
+                                                                                      "panda_link1"])) <= safety_distance]
         if self.check_self_collision:
-            collided.append(min(self.ee_collision_detector.get_distances_per_link(max_distance=999.0)) <= safety_distance)
+            collided.append(
+                min(self.ee_collision_detector.get_distances_per_link(max_distance=999.0)) <= safety_distance)
 
         return any(collided)
 
@@ -1432,8 +1445,8 @@ class ReachAO(Task):
                     self.sim.create_debug_line(dot, dot2, id=self.sim_id, color=color[:3])
 
     def visualize_circle(self, radius, color=np.array([0.0, 1.0, 0.0, 0.2])):
-        x = radius * np.cos(2 * np.pi * 0 / 100)
-        y = radius * np.sin(2 * np.pi * 0 / 100)
+        x = radius * np.cos(0)
+        y = radius * np.sin(0)
         for i in range(1, 101):
             x_next = radius * np.cos(2 * np.pi * i / 100)
             y_next = radius * np.sin(2 * np.pi * i / 100)
