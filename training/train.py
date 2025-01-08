@@ -83,12 +83,12 @@ if __name__ == "__main__":
     #wandb.login(key=os.getenv("wandb_key"))
 
     hyperparams = Hyperparameters(algorithm="TQC")
-    #hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=[400, 300])
+    hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=[400, 300])
 
     train_config = TrainConfig(
-        group="Benchmark-Eval",
+        group="benchmark-eval-jax",
         job_type="train",
-        name="400-300-reset-test",
+        name="tqc-jax",
         #stages=["reachao3"],
         #success_thresholds=[1.0],
         #ee_error_thresholds=[0.05],

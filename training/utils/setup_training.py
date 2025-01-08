@@ -15,8 +15,8 @@ sys.modules["gym"] = gymnasium
 
 from typing import Optional
 import numpy as np
-from stable_baselines3 import SAC, TD3, DDPG, PPO, HerReplayBuffer
-from sb3_contrib import TQC, crossq
+from stable_baselines3 import HerReplayBuffer
+from sbx import TQC, SAC, TD3, CrossQ, PPO, DDPG
 from sb3_extensions.replay_buffers import CustomHerReplayBuffer
 from sb3_extensions.callbacks import RecordCustomMetricsCallback, StopTrainingOnSuccessThreshold, EvalSuccessCallback, \
     ResourceMonitorCallback, PeriodicSaveCallback
@@ -113,7 +113,7 @@ def get_model(config, run):
         case "TQC":
             algorithm_type = TQC
         case "CrossQ":
-            algorithm_type = crossq.CrossQ
+            algorithm_type = CrossQ
 
     if algorithm_type is None:
         logging.warning("Algorithm not found. Aborting")

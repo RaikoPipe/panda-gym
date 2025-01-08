@@ -33,8 +33,15 @@ class Hyperparameters:
                                       optimizer_class=torch.optim.AdamW) # Weight Decay Normalization
             # according to some research wider critic networks are easier to optimize
         elif algorithm == "CrossQ":
-            # no optimized hyperparameters available
-            pass
+            # taken from SAC
+            self.learning_rate = 7.3e-4
+            self.buffer_size = 300_000
+            self.batch_size = 256
+            self.ent_coef = "auto"
+            self.gamma = 0.98
+            self.train_freq = 8
+            self.gradient_steps = 8
+            self.policy_kwargs = dict(use_expln=True, log_std_init=-3)
 
         elif algorithm == "TD3":
             self.learning_rate = 1e-3
