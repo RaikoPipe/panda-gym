@@ -8,7 +8,7 @@ from definitions import PROJECT_PATH
 
 # default path options
 default_path = f"run_data"
-default_model_location = 'files/best_model.zip'
+default_model_location = 'files/model.zip'
 default_yaml_location = "files/config.yaml"
 
 def get_group_path(group_name):

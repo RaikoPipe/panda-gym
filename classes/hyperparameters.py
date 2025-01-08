@@ -39,9 +39,10 @@ class Hyperparameters:
             self.batch_size = 256
             self.ent_coef = "auto"
             self.gamma = 0.98
+            self.policy_delay = 3
             self.train_freq = 8
             self.gradient_steps = 8
-            self.policy_kwargs = dict(use_expln=True, log_std_init=-3)
+            self.policy_kwargs = dict(use_expln=True, log_std_init=-3, net_arch=dict(pi=[400, 300], qf=[2048, 2048]))
 
         elif algorithm == "TD3":
             self.learning_rate = 1e-3

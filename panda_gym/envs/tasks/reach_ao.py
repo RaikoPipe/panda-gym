@@ -589,13 +589,13 @@ class ReachAO(Task):
     def create_scenario_reachao3(self):
         self.randomize_obstacle_position = True
         self.random_num_obs = False
-        self.check_self_collision = True
+        self.check_self_collision = False
         goal_radius_minor = 0.5
         goal_radius_major = 0.8
 
         self._sample_goal = lambda: self.sample_sphere(goal_radius_minor, goal_radius_major,
                                                        upper_half_only=True)
-        self._sample_obstacle = lambda: self.sample_reachao_obstacle
+        self._sample_obstacle = lambda: self.sample_reachao_obstacle()
         for i in range(3):
             self.create_obstacle_sphere(radius=0.05)
 

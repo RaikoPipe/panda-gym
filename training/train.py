@@ -18,6 +18,8 @@ import torch
 
 import argparse
 
+from multiprocessing import set_start_method
+
 # CUDA and PyTorch optimizations
 torch.backends.cuda.matmul.allow_tf32 = True
 torch.backends.cudnn.allow_tf32 = True
@@ -37,6 +39,8 @@ panda_gym.register_reach_ao(configuration.max_ep_steps[0])
 # process command line arguments
 parser = argparse.ArgumentParser(description='Model training')
 parser.add_argument("--seeds", nargs="+", type=int, default=[0], help="Random seeds for training")
+parser.add_argument("--n_envs", type=int, default=8, help="Number of parallel environments")
+parser.add_argument("--n_eval_envs", type=int, default=4, help="Number of parallel evaluation environments")
 
 args = parser.parse_args()
 
@@ -80,33 +84,35 @@ if __name__ == "__main__":
     if torch.cuda.is_available():
         torch.cuda.set_device(0)
 
-    #wandb.login(key=os.getenv("wandb_key"))
+    wandb.login(key=os.getenv("wandb_key"))
 
-    hyperparams = Hyperparameters(algorithm="TQC")
-    hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=[400, 300])
+    algorithm = "TQC"
+
+    hyperparams = Hyperparameters(algorithm=algorithm)
+    #hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=[400, 300])
 
     train_config = TrainConfig(
         group="benchmark-eval-jax",
         job_type="train",
-        name="tqc-jax",
-        #stages=["reachao3"],
-        #success_thresholds=[1.0],
-        #ee_error_thresholds=[0.05],
-        #max_ep_steps=[100],
+        name=f"{algorithm}-jax",
+        stages=["reachao3"],
+        success_thresholds=[1.0],
+        ee_error_thresholds=[0.05],
+        max_ep_steps=[100],
         max_timesteps=1_000_000,
-        n_envs=8,  # Parallel environments
-        n_eval_envs=32,
+        n_envs=args.n_envs,  # Parallel environments
+        n_eval_envs=args.n_eval_envs,
         n_benchmark_eval_episodes=100,
         n_eval_episodes=100,
         eval_freq=20_000,
         benchmark_eval_freq=50_000,
-        algorithm="TQC",
+        algorithm=algorithm,
         learning_starts=10000
     )
 
     train_config.hyperparams = hyperparams
 
-    train_model(seeds=args.seeds, configs=[train_config])
+    train_model(seeds=args.seeds, configs=[train_config], pretrained_model_name="tqc_default")
 
     # Configure buffer size based on available memory
     # total_memory_gb = torch.cuda.get_device_properties(0).total_memory / 1024 ** 3

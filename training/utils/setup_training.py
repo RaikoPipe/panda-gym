@@ -23,7 +23,7 @@ from sb3_extensions.callbacks import RecordCustomMetricsCallback, StopTrainingOn
 from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnRewardThreshold
 
 from stable_baselines3.common.noise import NormalActionNoise, VectorizedActionNoise
-from stable_baselines3.common.off_policy_algorithm import OffPolicyAlgorithm
+from sbx.common.off_policy_algorithm import OffPolicyAlgorithmJax
 from stable_baselines3.common.vec_env import SubprocVecEnv
 from training.learning_methods.imitation_learning import fill_replay_buffer_with_init_model, \
     fill_replay_buffer_with_prior
@@ -38,6 +38,22 @@ from dataclasses import asdict
 
 from model_utils.load_model_utils import get_group_model_paths
 
+def get_algorithm_class(algorithm):
+    match algorithm:
+        case "TQC":
+            return TQC
+        case "SAC":
+            return SAC
+        case "TD3":
+            return TD3
+        case "CrossQ":
+            return CrossQ
+        case "PPO":
+            return PPO
+        case "DDPG":
+            return DDPG
+        case _:
+            return None
 
 def get_env(config, scenario, ee_error_threshold, speed_threshold, force_render=False):
     config.render = config.render if not force_render else False
@@ -50,6 +66,7 @@ def get_env(config, scenario, ee_error_threshold, speed_threshold, force_render=
 
     return make_vec_env(config.env_name, n_envs=config.n_envs,
                         env_kwargs=args, seed=config.seed, vec_env_cls=SubprocVecEnv)
+
 
 
 def get_eval_env(config, stage, ee_error_threshold=None, speed_threshold=None):
@@ -102,18 +119,7 @@ def get_model(config, run):
     else:
         action_noise = None
 
-    algorithm_type = None
-    match config.algorithm:
-        case "DDPG":
-            algorithm_type = DDPG
-        case "TD3":
-            algorithm_type = TD3
-        case "SAC":
-            algorithm_type = SAC
-        case "TQC":
-            algorithm_type = TQC
-        case "CrossQ":
-            algorithm_type = CrossQ
+    algorithm_type = get_algorithm_class(config.algorithm)
 
     if algorithm_type is None:
         logging.warning("Algorithm not found. Aborting")
@@ -128,6 +134,7 @@ def get_model(config, run):
 
     device = torch.device("cuda:0")
 
+    # noinspection PyTypeChecker
     model = algorithm_type(
         config.policy_type,
         env=get_env(config, config.stages[0], config.ee_error_thresholds[0], config.speed_thresholds[0]),
@@ -213,15 +220,13 @@ def learn(config: TrainConfig, pretrained_model_name=None,
     else:
         # get first model from group name
         path = get_group_model_paths(pretrained_model_name)[0]
-        # load model assuming TQC
-        model = TQC.load(path, env=get_env(config, config.stages[0], config.ee_error_thresholds[0],
-                                           config.speed_thresholds[0]))
+        # load model
+        model = (get_algorithm_class(config.algorithm)
+                 .load(path, env=get_env(config, config.stages[0], config.ee_error_thresholds[0],
+                                           config.speed_thresholds[0])))
+        # change seed
+        model.set_random_seed(config.seed)
 
-        # fill replay buffer of model, otherwise HER will not work
-        # model.replay_buffer = fill_replay_buffer_with_init_model(model,
-        #                                                          env=get_env(config,
-        #                                                                      1, scenario=config.stages[0]),
-        #                                                          num_steps=config.learning_starts)
 
         stages: list = config.stages
         success_thresholds = config.success_thresholds
@@ -270,7 +275,8 @@ def train_model(config, iteration, model, run):
     for stage, success_threshold, max_ep_steps, ee_error_threshold, speed_threshold in train_sequence:
         panda_gym.register_reach_ao(max_ep_steps)
 
-        switch_model_env(model, get_env(config, stage, ee_error_threshold, speed_threshold))
+        if stage != config.stages[0]:
+            switch_model_env(model, get_env(config, stage, ee_error_threshold, speed_threshold))
 
         callbacks = []
 
@@ -291,7 +297,7 @@ def train_model(config, iteration, model, run):
             # add eval for training scene callback
             stop_train_callback = StopTrainingOnSuccessThreshold(success_threshold=success_threshold, verbose=1)
             callbacks.append(get_eval_success_callbacks(
-                eval_training_env, eval_freq=config.eval_freq, n_envs=config.n_eval_envs,
+                eval_training_env, eval_freq=config.eval_freq, n_envs=config.n_envs,
                 n_episodes=config.n_eval_episodes,
                 stop_train_callback=stop_train_callback,
                 best_model_save_path=f"{run.dir}"))
@@ -307,7 +313,7 @@ def train_model(config, iteration, model, run):
                     get_eval_success_callbacks(
                         eval_benchmark_env,
                         eval_freq=config.benchmark_eval_freq,
-                        n_envs=config.n_eval_envs,
+                        n_envs=config.n_envs,
                         n_episodes=config.n_benchmark_eval_episodes,
                         best_model_save_path=f"{run.dir}/{eval_benchmark_scene}",
                         eval_log_name=f"{eval_benchmark_scene}_eval"))
@@ -331,7 +337,7 @@ def train_model(config, iteration, model, run):
         )
 
         # save model
-        # model.save(f"{run.dir}/model_{stage}_{iteration}")
+        model.save(f"{run.dir}/model_{stage}_{iteration}")
 
         # close eval environments
         if eval_training_env:
@@ -353,19 +359,6 @@ def get_eval_success_callbacks(env, eval_freq=10000, n_envs=1, n_episodes=100, s
                                n_eval_episodes=n_episodes,
                                best_model_save_path=best_model_save_path,
                                eval_log_name=eval_log_name)
-
-
-def get_eval_env(config, stage, ee_error_threshold=None, speed_threshold=None):
-    if config.render:
-        # eval_env = gymnasium.make(config.env_name, render=True if not config.render else False, control_type=config.control_type,
-        #                     obs_type=config.obs_type,
-        #                     reward_type=config.reward_type,
-        #                     show_goal_space=False, scenario=stage,
-        #                     show_debug_labels=False, )
-        eval_env = get_env(config, scenario=stage, force_render=True)
-    else:
-        eval_env = get_env(config, stage, ee_error_threshold, speed_threshold)
-    return eval_env
 
 
 def benchmark_model(config, model, run):
