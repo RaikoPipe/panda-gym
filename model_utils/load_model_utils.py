@@ -31,8 +31,8 @@ def get_group_yaml_paths(group_name):
     yaml_paths = []
 
     # walk through ensemble path
-    for dir in os.listdir(group_path):
-        yaml_paths.append(f"{group_path}/{dir}/{default_yaml_location}")
+    for path in os.listdir(group_path):
+        yaml_paths.append(f"{group_path}/{path}/{default_yaml_location}")
 
     return yaml_paths
 

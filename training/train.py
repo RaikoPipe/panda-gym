@@ -41,6 +41,8 @@ parser = argparse.ArgumentParser(description='Model training')
 parser.add_argument("--seeds", nargs="+", type=int, default=[0], help="Random seeds for training")
 parser.add_argument("--n_envs", type=int, default=8, help="Number of parallel environments")
 parser.add_argument("--n_eval_envs", type=int, default=4, help="Number of parallel evaluation environments")
+parser.add_argument("--pretrained_model", type=str, default=None, help="Pretrained model name")
+parser.add_argument("--algorithm", type=str, default="TQC", help="Algorithm to train")
 
 args = parser.parse_args()
 
@@ -55,7 +57,6 @@ def optimize_env(env):
 
 def train_model(configs, seeds=None, pretrained_model_name=None):
     for config in configs:
-        mp.set_start_method('spawn', force=True)  # Better CUDA compatibility
 
         if seeds is None:
             seeds = [0]
@@ -86,7 +87,7 @@ if __name__ == "__main__":
 
     wandb.login(key=os.getenv("wandb_key"))
 
-    algorithm = "TQC"
+    algorithm = args.algorithm
 
     hyperparams = Hyperparameters(algorithm=algorithm)
     #hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=[400, 300])
@@ -95,10 +96,10 @@ if __name__ == "__main__":
         group="benchmark-eval-jax",
         job_type="train",
         name=f"{algorithm}-jax",
-        stages=["reachao3"],
-        success_thresholds=[1.0],
-        ee_error_thresholds=[0.05],
-        max_ep_steps=[100],
+        #stages=["reachao3"],
+        #success_thresholds=[1.0],
+        #ee_error_thresholds=[0.05],
+        #max_ep_steps=[100],
         max_timesteps=1_000_000,
         n_envs=args.n_envs,  # Parallel environments
         n_eval_envs=args.n_eval_envs,
@@ -112,7 +113,13 @@ if __name__ == "__main__":
 
     train_config.hyperparams = hyperparams
 
-    train_model(seeds=args.seeds, configs=[train_config], pretrained_model_name="tqc_default")
+    if args.pretrained_model:
+        train_config.stages = ["reachao3"]
+        train_config.success_thresholds = [1.0]
+        train_config.ee_error_thresholds = [0.05]
+        train_config.max_ep_steps = [100]
+
+    train_model(seeds=args.seeds, configs=[train_config], pretrained_model_name=args.pretrained_model)
 
     # Configure buffer size based on available memory
     # total_memory_gb = torch.cuda.get_device_properties(0).total_memory / 1024 ** 3

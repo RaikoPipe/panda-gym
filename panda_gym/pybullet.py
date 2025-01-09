@@ -38,15 +38,6 @@ class PyBullet:
                                 --background_color_blue={} ".format(
                 *self.background_color
             )
-            options += " --mp4=\"test.mp4\" --mp4fps=60"
-
-        # Performance optimized connection options
-        options += "--mp4="" "  # Disable video recording
-        options += "--numSolverIterations=4 "  # Reduced from default 20
-        options += "--constraint_solver_type=SOLVER_TYPE_SEQUENTIAL_IMPULSE " # Faster constraint solver
-        options += "--warm_starting=1 "
-        options += "--deterministic_overlapping_pairs=0 "  # Faster collision detection
-        options += "--enable_file_caching=1 "
 
         self.physics_client = bc.BulletClient(connection_mode=self.connection_mode, options=options)
         # self.dummy_collision_client = None
@@ -78,18 +69,6 @@ class PyBullet:
     def _initialize_simulation(self):
         """Initialize simulation with optimized physics parameters."""
         self.physics_client.resetSimulation()
-
-        # Set optimized physics parameters
-        self.physics_client.setPhysicsEngineParameter(
-            fixedTimeStep=self.timestep,
-            numSolverIterations=4,  # Reduced from default 20
-            numSubSteps=self.n_substeps,
-            enableFileCaching=1,  # Enable for performance
-            enableConeFriction=0,  # Disable for performance
-            deterministicOverlappingPairs=0,  # Faster collision detection
-            contactBreakingThreshold=0.01,  # Increased for fewer contacts
-            allowedCcdPenetration=0.0001,  # Optimized CCD
-        )
 
         # Basic simulation setup
         self.physics_client.setTimeStep(self.timestep)
