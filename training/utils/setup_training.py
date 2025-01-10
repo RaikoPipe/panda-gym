@@ -338,6 +338,7 @@ def train_model(config, iteration, model, run):
 
         # save model
         model.save(f"{run.dir}/model_{stage}_{iteration}")
+        wandb.save(f"{run.dir}/model_{stage}_{iteration}.zip")
 
         # close eval environments
         if eval_training_env:
@@ -345,6 +346,8 @@ def train_model(config, iteration, model, run):
         if config.n_benchmark_eval_episodes > 0:
             for eval_benchmark_env in eval_benchmark_envs:
                 eval_benchmark_env.close()
+
+    wandb.save(f"{run.dir}/best_model.zip")
 
     return model
 
