@@ -43,6 +43,8 @@ parser.add_argument("--n_envs", type=int, default=8, help="Number of parallel en
 parser.add_argument("--n_eval_envs", type=int, default=4, help="Number of parallel evaluation environments")
 parser.add_argument("--pretrained_model", type=str, default=None, help="Pretrained model name")
 parser.add_argument("--algorithm", type=str, default="TQC", help="Algorithm to train")
+parser.add_argument("--group", type=str, default="default", help="Group name for wandb")
+parser.add_argument("--name", type=str, default="default", help="Name for run")
 
 args = parser.parse_args()
 
@@ -93,9 +95,9 @@ if __name__ == "__main__":
     #hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=[400, 300])
 
     train_config = TrainConfig(
-        group="benchmark-eval-jax",
+        group=args.group,
         job_type="train",
-        name=f"{algorithm}-jax",
+        name=f"{args.name}-{algorithm}",
         stages=["reachao3"],
         success_thresholds=[1.0],
         ee_error_thresholds=[0.05],
