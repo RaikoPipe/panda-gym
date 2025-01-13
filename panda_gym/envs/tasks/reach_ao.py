@@ -74,6 +74,7 @@ class ReachAO(Task):
         self.goal_range = 0.3
         self.obstacle_count = 0
         self.goal_reached = False
+        self.check_self_collision = False
 
         self._sample_goal = self._sample_obstacle = self.sample_from_goal_range
         # set default goal range
@@ -162,19 +163,19 @@ class ReachAO(Task):
         self.collision_detector = CollisionDetector(col_id=self.sim_id, bodies=self.bodies,
                                                     named_collision_pairs=self.named_collision_pairs_rob_obs)
 
-        # get collision pairs for checking end effector collision of robot with every other link
-        self.named_collision_pairs_rob_ee = []
-        for link_name in self.collision_links:
-            if link_name in ["panda_link7", "panda_link8", "panda_ee"]:
-                # skip links directly connected to end effector
-                continue
-            link = NamedCollisionObject("robot", link_name=link_name)
-            self.named_collision_pairs_rob_ee.append((link, NamedCollisionObject("robot", link_name="panda_ee")))
+        self.ee_collision_detector = None
+        if self.check_self_collision:
+            # add self collision detector
+            self.named_collision_pairs_rob_ee = []
+            for link_name in self.collision_links:
+                if link_name in ["panda_link7", "panda_link8", "panda_ee"]:
+                    # skip links directly connected to end effector
+                    continue
+                link = NamedCollisionObject("robot", link_name=link_name)
+                self.named_collision_pairs_rob_ee.append((link, NamedCollisionObject("robot", link_name="panda_ee")))
 
-        self.ee_collision_detector = CollisionDetector(col_id=self.sim_id, bodies=self.bodies,
-                                                       named_collision_pairs=self.named_collision_pairs_rob_ee)
-
-        self.check_self_collision = False
+            self.ee_collision_detector = CollisionDetector(col_id=self.sim_id, bodies=self.bodies,
+                                                           named_collision_pairs=self.named_collision_pairs_rob_ee)
 
         if self.config.render:
             # set camera
