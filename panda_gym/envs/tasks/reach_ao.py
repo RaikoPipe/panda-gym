@@ -163,19 +163,18 @@ class ReachAO(Task):
         self.collision_detector = CollisionDetector(col_id=self.sim_id, bodies=self.bodies,
                                                     named_collision_pairs=self.named_collision_pairs_rob_obs)
 
-        self.ee_collision_detector = None
-        if self.check_self_collision:
-            # add self collision detector
-            self.named_collision_pairs_rob_ee = []
-            for link_name in self.collision_links:
-                if link_name in ["panda_link7", "panda_link8", "panda_ee"]:
-                    # skip links directly connected to end effector
-                    continue
-                link = NamedCollisionObject("robot", link_name=link_name)
-                self.named_collision_pairs_rob_ee.append((link, NamedCollisionObject("robot", link_name="panda_ee")))
 
-            self.ee_collision_detector = CollisionDetector(col_id=self.sim_id, bodies=self.bodies,
-                                                           named_collision_pairs=self.named_collision_pairs_rob_ee)
+        # add self collision detector
+        self.named_collision_pairs_rob_ee = []
+        for link_name in self.collision_links:
+            if link_name in ["panda_link7", "panda_link8", "panda_ee"]:
+                # skip links directly connected to end effector
+                continue
+            link = NamedCollisionObject("robot", link_name=link_name)
+            self.named_collision_pairs_rob_ee.append((link, NamedCollisionObject("robot", link_name="panda_ee")))
+
+        self.ee_collision_detector = CollisionDetector(col_id=self.sim_id, bodies=self.bodies,
+                                                       named_collision_pairs=self.named_collision_pairs_rob_ee)
 
         if self.config.render:
             # set camera
