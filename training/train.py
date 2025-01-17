@@ -92,7 +92,8 @@ if __name__ == "__main__":
     algorithm = args.algorithm
 
     hyperparams = Hyperparameters(algorithm=algorithm)
-    hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=[512, 512, 512])
+    hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=[400,300])
+    #hyperparams.buffer_size = 300_000
 
     train_config = TrainConfig(
         group=args.group,
