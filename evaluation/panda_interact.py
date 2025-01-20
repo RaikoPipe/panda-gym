@@ -14,7 +14,7 @@ configuration.show_debug_labels = True
 configuration.show_goal_space = True
 configuration.debug_collision = False
 
-scenario = "narrow_tunnel"
+scenario = "reachao3_rand_start"
 
 # get env
 env = gym.make(configuration.env_name,
@@ -51,7 +51,7 @@ while True:
     print(
         f"cameraTargetPosition = {camera[11]}\ncameraDistance = {camera[10]} \ncameraPitch = {camera[9]}\ncameraYaw = {camera[8]}", flush=True)
     #time.sleep(0.5)
-    #env.reset()
+    env.reset()
     joint_angles = np.array([robot.get_joint_angle(joint=i) for i in range(7)])
     joint_angle_string = ", ".join([f"{angle:.3f}" for angle in joint_angles])
     print(f"Joint angles: [{joint_angle_string}]", flush=True)

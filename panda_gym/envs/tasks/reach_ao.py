@@ -247,9 +247,9 @@ class ReachAO(Task):
             "reachao1": self.create_scenario_reachao1,
             "reachao2": self.create_scenario_reachao2,
             "reachao3": self.create_scenario_reachao3,
-            "reachao_rand": self.create_scenario_reachao_rand,
-            "reachao_rand_start": self.create_scenario_reachao_rand_start,
-            "reachao_rand_shape": self.create_scenario_reachao_rand_shape,
+            "reachao3_rand": self.create_scenario_reachao3_rand_obs,
+            "reachao3_rand_start": self.create_scenario_reachao3_rand_start,
+            "reachao3_rand_shape": self.create_scenario_reachao3_rand_shape,
             "reach1": self.create_scenario_reach1,
             "reach2": self.create_scenario_reach2,
             "reach3": self.create_scenario_reach3,
@@ -284,10 +284,11 @@ class ReachAO(Task):
             position=np.zeros(3),
             rgba_color=np.array([0.1, 0.9, 0.1, 0.8]),
         )
-
-        self.bodies["dummy_sphere"] = self.sim.create_sphere(
-            body_name="dummy_sphere",
-            radius=0.05,  # dummy target is intentionally bigger to ensure safety distance to obstacle
+        
+        # dummy used for making sure target is not colliding
+        self.bodies["dummy_target"] = self.sim.create_sphere(
+            body_name="dummy_target",
+            radius=0.05,  
             mass=0.0,
             position=np.zeros(3),
             rgba_color=np.array([0.1, 0.9, 0.1, 0.0]),
@@ -605,7 +606,7 @@ class ReachAO(Task):
             self.visualize_circle(goal_radius_minor)
             self.visualize_circle(goal_radius_major)
 
-    def create_scenario_reachao_rand(self):
+    def create_scenario_reachao3_rand_obs(self):
         """Random number of obstacles up to 6, random position, overlapping allowed; Rest as in reachao3"""
         self.create_scenario_reachao3()
 
@@ -620,13 +621,13 @@ class ReachAO(Task):
 
         self.sample_size_obs = [4, 6]
 
-    def create_scenario_reachao_rand_start(self):
-        self.create_scenario_reachao_rand()
+    def create_scenario_reachao3_rand_start(self):
+        self.create_scenario_reachao3()
         self.randomize_robot_pose = True
         self.robot_pose_randomizer = lambda: self.set_robot_random_joint_position_ik_sphere(0.45, 0.7)
 
-    def create_scenario_reachao_rand_shape(self):
-        self.create_scenario_reachao_rand()
+    def create_scenario_reachao3_rand_shape(self):
+        self.create_scenario_reachao3_rand_obs()
         self.random_size_cuboids = True
 
     def sample_obstacle_default(self):
@@ -840,7 +841,7 @@ class ReachAO(Task):
                 if z_upper_limit >= self.robot.get_link_position(11)[2] >= z_lower_limit:
                     valid_pose_found = True
 
-    def create_obstacle_sphere(self, name=None, position=np.array([0.1, 0, 0.1]), radius=0.02,
+    def create_obstacle_sphere(self, name=None, position=np.array([0.2, 0, 0.1]), radius=0.02,
                                velocity=np.array([0, 0, 0]),
                                alpha=1.0):
         obstacle_name = "sphere"
@@ -1007,8 +1008,12 @@ class ReachAO(Task):
             if removed_cuboids:
                 self.add_random_size_cuboids(removed_cuboids)
 
+        #if self.randomize_robot_pose:
+        #    self.set_coll_free_robot()
+
         if self.config.fixed_target is None:
             self.set_coll_free_goal(["table", "robot"])
+
         # sample new (collision free) obstacles
         if self.randomize_obstacle_position:
             self.set_coll_free_obs(0.03)
@@ -1017,11 +1022,9 @@ class ReachAO(Task):
             coll_obj.extend(["table", "robot"])
             self.set_coll_free_goal(coll_obj, margin=0.03)
 
-        if self.randomize_robot_pose:
-            self.set_coll_free_robot()
-
-        self.sim.set_base_pose("dummy_sphere", np.array([0.0, 0.0, -5.0]),
-                               np.array([0.0, 0.0, 0.0, 1.0]))  # move dummy away
+        # move dummy_target away
+        self.sim.set_base_pose("dummy_target", np.array([0.0, 0.0, -5.0]),
+                               np.array([0.0, 0.0, 0.0, 1.0]))
 
         if self.randomize_obstacle_velocity:
             self.set_random_obs_velocity()
@@ -1144,14 +1147,14 @@ class ReachAO(Task):
                 print(e)
                 break
 
-            self.sim.set_base_pose("dummy_sphere", self.goal, np.array([0.0, 0.0, 0.0, 1.0]))
+            self.sim.set_base_pose("dummy_target", self.goal, np.array([0.0, 0.0, 0.0, 1.0]))
             # self.sim.physics_client.performCollisionDetection()
-            collision = [self.check_collision("dummy_sphere", obj, margin=margin) for obj in coll_obj]
-            # collision = [self.check_collision("dummy_sphere", "robot", margin=0.05),
-            #              self.check_collision("dummy_sphere", "table", margin=0.05)]
+            collision = [self.check_collision("dummy_target", obj, margin=margin) for obj in coll_obj]
+            # collision = [self.check_collision("dummy_target", "robot", margin=0.05),
+            #              self.check_collision("dummy_target", "table", margin=0.05)]
 
             # for obstacle in self.obstacles:
-            #     collision.append(self.check_collision("dummy_sphere", obstacle))
+            #     collision.append(self.check_collision("dummy_target", obstacle))
             #     if any(collision):
             #         self.goal = self._sample_goal()
             #         break
@@ -1178,16 +1181,16 @@ class ReachAO(Task):
                 self.sim.set_base_pose(obstacle, pos, np.array([0.0, 0.0, 0.0, 1.0]))
                 collision = [self.check_collision("robot", obstacle, margin=margin + self.config.safety_distance),
                              self.check_collision("table", obstacle, margin=margin),
-                             self.check_collision("dummy_sphere", obstacle, margin=margin)]
+                             self.check_collision("dummy_target", obstacle, margin=margin)]
                 if not self.allow_overlapping_obstacles:
                     # avoid collision with other obstacles
                     obs_collision = [self.check_collision(i, obstacle) if i is not obstacle else False
                                      for i in self.obstacles.keys()]
                     collision.extend(obs_collision)
                     # check if out of boundaries
-                    self.sim.set_base_pose("dummy_sphere", np.array([0.0, 0.0, 0.0]),
+                    self.sim.set_base_pose("dummy_target", np.array([0.0, 0.0, 0.0]),
                                            np.array([0.0, 0.0, 0.0, 1.0]))  # move dummy to origin
-                    collision.append(not self.check_collision("dummy_sphere", obstacle, margin=1.0))
+                    collision.append(not self.check_collision("dummy_target", obstacle, margin=1.0))
 
             # else:
             #     if pos is not None:

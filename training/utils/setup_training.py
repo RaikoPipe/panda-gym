@@ -36,7 +36,7 @@ import panda_gym
 
 from dataclasses import asdict
 
-from model_utils.load_model_utils import get_group_model_paths
+from model_utils.load_model_utils import get_group_model_paths, get_group_replay_buffer_paths
 
 def get_algorithm_class(algorithm):
     match algorithm:
@@ -219,11 +219,16 @@ def learn(config: TrainConfig, pretrained_model_name=None,
 
     else:
         # get first model from group name
-        path = get_group_model_paths(pretrained_model_name)[0]
+        model_path = get_group_model_paths(pretrained_model_name)[0]
+        replay_buffer_path = get_group_replay_buffer_paths(pretrained_model_name)[0]
         # load model
         model = (get_algorithm_class(config.algorithm)
-                 .load(path, env=get_env(config, config.stages[0], config.ee_error_thresholds[0],
+                 .load(model_path, env=get_env(config, config.stages[0], config.ee_error_thresholds[0],
                                            config.speed_thresholds[0])))
+
+        # load replay buffer
+        model.load_replay_buffer(replay_buffer_path)
+
         # change seed
         model.set_random_seed(config.seed)
 
@@ -340,14 +345,15 @@ def train_model(config, iteration, model, run):
         model.save(f"{run.dir}/model_{stage}_{iteration}")
         wandb.save(f"{run.dir}/model_{stage}_{iteration}.zip")
 
+        # save replay buffer
+        model.save_replay_buffer(f"{run.dir}/replay_buffer")
+
         # close eval environments
         if eval_training_env:
             eval_training_env.close()
         if config.n_benchmark_eval_episodes > 0:
             for eval_benchmark_env in eval_benchmark_envs:
                 eval_benchmark_env.close()
-
-    wandb.save(f"{run.dir}/best_model.zip")
 
     return model
 
