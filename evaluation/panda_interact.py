@@ -14,7 +14,7 @@ configuration.show_debug_labels = True
 configuration.show_goal_space = True
 configuration.debug_collision = False
 
-scenario = "reachao3_rand_start"
+scenario = "exp-10"
 
 # get env
 env = gym.make(configuration.env_name,
@@ -50,7 +50,7 @@ while True:
     camera = pybullet.getDebugVisualizerCamera()
     print(
         f"cameraTargetPosition = {camera[11]}\ncameraDistance = {camera[10]} \ncameraPitch = {camera[9]}\ncameraYaw = {camera[8]}", flush=True)
-    #time.sleep(0.5)
+    time.sleep(5)
     env.reset()
     joint_angles = np.array([robot.get_joint_angle(joint=i) for i in range(7)])
     joint_angle_string = ", ".join([f"{angle:.3f}" for angle in joint_angles])

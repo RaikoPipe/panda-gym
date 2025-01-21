@@ -428,7 +428,7 @@ trained_models = {
 if __name__ == "__main__":
     eval_type = "base_eval"  # optimized; basic
 
-    ensemble = "benchmark-eval-400-300"
+    ensemble = "tqc_default"
 
     evaluation_scenarios = ["exp-20"]#, "library1", "workshop2", "library2", "narrow_tunnel", "workshop"]
 

@@ -655,34 +655,20 @@ class ReachAO(Task):
             sample = self.sample_sphere(0.3, 0.6, True)
             return sample + self.robot.get_link_position(0)
 
-    def sample_obstacle_experimental(self, front_half_only=False, upper_half_only=False):
-        rand = self.np_random.random()
-        if rand > 0.5:
-            # sample near goal
-            sample = self.sample_sphere(0.1, 0.5, upper_half_only, front_half_only)
-            return sample + self.goal
-        else:
-            # sample near ee
-            sample = self.sample_sphere(0.1, 0.5, upper_half_only, front_half_only)
-            return self.robot.get_ee_position() + sample
+    #def sample_obstacle_experimental(self, front_half_only=False, upper_half_only=False):
+    #    rand = self.np_random.random()
+    #    if rand > 0.5:
+    #        # sample near goal
+    #        sample = self.sample_sphere(0.1, 0.5, upper_half_only, front_half_only)
+    #        return sample + self.goal
+    #    else:
+    #        # sample near ee
+    #        sample = self.sample_sphere(0.1, 0.5, upper_half_only, front_half_only)
+    #        return self.robot.get_ee_position() + sample
 
     def create_scenario_wang(self):
         goal_radius_minor = 0.4
         goal_radius_major = 0.95
-
-        def sample_wang_obstacle():
-
-            if self.np_random.random() > 0.3:
-                # move to goal
-                sample = self.sample_sphere(0.2, 0.6)
-                return sample + self.goal
-            else:
-                sample = self.sample_sphere(0.2, 0.4)
-                return self.robot.get_ee_position() + sample
-            # else:
-            #     # sample near base
-            #     sample = self.sample_sphere(0.3,0.5, True)
-            #     return sample + self.robot.get_link_position(0)
 
         num_spheres = int(self.scenario.split(sep="-")[1])
 
@@ -691,7 +677,7 @@ class ReachAO(Task):
 
         self.robot_pose_randomizer = lambda: self.set_robot_random_pose(self.sample_inside_torus)
 
-        self._sample_obstacle = lambda: sample_wang_obstacle()
+        self._sample_obstacle = lambda: self.sample_obstacle_wang()
         self._sample_goal = sample_wang_goal
 
         self.randomize_obstacle_position = True
@@ -744,7 +730,7 @@ class ReachAO(Task):
 
         for i in range(num_obstacles):
             # self.create_obstacle_cuboid(size=self.cube_size_large)
-            self.create_obstacle_sphere(radius=0.05)
+            self.create_obstacle_sphere(radius=0.02)
 
     def create_showcase(self):
         goal_radius_minor = 0.4
