@@ -596,7 +596,7 @@ class ReachAO(Task):
 
         self._sample_goal = lambda: self.sample_sphere(goal_radius_minor, goal_radius_major,
                                                        upper_half_only=True)
-        self._sample_obstacle = lambda: self.sample_reachao_obstacle()
+        self._sample_obstacle = lambda: self.sample_obstacle_wang()
         for i in range(3):
             self.create_obstacle_sphere(radius=0.05)
 
@@ -744,7 +744,7 @@ class ReachAO(Task):
 
         for i in range(num_obstacles):
             # self.create_obstacle_cuboid(size=self.cube_size_large)
-            self.create_obstacle_sphere(radius=0.01)
+            self.create_obstacle_sphere(radius=0.05)
 
     def create_showcase(self):
         goal_radius_minor = 0.4
