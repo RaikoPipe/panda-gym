@@ -103,7 +103,7 @@ if __name__ == "__main__":
         # success_thresholds=[1.0],
         # ee_error_thresholds=[0.05],
         # max_ep_steps=[100],
-        max_timesteps=1_000_000,
+        max_timesteps=5_000_000,
         n_envs=args.n_envs,  # Parallel environments
         n_eval_envs=args.n_eval_envs,
         n_benchmark_eval_episodes=100,
@@ -117,10 +117,10 @@ if __name__ == "__main__":
     train_config.hyperparams = hyperparams
 
     if args.pretrained_model:
-        train_config.stages = ["reachao3_rand_start"]
+        train_config.stages = ["reachao3"]
         train_config.success_thresholds = [1.0]
         train_config.ee_error_thresholds = [0.05]
-        train_config.max_ep_steps = [150]
+        train_config.max_ep_steps = [100]
 
     train_model(seeds=args.seeds, configs=[train_config], pretrained_model_name=args.pretrained_model)
 
