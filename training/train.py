@@ -45,6 +45,7 @@ parser.add_argument("--pretrained_model", type=str, default=None, help="Pretrain
 parser.add_argument("--algorithm", type=str, default="TQC", help="Algorithm to train")
 parser.add_argument("--group", type=str, default="default", help="Group name for wandb")
 parser.add_argument("--name", type=str, default="default", help="Name for run")
+parser.add_argument("--max_timesteps", type=int, default=1_000_000, help="Maximum number of timesteps")
 
 args = parser.parse_args()
 
@@ -103,7 +104,7 @@ if __name__ == "__main__":
         # success_thresholds=[1.0],
         # ee_error_thresholds=[0.05],
         # max_ep_steps=[100],
-        max_timesteps=5_000_000,
+        max_timesteps=args.max_timesteps,
         n_envs=args.n_envs,  # Parallel environments
         n_eval_envs=args.n_eval_envs,
         n_benchmark_eval_episodes=100,
