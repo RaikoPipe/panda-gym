@@ -346,7 +346,7 @@ def train_model(config, iteration, model, run):
         wandb.save(f"{run.dir}/model_{stage}_{iteration}.zip")
 
         # save replay buffer
-        model.save_replay_buffer(f"{run.dir}/replay_buffer")
+        # model.save_replay_buffer(f"{run.dir}/replay_buffer")
 
         # close eval environments
         if eval_training_env:
