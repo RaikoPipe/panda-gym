@@ -9,16 +9,16 @@ class Hyperparameters:
     def __init__(self, algorithm: str = "TQC"):
 
         if algorithm == "TQC":
-            self.learning_rate = 7.3e-4
+            self.learning_rate = 0.0007
             self.gamma = 0.98
             self.tau = 0.02
-            self.buffer_size = 1_000_000
+            self.buffer_size = 300_000
             self.batch_size = 256
             self.gradient_steps = 8
             self.train_freq = 8
             self.ent_coef = "auto"
             self.use_sde = True
-            self.top_quantiles_to_drop_per_net = 5
+            #self.top_quantiles_to_drop_per_net = 5
             self.policy_kwargs = dict(log_std_init=-3, net_arch=[256, 256])
         elif algorithm == "TQC-exp": # mix of tuned TQC fetchPush some research findings
             self.learning_rate = 1e-3
