@@ -169,6 +169,7 @@ def perform_benchmark(models, env, human=True, num_episodes=1000, deterministic=
 
                     distribution_std = model.actor.action_dist.distribution.stddev.squeeze().cpu().detach().numpy()
                     distribution_variance = model.actor.action_dist.distribution.variance.squeeze().cpu().detach().numpy()
+
                     actions.append(action)
                     variances.append(distribution_variance)
                     distribution_variances.append(np.sum(distribution_variance))
@@ -428,7 +429,7 @@ trained_models = {
 if __name__ == "__main__":
     eval_type = "base_eval"  # optimized; basic
 
-    ensemble = "tqc_default"
+    ensemble = "benchmark-eval-400-300"
 
     evaluation_scenarios = ["exp-20"]#, "library1", "workshop2", "library2", "narrow_tunnel", "workshop"]
 

@@ -596,7 +596,7 @@ class ReachAO(Task):
 
         self._sample_goal = lambda: self.sample_sphere(goal_radius_minor, goal_radius_major,
                                                        upper_half_only=True)
-        self._sample_obstacle = lambda: self.sample_obstacle_wang()
+        self._sample_obstacle = lambda: self.sample_reachao_obstacle()
         for i in range(3):
             self.create_obstacle_sphere(radius=0.05)
 
