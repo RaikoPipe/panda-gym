@@ -9,7 +9,7 @@ from classes.train_config import TrainConfig
 
 sys.modules["gym"] = gymnasium
 
-from sb3_contrib import TQC
+from sbx import TQC
 
 import numpy as np
 #from training.train import configuration
@@ -28,7 +28,6 @@ import pybullet
 from evaluation.ensemble_utils import action_selection
 from model_utils import load_model_utils
 from classes.train_config import TrainConfig
-import yaml
 
 def fuse_controllers(prior_mu, prior_sigma, policy_mu, policy_sigma):
     # The policy mu and sigma are from the stochastic SAC output
@@ -165,15 +164,24 @@ def perform_benchmark(models, env, human=True, num_episodes=1000, deterministic=
             else:
                 # get rl action distribution
                 for model in models:
-                    action, _states = model.predict(obs, deterministic=deterministic)
+                    actor_state = model.policy.actor_state
+                    jax_obs, _ = model.policy.prepare_obs(obs)
+                    dist = actor_state.apply_fn(actor_state.params, jax_obs)
 
-                    distribution_std = model.actor.action_dist.distribution.stddev.squeeze().cpu().detach().numpy()
-                    distribution_variance = model.actor.action_dist.distribution.variance.squeeze().cpu().detach().numpy()
+                    # get mean and std
+                    std = np.array(dist.distribution.stddev().squeeze())
+                    variance = np.array(dist.distribution.variance().squeeze())
+
+                    # get the deterministic action
+                    action, _ = model.predict(obs, deterministic=deterministic)
+
+                    #distribution_std = model.actor.action_dist.distribution.stddev.squeeze().cpu().detach().numpy()
+                    #distribution_variance = model.actor.action_dist.distribution.variance.squeeze().cpu().detach().numpy()
 
                     actions.append(action)
-                    variances.append(distribution_variance)
-                    distribution_variances.append(np.sum(distribution_variance))
-                    distribution_stds.append(distribution_std)
+                    variances.append(variance)
+                    distribution_variances.append(np.sum(variance))
+                    distribution_stds.append(std)
 
             if strategy == "mean_actions":
                 action = action_selection.mean(actions)
@@ -429,11 +437,11 @@ trained_models = {
 if __name__ == "__main__":
     eval_type = "base_eval"  # optimized; basic
 
-    ensemble = "benchmark-eval-400-300"
+    ensemble = "tqc_default"
 
-    evaluation_scenarios = ["exp-20"]#, "library1", "workshop2", "library2", "narrow_tunnel", "workshop"]
+    evaluation_scenarios = ["narrow_tunnel"]#, "library1", "workshop2", "library2", "narrow_tunnel", "workshop"]
 
-    evaluate_ensemble(ensemble, human=True, eval_type="base_eval", strategy="weighted_aggregation",
+    evaluate_ensemble(ensemble, human=True, eval_type="base_eval", strategy="bayesian_fusion",
                       num_episodes=200, evaluation_scenarios=evaluation_scenarios)
 
     # evaluate_prior(human=False, eval_type=eval_type)

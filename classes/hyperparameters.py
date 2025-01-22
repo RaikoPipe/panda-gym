@@ -18,7 +18,7 @@ class Hyperparameters:
             self.train_freq = 8
             self.ent_coef = "auto"
             self.use_sde = True
-            #self.top_quantiles_to_drop_per_net = 5
+            self.top_quantiles_to_drop_per_net = 5
             self.policy_kwargs = dict(log_std_init=-3, net_arch=[256, 256])
         elif algorithm == "TQC-exp": # mix of tuned TQC fetchPush some research findings
             self.learning_rate = 1e-3

@@ -10,7 +10,7 @@ def bayesian_fusion(agent_means, agent_variances):
     :return: Tuple containing fused mean and variance of shape (action_dim,)
     """
     # Compute precision (inverse of variance)
-    precisions = 1.0 / (agent_variances + 1e-8)  # Add small epsilon to avoid division by zero
+    precisions = 1.0 / np.array(agent_variances) # Add small epsilon to avoid division by zero
 
     # Compute fused precision
     fused_precision = np.sum(precisions, axis=0)
@@ -35,10 +35,9 @@ def weighted_aggregation(agent_variances, agent_means):
 
 
 def mean(agent_means):
-    return np.mean(agent_means, axis=0)
-
+    return np.mean(np.array(agent_means), axis=0)
 
 def confidence(agent_means, agent_variances):
-    min_variance = min(agent_variances)
+    min_variance = np.array(agent_variances).min()
     action_sovereignty = agent_variances.index(min_variance)
     return agent_means[action_sovereignty], action_sovereignty
