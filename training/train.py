@@ -95,7 +95,7 @@ if __name__ == "__main__":
 
     hyperparams = Hyperparameters(algorithm=algorithm)
     hyperparams.batch_size = args.batch_size
-    hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=[400,300])
+    hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=dict(pi=[512,512], qf=[2048, 2048]))
     #hyperparams.buffer_size = 300_000
 
     train_config = TrainConfig(
