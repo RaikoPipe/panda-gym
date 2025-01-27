@@ -116,9 +116,9 @@ if __name__ == "__main__":
     train_config.hyperparams = hyperparams
 
     if args.pretrained_model:
-        train_config.stages = ["exp-10"]
+        train_config.stages = ["reachao3"]
         train_config.success_thresholds = [1.0]
-        train_config.ee_error_thresholds = [0.05]
+        train_config.ee_error_thresholds = [0.01]
         train_config.max_ep_steps = [200]
 
     train_model(seeds=args.seeds, configs=[train_config], pretrained_model_name=args.pretrained_model)
