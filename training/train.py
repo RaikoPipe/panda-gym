@@ -111,7 +111,12 @@ if __name__ == "__main__":
         eval_freq=20_000,
         benchmark_eval_freq=50_000,
         algorithm=algorithm,
-        learning_starts=10000
+        learning_starts=10000,
+        # advanced curriculum
+        stages = ["reachao1", "reachao2", "reachao3", "exp-10"],
+        success_thresholds = [0.9,0.9,0.9,1.0],
+        max_ep_steps = [50,75,100,200],
+        ee_error_thresholds=[0.05, 0.05, 0.05, 0.05],
     )
 
     train_config.hyperparams = hyperparams
