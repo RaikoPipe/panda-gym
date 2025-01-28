@@ -919,3 +919,62 @@ class PyBullet:
             linkIndex=link,
             spinningFriction=spinning_friction,
         )
+
+    def create_mesh(
+            self,
+            body_name: str,
+            mesh,
+            mass: float,
+            position: np.ndarray,
+            rgba_color: Optional[np.ndarray] = None,
+            specular_color: Optional[np.ndarray] = None,
+            ghost: bool = False,
+            lateral_friction: Optional[float] = None,
+            spinning_friction: Optional[float] = None,
+            physics_client=None,
+    ):
+        """
+        Convert trimesh to PyBullet collision shape without file I/O
+
+        Args:
+            mesh: Trimesh object
+            client_id: PyBullet client ID
+        Returns:
+            collision_shape_id: PyBullet collision shape ID
+        """
+
+        rgba_color = rgba_color if rgba_color is not None else np.zeros(4)
+        specular_color = specular_color if specular_color is not None else np.zeros(3)
+
+        # Get mesh data
+        vertices = mesh.vertices.astype(np.float32)
+        indices = mesh.faces.flatten().astype(np.int32)
+
+        visual_kwargs = {
+            "mesh": mesh,
+            "specularColor": specular_color,
+            "rgbaColor": rgba_color,
+        }
+        collision_kwargs = {
+            "shapeType" : p.GEOM_MESH,
+        "vertices" : vertices,
+        "indices" : indices,
+        }
+
+        if physics_client is None:
+            physics_client = self.physics_client
+
+        idx = self._create_geometry(
+            body_name,
+            geom_type=physics_client.GEOM_SPHERE,
+            mass=mass,
+            position=position,
+            ghost=ghost,
+            lateral_friction=lateral_friction,
+            spinning_friction=spinning_friction,
+            visual_kwargs=visual_kwargs,
+            collision_kwargs=collision_kwargs,
+            physics_client=physics_client
+        )
+
+        return idx

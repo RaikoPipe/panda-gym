@@ -63,11 +63,12 @@ def train_model_parallel(configs, seeds=None, pretrained_model_name=None):
 
     processes = []
     for config in configs:
+        config_name = config.name
         if seeds is None:
             seeds = [0]
 
         for seed in seeds:
-            config.name = f'{config.name}_{seed}'
+            config.name = f'{config_name}_{seed}'
 
             config.seed = seed
 
