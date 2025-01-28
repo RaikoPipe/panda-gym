@@ -95,7 +95,8 @@ if __name__ == "__main__":
 
     hyperparams = Hyperparameters(algorithm=algorithm)
     hyperparams.batch_size = args.batch_size
-    hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=dict(pi=[512,512], qf=[2048, 2048]))
+    hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=dict(pi=[400,300], qf=[1024, 1024]))
+    hyperparams.gradient_steps = 20
     #hyperparams.buffer_size = 300_000
 
     train_config = TrainConfig(
@@ -118,7 +119,7 @@ if __name__ == "__main__":
     if args.pretrained_model:
         train_config.stages = ["reachao3"]
         train_config.success_thresholds = [1.0]
-        train_config.ee_error_thresholds = [0.01]
+        train_config.ee_error_thresholds = [0.05]
         train_config.max_ep_steps = [200]
 
     train_model(seeds=args.seeds, configs=[train_config], pretrained_model_name=args.pretrained_model)
