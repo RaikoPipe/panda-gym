@@ -58,6 +58,26 @@ def optimize_env(env):
         env.num_envs = int(os.environ.get('SLURM_CPUS_PER_TASK', '32'))
     return env
 
+def train_model_parallel(configs, seeds=None, pretrained_model_name=None):
+    mp.set_start_method('spawn')
+
+    processes = []
+    for config in configs:
+        if seeds is None:
+            seeds = [0]
+
+        for seed in seeds:
+            config.name = f'{config.name}_{seed}'
+
+            config.seed = seed
+
+            process = mp.Process(target=learn, args=(config, pretrained_model_name))
+            process.start()
+            processes.append(process)
+
+    for process in processes:
+        process.join()
+
 
 def train_model(configs, seeds=None, pretrained_model_name=None):
     for config in configs:
@@ -113,10 +133,10 @@ if __name__ == "__main__":
         algorithm=algorithm,
         learning_starts=10000,
         # advanced curriculum
-        stages = ["reachao1", "reachao2", "reachao3", "exp-10"],
-        success_thresholds = [0.9,0.9,0.9,1.0],
-        max_ep_steps = [50,75,100,200],
-        ee_error_thresholds=[0.05, 0.05, 0.05, 0.05],
+        #stages = ["reachao1", "reachao2", "reachao3", "exp-10"],
+        #success_thresholds = [0.9,0.9,0.9,1.0],
+        #max_ep_steps = [50,75,100,200],
+        #ee_error_thresholds=[0.05, 0.05, 0.05, 0.05],
     )
 
     train_config.hyperparams = hyperparams
@@ -127,7 +147,7 @@ if __name__ == "__main__":
         train_config.ee_error_thresholds = [0.05]
         train_config.max_ep_steps = [200]
 
-    train_model(seeds=args.seeds, configs=[train_config], pretrained_model_name=args.pretrained_model)
+    train_model_parallel(seeds=args.seeds, configs=[train_config], pretrained_model_name=args.pretrained_model)
 
     # Configure buffer size based on available memory
     # total_memory_gb = torch.cuda.get_device_properties(0).total_memory / 1024 ** 3
