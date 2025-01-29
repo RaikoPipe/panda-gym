@@ -710,7 +710,7 @@ class ReachAO(Task):
     def create_scenario_experimental(self):
         """Scenario for trying out different variations of wang"""
         goal_radius_minor = 0.3
-        goal_radius_major = 0.8
+        goal_radius_major = 0.95
 
         num_obstacles = int(self.scenario.split(sep="-")[1])
 

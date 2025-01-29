@@ -148,7 +148,7 @@ if __name__ == "__main__":
         train_config.ee_error_thresholds = [0.05]
         train_config.max_ep_steps = [200]
 
-    train_model_parallel(seeds=args.seeds, configs=[train_config], pretrained_model_name=args.pretrained_model)
+    train_model(seeds=args.seeds, configs=[train_config], pretrained_model_name=args.pretrained_model)
 
     # Configure buffer size based on available memory
     # total_memory_gb = torch.cuda.get_device_properties(0).total_memory / 1024 ** 3
