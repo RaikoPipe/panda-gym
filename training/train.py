@@ -4,6 +4,8 @@ import time
 
 import gymnasium
 import torch.multiprocessing as mp
+from stable_baselines3 import HerReplayBuffer
+from stable_baselines3.common.buffers import DictReplayBuffer
 
 sys.modules["gym"] = gymnasium
 
@@ -47,6 +49,8 @@ parser.add_argument("--group", type=str, default="default", help="Group name for
 parser.add_argument("--name", type=str, default="default", help="Name for run")
 parser.add_argument("--max_timesteps", type=int, default=1_000_000, help="Maximum number of timesteps")
 parser.add_argument("--batch_size", type=int, default=256, help="Batch size for training")
+parser.add_argument("--reward_type", type=str, default="sparse", help="Reward type")
+parser.add_argument("--replay_buffer_class", type=str, default="ReplayBuffer", help="Replay buffer class")
 
 args = parser.parse_args()
 
@@ -112,18 +116,18 @@ if __name__ == "__main__":
 
     wandb.login(key=os.getenv("wandb_key"))
 
-    algorithm = args.algorithm
-
-    hyperparams = Hyperparameters(algorithm=algorithm)
+    hyperparams = Hyperparameters(algorithm=args.algorithm)
     hyperparams.batch_size = args.batch_size
     hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=dict(pi=[400,300], qf=[1024, 1024]))
     hyperparams.gradient_steps = 20
     #hyperparams.buffer_size = 300_000
 
+    replay_buffer_class = HerReplayBuffer if args.replay_buffer_class == "HerReplayBuffer" else DictReplayBuffer
+
     train_config = TrainConfig(
         group=args.group,
         job_type="train",
-        name=f"{args.name}-{algorithm}",
+        name=f"{args.name}-{args.algorithm}",
         max_timesteps=args.max_timesteps,
         n_envs=args.n_envs,  # Parallel environments
         n_eval_envs=args.n_eval_envs,
@@ -131,13 +135,15 @@ if __name__ == "__main__":
         n_eval_episodes=100,
         eval_freq=20_000,
         benchmark_eval_freq=50_000,
-        algorithm=algorithm,
+        algorithm=args.algorithm,
         learning_starts=10000,
         # advanced curriculum
         #stages = ["reachao1", "reachao2", "reachao3", "exp-10"],
         #success_thresholds = [0.9,0.9,0.9,1.0],
         #max_ep_steps = [50,75,100,200],
         #ee_error_thresholds=[0.05, 0.05, 0.05, 0.05],
+        reward_type=args.reward_type,
+        replay_buffer_class=replay_buffer_class,
     )
 
     train_config.hyperparams = hyperparams

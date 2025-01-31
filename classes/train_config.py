@@ -12,7 +12,7 @@ class TrainConfig:
 
     # learning settings
     algorithm: str = 'TQC'
-    replay_buffer_class: object = HerReplayBuffer
+    replay_buffer_class: object = Her
     policy_type: str = 'MultiInputPolicy'
     learning_starts: int = 10000
     prior_steps: int = 0

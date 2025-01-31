@@ -437,11 +437,11 @@ trained_models = {
 if __name__ == "__main__":
     eval_type = "base_eval"  # optimized; basic
 
-    ensemble = "tqc_default"
+    ensemble = "finetune"
 
-    evaluation_scenarios = ["narrow_tunnel"]#, "library1", "workshop2", "library2", "narrow_tunnel", "workshop"]
+    evaluation_scenarios = ["workshop2"]#, "library1", "workshop2", "library2", "narrow_tunnel", "workshop"]
 
-    evaluate_ensemble(ensemble, human=True, eval_type="base_eval", strategy="bayesian_fusion",
+    evaluate_ensemble(ensemble, human=True, eval_type="base_eval", strategy="weighted_aggregation",
                       num_episodes=200, evaluation_scenarios=evaluation_scenarios)
 
     # evaluate_prior(human=False, eval_type=eval_type)
