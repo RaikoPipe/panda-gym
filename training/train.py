@@ -120,6 +120,7 @@ if __name__ == "__main__":
     hyperparams.batch_size = args.batch_size
     hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=dict(pi=[400,300], qf=[1024, 1024]))
     hyperparams.gradient_steps = 20
+    hyperparams.train_freq = args.n_envs
     #hyperparams.buffer_size = 300_000
 
     replay_buffer_class = HerReplayBuffer if args.replay_buffer_class == "HerReplayBuffer" else DictReplayBuffer
