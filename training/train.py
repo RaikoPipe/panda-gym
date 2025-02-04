@@ -6,6 +6,7 @@ import gymnasium
 import torch.multiprocessing as mp
 from stable_baselines3 import HerReplayBuffer
 from stable_baselines3.common.buffers import DictReplayBuffer
+from torch.optim.adamw import adamw
 
 sys.modules["gym"] = gymnasium
 
@@ -17,6 +18,7 @@ from classes.train_config import TrainConfig
 from classes.hyperparameters import Hyperparameters
 
 import torch
+import optax
 
 import argparse
 
@@ -111,7 +113,7 @@ if __name__ == "__main__":
 
     hyperparams = Hyperparameters(algorithm=args.algorithm)
     hyperparams.batch_size = args.batch_size
-    #hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=dict(pi=[400,300], qf=[1024, 1024]))
+    hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=dict(pi=[128], qf=[256, 256]), optimizer_class=optax.adamw)
     hyperparams.gradient_steps = 8
     #hyperparams.buffer_size = 300_000
 
@@ -140,13 +142,15 @@ if __name__ == "__main__":
     )
 
     train_config.hyperparams = hyperparams
+    train_config.normalize = {"norm_obs": True,
+                              "norm_reward": False},  # important: input normalization using vecnormalize
 
     if args.pretrained_model:
         train_config.stages = ["exp-10"]
         train_config.success_thresholds = [1.0]
         train_config.ee_error_thresholds = [0.05]
         train_config.max_ep_steps = [200]
-
+    train_config.policy_type = "SimbaPolicy"
     train_model(seeds=args.seeds, configs=[train_config], pretrained_model_name=args.pretrained_model)
 
     # Configure buffer size based on available memory
