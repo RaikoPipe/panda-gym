@@ -22,13 +22,6 @@ import argparse
 
 from multiprocessing import set_start_method
 
-# CUDA and PyTorch optimizations
-torch.backends.cuda.matmul.allow_tf32 = True
-torch.backends.cudnn.allow_tf32 = True
-torch.backends.cudnn.benchmark = True  # Enable cudnn autotuner
-torch.backends.cudnn.deterministic = False  # Better performance
-torch.set_float32_matmul_precision('high')
-
 # Enable multi-GPU if available
 if torch.cuda.device_count() > 1:
     torch.cuda.set_device(0)  # Use primary GPU
@@ -50,7 +43,7 @@ parser.add_argument("--name", type=str, default="default", help="Name for run")
 parser.add_argument("--max_timesteps", type=int, default=1_000_000, help="Maximum number of timesteps")
 parser.add_argument("--batch_size", type=int, default=256, help="Batch size for training")
 parser.add_argument("--reward_type", type=str, default="sparse", help="Reward type")
-parser.add_argument("--replay_buffer_class", type=str, default="ReplayBuffer", help="Replay buffer class")
+parser.add_argument("--replay_buffer_class", type=str, default="HerReplayBuffer", help="Replay buffer class")
 
 args = parser.parse_args()
 
@@ -118,9 +111,8 @@ if __name__ == "__main__":
 
     hyperparams = Hyperparameters(algorithm=args.algorithm)
     hyperparams.batch_size = args.batch_size
-    hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=dict(pi=[400,300], qf=[1024, 1024]))
-    hyperparams.gradient_steps = 1
-    hyperparams.train_freq = 1
+    #hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=dict(pi=[400,300], qf=[1024, 1024]))
+    hyperparams.gradient_steps = 8
     #hyperparams.buffer_size = 300_000
 
     replay_buffer_class = HerReplayBuffer if args.replay_buffer_class == "HerReplayBuffer" else DictReplayBuffer
