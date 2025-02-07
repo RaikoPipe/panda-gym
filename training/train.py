@@ -113,7 +113,7 @@ if __name__ == "__main__":
 
     hyperparams = Hyperparameters(algorithm=args.algorithm)
     hyperparams.batch_size = args.batch_size
-    hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=dict(pi=[256], qf=[512, 512]), optimizer_class=optax.adamw)
+    #hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=dict(pi=[256], qf=[512, 512]), optimizer_class=optax.adamw)
     hyperparams.gradient_steps = 8
     #hyperparams.buffer_size = 300_000
 
@@ -133,24 +133,24 @@ if __name__ == "__main__":
         algorithm=args.algorithm,
         learning_starts=10000,
         # advanced curriculum
-        #stages = ["reachao1", "reachao2", "reachao3", "exp-10"],
-        #success_thresholds = [0.9,0.9,0.9,1.0],
-        #max_ep_steps = [50,75,100,200],
-        #ee_error_thresholds=[0.05, 0.05, 0.05, 0.05],
+        stages = ["reachao1", "reachao2", "reachao3", "exp-10"],
+        success_thresholds = [0.9,0.9,1.0,1.0],
+        max_ep_steps = [50,75,100,200],
+        ee_error_thresholds=[0.05, 0.05, 0.05, 0.05],
         reward_type=args.reward_type,
         replay_buffer_class=replay_buffer_class,
     )
 
     train_config.hyperparams = hyperparams
-    train_config.normalize = {"norm_obs": True,
-                              "norm_reward": False},  # important: input normalization using vecnormalize
+    #train_config.normalize = {"norm_obs": True,
+    #                          "norm_reward": False},  # important: input normalization using vecnormalize
 
     if args.pretrained_model:
         train_config.stages = ["exp-10"]
         train_config.success_thresholds = [1.0]
         train_config.ee_error_thresholds = [0.05]
         train_config.max_ep_steps = [200]
-    train_config.policy_type = "SimbaPolicy"
+    #train_config.policy_type = "SimbaPolicy"
     train_model(seeds=args.seeds, configs=[train_config], pretrained_model_name=args.pretrained_model)
 
     # Configure buffer size based on available memory
