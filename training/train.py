@@ -113,7 +113,7 @@ if __name__ == "__main__":
 
     hyperparams = Hyperparameters(algorithm=args.algorithm)
     hyperparams.batch_size = args.batch_size
-    #hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=dict(pi=[256], qf=[512, 512]), optimizer_class=optax.adamw)
+    hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=dict(pi=[128], qf=[256, 256]), optimizer_class=optax.adamw)
     hyperparams.gradient_steps = 8
     #hyperparams.buffer_size = 300_000
 
