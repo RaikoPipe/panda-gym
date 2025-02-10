@@ -139,7 +139,7 @@ def get_model(config, run):
     model = algorithm_type(
         config.policy_type,
         env=get_env(config, config.stages[0], config.ee_error_thresholds[0], config.speed_thresholds[0]),
-        verbose=1, seed=config.seed,
+        verbose=0, seed=config.seed,
         tensorboard_log=f"runs/{run.id}", device=device,
         replay_buffer_class=config.replay_buffer_class,
         learning_starts=config.learning_starts,

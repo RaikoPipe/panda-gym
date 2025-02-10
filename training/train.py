@@ -133,10 +133,10 @@ if __name__ == "__main__":
         algorithm=args.algorithm,
         learning_starts=10000,
         # advanced curriculum
-        stages = ["reachao1", "reachao2", "reachao3", "exp-10"],
-        success_thresholds = [0.9,0.9,1.0,1.0],
-        max_ep_steps = [50,75,100,200],
-        ee_error_thresholds=[0.05, 0.05, 0.05, 0.05],
+        # stages = ["reachao1", "reachao2", "reachao3", "exp-10"],
+        # success_thresholds = [0.9,0.9,1.0,1.0],
+        # max_ep_steps = [50,75,100,200],
+        # ee_error_thresholds=[0.05, 0.05, 0.05, 0.05],
         reward_type=args.reward_type,
         replay_buffer_class=replay_buffer_class,
     )
