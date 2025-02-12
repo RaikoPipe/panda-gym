@@ -16,8 +16,8 @@ sys.modules["gym"] = gymnasium
 from typing import Optional
 import numpy as np
 from stable_baselines3 import HerReplayBuffer
-from sbx import SAC, TD3, CrossQ, PPO, DDPG#, TQC
-from sb3_contrib import TQC
+from sbx import SAC, TD3, CrossQ, PPO, DDPG, TQC
+#from sb3_contrib import TQC
 from sb3_extensions.replay_buffers import CustomHerReplayBuffer
 from sb3_extensions.callbacks import RecordCustomMetricsCallback, StopTrainingOnSuccessThreshold, EvalSuccessCallback, \
     ResourceMonitorCallback, PeriodicSaveCallback

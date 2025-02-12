@@ -109,11 +109,13 @@ class ReachAO(Task):
         self.allow_overlapping_obstacles = False
 
         # extra observations
-        self.distances_closest_obstacles = np.zeros(len(self.collision_links))
         self.is_collided = False
         self.action_magnitude = 0
         self.action_diff = 0
         self.manipulability = 0
+        self.jerk = 0
+        self.effort = 0
+        self.action_diff = 0
 
         # default visual settings (on render)
         self.cameraTargetPosition = (0.06289377063512802, 0.05091303586959839, 0.27599984407424927)
@@ -1326,11 +1328,6 @@ class ReachAO(Task):
     def compute_reward(self, achieved_goal, desired_goal, info: Dict[str, Any]) -> np.ndarray:
         ee_error = distance(achieved_goal, desired_goal)
         ee_speed = np.linalg.norm(self.robot.get_ee_velocity())
-        manipulability = self.robot.get_manipulability()
-        obs_distance = self.distances_closest_obstacles
-        action_diff = self.get_norm_action_difference()
-        effort = self.get_norm_effort()
-        jerk = self.get_norm_jerk()
 
         if self.config.reward_type == "sparse":
             if self.config.goal_condition == "reach":
@@ -1347,28 +1344,34 @@ class ReachAO(Task):
             # IPPO reward
             distance_reward = weight_distance * np.square(ee_error) + np.log(
                 np.square(ee_error) + tolerance_distance)
-            obstacle_reward = weight_obs * np.sum([np.max([0, 1 - d / 0.05]) for d in obs_distance])
+            obs_distance_per_link = self.collision_detector.get_distances_per_link(max_distance=999.0)
+            obstacle_reward = weight_obs * np.sum([np.max([0, 1 - d / 0.05]) for d in obs_distance_per_link])
             reward = -np.array(distance_reward + obstacle_reward, dtype=np.float32)
         elif self.config.reward_type == "kumar_her":
+            self.jerk = self.get_norm_jerk()
             if self.config.goal_condition == "reach":
-                reward = -np.array((ee_error > self.ee_error_threshold) * jerk, dtype=np.float32)
+                reward = -np.array((ee_error > self.ee_error_threshold) * self.jerk, dtype=np.float32)
             else:
                 reward = np.array(np.logical_and((ee_error < self.ee_error_threshold),
                                                  (ee_speed < self.ee_speed_threshold)), dtype=np.float32)
-                reward -= jerk
+                reward -= self.jerk
         elif self.config.reward_type == "kumar_optim":
+            self.effort = self.get_norm_effort()
             weight_effort = 0.005
             reward = -np.array((ee_error > self.ee_error_threshold), dtype=np.float32)
-            reward -= effort
+            reward -= self.effort
 
         elif self.config.reward_type == "kumar":
             weight_distance = 20
             weight_effort = 0.005
             weight_obs = 0.1
 
+            self.effort = self.get_norm_effort()
+
             distance_reward = np.exp(-weight_distance * np.square(ee_error))
-            effort_reward = - weight_effort * effort
-            obstacle_reward = - weight_obs * np.sum([np.max([0, 1 - d / 0.05]) for d in obs_distance])
+            effort_reward = - weight_effort * self.effort
+            obs_distance_per_link = self.collision_detector.get_distances_per_link(max_distance=999.0)
+            obstacle_reward = - weight_obs * np.sum([np.max([0, 1 - d / 0.05]) for d in obs_distance_per_link])
 
             # finish_reward =  1000 * np.array(np.logical_and((ee_error < self.distance_threshold), (ee_speed < self.ee_speed_threshold)), dtype=np.float32)
             # speed_reward = np.array(ee_error < self.distance_threshold, dtype=np.float32) * np.exp(-weight_distance * np.square(ee_speed))
@@ -1378,6 +1381,7 @@ class ReachAO(Task):
 
         else:
             # calculate dense rewards
+            effort = self.get_norm_effort()
             reward = -np.array(effort * self.factor_punish_effort, dtype=np.float32)
 
             ee_error *= self.factor_punish_distance
@@ -1389,14 +1393,15 @@ class ReachAO(Task):
                                     dtype=np.float32)
 
         if self.sim.render_env and self.config.show_debug_labels:
-            self.update_labels(manipulability, ee_error, obs_distance, action_diff, effort, jerk, reward)
+            self.action_diff = self.get_norm_action_difference()
+            self.effort = self.get_norm_effort()
+            self.jerk = self.get_norm_jerk()
+            self.manipulability = self.robot.get_manipulability()
+            obs_distance_per_link = self.collision_detector.get_distances_per_link(max_distance=999.0)
+            self.update_labels(self.manipulability, ee_error, obs_distance_per_link, self.action_diff, self.effort, self.jerk, reward)
 
         if self.truncate_episode_on_collision and self.config.reward_type in ["sparse", "kumar_her", "kumar_optim"]:
             reward += self.is_collided * self.config.collision_reward
-
-        self.action_diff = action_diff
-        self.action_magnitude = effort
-        self.manipulability = manipulability
 
         return reward
 

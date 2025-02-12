@@ -28,7 +28,7 @@ class Hyperparameters:
             self.gradient_steps = 8
             self.train_freq = 8
             self.ent_coef = "auto"
-            self.policy_kwargs = dict(log_std_init=-3, net_arch=dict(pi =[256, 256], qf= [1024, 1024]), n_critics=2,
+            self.policy_kwargs = dict(log_std_init=-3, net_arch=dict(pi =[512, 512, 512], qf= [1024, 1024, 1024]), n_critics=2,
                                       optimizer_class=torch.optim.AdamW) # Weight Decay Normalization
             # according to some research wider critic networks are easier to optimize
         elif algorithm == "CrossQ":
