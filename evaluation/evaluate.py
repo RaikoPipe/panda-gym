@@ -366,9 +366,7 @@ def evaluate_ensemble(ensemble_name, human=False, eval_type="basic", strategy="m
 
     models = []
     for model_path in ensemble_model_paths:
-        models.append(TQC.load(model_path, env=env,
-                               custom_objects={"action_space": gymnasium.spaces.Box(-1.0, 1.0, shape=(7,),
-                                                                                    dtype=np.float32)}))
+        models.append(TQC.load(model_path, env=env))
 
     evaluation_results = {}
     for evaluation_scenario in evaluation_scenarios:  #
@@ -437,11 +435,11 @@ trained_models = {
 if __name__ == "__main__":
     eval_type = "base_eval"  # optimized; basic
 
-    ensemble = "finetune"
+    ensemble = "tqc_default"
 
-    evaluation_scenarios = ["narrow_tunnel"]#, "library1", "workshop2", "library2", "narrow_tunnel", "workshop"]
+    evaluation_scenarios = ["library1"]#, "library1", "workshop2", "library2", "narrow_tunnel", "workshop"]
 
-    evaluate_ensemble(ensemble, human=False, eval_type="base_eval", strategy="weighted_aggregation",
+    evaluate_ensemble(ensemble, human=True, eval_type="base_eval", strategy="mean_actions",
                       num_episodes=200, evaluation_scenarios=evaluation_scenarios)
 
     # evaluate_prior(human=False, eval_type=eval_type)
