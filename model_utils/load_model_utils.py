@@ -28,10 +28,13 @@ def get_group_model_paths(group_name, desired_file):
     group_path = get_group_path(group_name)
 
     # walk through ensemble path
-    for path in os.listdir(group_path):
+    for dir_name in os.listdir(group_path):
         # if path starts with "run"
-        if path.startswith("run"):
-            paths.append(f"{group_path}/{path}/{suffix}")
+        if dir_name.startswith("run"):
+            paths.append(f"{group_path}/{dir_name}/{suffix}")
+
+    if not paths:
+        raise FileNotFoundError(f"No {desired_file} found for group {group_name}")
 
     return paths
 
