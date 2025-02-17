@@ -201,6 +201,7 @@ def init_wandb(config, tags):
 
 
 def switch_model_env(model, env) -> None:
+    model.env.close()
     model.set_env(env, force_reset=True)
     if isinstance(model.replay_buffer, (HerReplayBuffer, CustomHerReplayBuffer)):
         model.replay_buffer.set_env(env)
