@@ -37,7 +37,9 @@ import panda_gym
 
 from dataclasses import asdict
 
-from model_utils.load_model_utils import get_group_model_paths, get_group_replay_buffer_paths
+from model_utils.load_model_utils import get_group_model_paths, get_group_replay_buffer_paths, get_model_path_with_seed, \
+    get_replay_buffer_path_with_seed
+
 
 def get_algorithm_class(algorithm):
     match algorithm:
@@ -220,8 +222,14 @@ def learn(config: TrainConfig, pretrained_model_name=None,
 
     else:
         # get first model from group name
-        model_path = get_group_model_paths(pretrained_model_name)[0]
-        replay_buffer_path = get_group_replay_buffer_paths(pretrained_model_name)[0]
+        model_path = get_model_path_with_seed(pretrained_model_name, config.seed)
+        replay_buffer_path = get_replay_buffer_path_with_seed(pretrained_model_name, config.seed)
+
+        if model_path is None:
+            raise FileNotFoundError(f"Model with name {pretrained_model_name} not found. Aborting")
+        if replay_buffer_path is None:
+            raise FileNotFoundError(f"Replay buffer under model {pretrained_model_name} not found. Aborting")
+
         # load model
         model = (get_algorithm_class(config.algorithm)
                  .load(model_path, env=get_env(config, config.stages[0], config.ee_error_thresholds[0],
@@ -347,7 +355,7 @@ def train_model(config, iteration, model, run):
         wandb.save(f"{run.dir}/model_{stage}_{iteration}.zip")
 
         # save replay buffer
-        # model.save_replay_buffer(f"{run.dir}/replay_buffer")
+        model.save_replay_buffer(f"{run.dir}/replay_buffer")
 
         # close eval environments
         if eval_training_env:

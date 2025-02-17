@@ -15,6 +15,25 @@ default_yaml_location = "files/config.yaml"
 def get_group_path(group_name):
     return os.path.join(PROJECT_PATH, default_path, group_name, "wandb")
 
+def get_model_path_with_seed(group_name, seed):
+    group_yaml_paths = get_group_yaml_paths(group_name)
+    group_model_paths = get_group_model_paths(group_name)
+
+    for i, yaml_path in enumerate(group_yaml_paths):
+        yaml_config = open_yaml(yaml_path)
+        if yaml_config["seed"] == seed:
+            return group_model_paths[i]
+
+
+def get_replay_buffer_path_with_seed(group_name, seed):
+    group_yaml_paths = get_group_yaml_paths(group_name)
+    group_replay_buffer_paths = get_group_replay_buffer_paths(group_name)
+
+    for i, yaml_path in enumerate(group_yaml_paths):
+        yaml_config = open_yaml(yaml_path)
+        if yaml_config["seed"] == seed:
+            return group_replay_buffer_paths[i]
+
 def get_group_model_paths(group_name):
     group_path = get_group_path(group_name)
 
