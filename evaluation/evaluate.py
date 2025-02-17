@@ -332,8 +332,8 @@ def evaluate_ensemble(ensemble_name, human=False, eval_type="basic", strategy="m
                       obstacle_observation=None, num_episodes=100,
                       evaluation_scenarios=None):
 
-    ensemble_model_paths = load_model_utils.get_group_model_paths(ensemble_name)
-    ensemble_yaml_paths = load_model_utils.get_group_yaml_paths(ensemble_name)
+    ensemble_model_paths = load_model_utils.get_group_model_paths(ensemble_name, "model")
+    ensemble_yaml_paths = load_model_utils.get_group_model_paths(ensemble_name, "config")
 
     configuration = load_model_utils.get_train_config_from_yaml(ensemble_yaml_paths[0])
 

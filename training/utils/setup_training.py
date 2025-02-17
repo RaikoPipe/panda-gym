@@ -37,8 +37,7 @@ import panda_gym
 
 from dataclasses import asdict
 
-from model_utils.load_model_utils import get_group_model_paths, get_group_replay_buffer_paths, get_model_path_with_seed, \
-    get_replay_buffer_path_with_seed
+from model_utils.load_model_utils import get_group_model_paths, get_model_component_path
 
 
 def get_algorithm_class(algorithm):
@@ -222,9 +221,9 @@ def learn(config: TrainConfig, pretrained_model_name=None,
         model = get_model(config, run)
 
     else:
-        # get first model from group name
-        model_path = get_model_path_with_seed(pretrained_model_name, config.seed)
-        replay_buffer_path = get_replay_buffer_path_with_seed(pretrained_model_name, config.seed)
+        # get model with specified seed
+        model_path = get_model_component_path(pretrained_model_name, config.seed, "model")
+        replay_buffer_path = get_model_component_path(pretrained_model_name, config.seed, "replay_buffer")
 
         if model_path is None:
             raise FileNotFoundError(f"Model with name {pretrained_model_name} not found. Aborting")
