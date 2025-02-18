@@ -226,9 +226,9 @@ def learn(config: TrainConfig, pretrained_model_name=None,
         replay_buffer_path = get_model_component_path(pretrained_model_name, config.seed, "replay_buffer")
 
         if model_path is None:
-            raise FileNotFoundError(f"Model with name {pretrained_model_name} not found. Aborting")
+            raise FileNotFoundError(f"Model from group {pretrained_model_name} not found. Aborting")
         if replay_buffer_path is None:
-            raise FileNotFoundError(f"Replay buffer under model {pretrained_model_name} not found. Aborting")
+            raise FileNotFoundError(f"Replay buffer under group {pretrained_model_name} not found. Aborting")
 
         # load model
         model = (get_algorithm_class(config.algorithm)

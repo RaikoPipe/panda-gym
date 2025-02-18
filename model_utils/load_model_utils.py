@@ -14,7 +14,7 @@ def get_model_component_path(group_name, seed=None, desired_file="model"):
 
     for i, yaml_path in enumerate(group_yaml_paths):
         yaml_config = open_yaml(yaml_path)
-        if yaml_config["seed"] == seed or seed is None:
+        if yaml_config["seed"]["value"] == seed or seed is None:
             return get_group_model_paths(group_name, desired_file)[i]
 
 def get_group_model_paths(group_name, desired_file):
