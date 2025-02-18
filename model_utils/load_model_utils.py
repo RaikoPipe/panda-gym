@@ -19,9 +19,9 @@ def get_model_component_path(group_name, seed=None, desired_file="model"):
 
 def get_group_model_paths(group_name, desired_file):
     suffix = default_model_location
-    if ["config", "yaml"] in desired_file:
+    if desired_file in ["config", "yaml"]:
         suffix = default_yaml_location
-    elif ["replay", "buffer", "replay_buffer"] in desired_file:
+    elif desired_file in ["replay", "buffer", "replay_buffer"]:
         suffix = default_replay_buffer_location
 
     paths = []
