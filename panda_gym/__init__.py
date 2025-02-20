@@ -19,7 +19,6 @@ def register_reach_ao(max_ep_steps):
         max_episode_steps=max_ep_steps,  # default: 50
     )
 
-
 def register_envs(max_ep_steps):
     for reward_type in ["sparse", "dense"]:
         for control_type in ["ee", "joints"]:

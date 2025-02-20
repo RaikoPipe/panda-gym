@@ -37,7 +37,7 @@ panda_gym.register_reach_ao(configuration.max_ep_steps[0])
 parser = argparse.ArgumentParser(description='Model training')
 parser.add_argument("--seeds", nargs="+", type=int, default=[0], help="Random seeds for training")
 parser.add_argument("--n_envs", type=int, default=8, help="Number of parallel environments")
-parser.add_argument("--n_eval_envs", type=int, default=4, help="Number of parallel evaluation environments")
+parser.add_argument("--n_eval_envs", type=int, default=1, help="Number of parallel evaluation environments")
 parser.add_argument("--pretrained_model", type=str, default=None, help="Pretrained model name")
 parser.add_argument("--algorithm", type=str, default="TQC", help="Algorithm to train")
 parser.add_argument("--group", type=str, default="default", help="Group name for wandb")
@@ -46,6 +46,10 @@ parser.add_argument("--max_timesteps", type=int, default=1_000_000, help="Maximu
 parser.add_argument("--batch_size", type=int, default=256, help="Batch size for training")
 parser.add_argument("--reward_type", type=str, default="sparse", help="Reward type")
 parser.add_argument("--replay_buffer_class", type=str, default="HerReplayBuffer", help="Replay buffer class")
+parser.add_argument("--policy_type", type=str, default="MlpPolicy", help="Policy type")
+parser.add_argument("--net_pi", nargs="+", type=int, default=[400, 300], help="Number of units in the policy network")
+parser.add_argument("--net_qf", nargs="+", type=int, default=[400, 300], help="Number of units in the Q-function network")
+parser.add_argument("--gradient_steps", type=int, default=8, help="Number of gradient steps")
 
 args = parser.parse_args()
 
@@ -113,8 +117,8 @@ if __name__ == "__main__":
 
     hyperparams = Hyperparameters(algorithm=args.algorithm)
     hyperparams.batch_size = args.batch_size
-    hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=dict(pi=[128], qf=[256, 256]), optimizer_class=optax.adamw)
-    hyperparams.gradient_steps = 20
+    hyperparams.policy_kwargs = dict(log_std_init=-3, net_arch=dict(pi=args.net_pi, qf=args.net_qf), optimizer_class=optax.adamw)
+    hyperparams.gradient_steps = args.gradient_steps
     #hyperparams.buffer_size = 300_000
 
     replay_buffer_class = HerReplayBuffer if args.replay_buffer_class == "HerReplayBuffer" else DictReplayBuffer
@@ -142,15 +146,17 @@ if __name__ == "__main__":
     )
 
     train_config.hyperparams = hyperparams
-    train_config.normalize = {"norm_obs": True,
-                              "norm_reward": False},  # important: input normalization using vecnormalize
+    if train_config.policy_type == "SimbaPolicy":
+        # important: input normalization using vecnormalize
+        train_config.normalize = {"norm_obs": True,
+                                  "norm_reward": False}
 
     if args.pretrained_model:
         train_config.stages = ["exp-10"]
         train_config.success_thresholds = [1.0]
         train_config.ee_error_thresholds = [0.05]
         train_config.max_ep_steps = [200]
-    train_config.policy_type = "SimbaPolicy"
+
     train_model(seeds=args.seeds, configs=[train_config], pretrained_model_name=args.pretrained_model)
 
     # Configure buffer size based on available memory
