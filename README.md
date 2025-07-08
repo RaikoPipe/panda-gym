@@ -1,7 +1,9 @@
-# Modified Panda-Gym for Master thesis on collision free real time trajectory planning using reinforcement learning (graded 1.0)
-Conceptualised and implemented curriculum learning framework for learning agent with generalisation capabilities that surpasses current state of science (July 2023)
+# Extended panda-gym version with collision-avoidance scenarios, curriculum learning pipeline, trajectory visualization and more
+
+Implemeneted for Master thesis on collision free real time trajectory planning using reinforcement learning (graded 1.0)
+Goal was to investigate maximum generalisation capabilities of RL-agents trained with curriculum learning and domain randomization.
 Uses vectorized version of Hindsight Experience Replay for faster training and domain randomization techniques.
-Includes [analytical motion planner](https://github.com/petercorke/robotics-toolbox-python) for comparison.
+Includes [analytical motion planner](https://github.com/petercorke/robotics-toolbox-python) for comparison. While the RL-based motion controller cannot outcompete current analytical approaches (see cuMotion), it shows moderate generalisation capabilities with only around 300.000 episode steps (performed in around 2 hours training time) when using parallelized environments.
 
 # panda-gym
 
