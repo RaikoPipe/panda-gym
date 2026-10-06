@@ -136,7 +136,7 @@ def test_dense_flip_joints():
 
 
 def test_reach_ao_scenarios():
-    for scenario in ["reachao1", "reachao3", "library2", "narrow_tunnel"]:
+    for scenario in ["reachao1", "reachao3", "reachao_dr", "reachao_dr_plr", "library2", "narrow_tunnel"]:
         run_env(gym.make("PandaReachAO-v3", scenario=scenario))
 
 

@@ -14,6 +14,7 @@ import pybullet as p
 
 from panda_gym.collision import CollisionDetector, NamedCollisionObject
 from panda_gym.envs.core import Task
+from panda_gym.envs.tasks.scene_randomization import SceneRandomizer
 from panda_gym.envs.robots.panda import Panda
 from panda_gym.utils import distance, unit_vector
 
@@ -71,6 +72,7 @@ class ReachAO(Task):
         self.obstacle_obs = self.config.obstacle_obs
 
         self.scenario = scenario
+        self.dr = None  # SceneRandomizer for the procedural "reachao_dr*" scenarios
         self.randomize_robot_pose = config.randomize_robot_pose
         self.robot_pose_randomizer = lambda: self.set_robot_random_pose(
             self.sample_inside_torus)  # lambda: self.set_robot_random_joint_position_ik_sphere(0.45, 0.5)
@@ -248,6 +250,8 @@ class ReachAO(Task):
             "reachao_rand": self.create_scenario_reachao_rand,
             "reachao_rand_start": self.create_scenario_reachao_rand_start,
             "reachao_rand_shape": self.create_scenario_reachao_rand_shape,
+            "reachao_dr": self.create_scenario_reachao_dr,
+            "reachao_dr_plr": self.create_scenario_reachao_dr,
             "reach1": self.create_scenario_reach1,
             "reach2": self.create_scenario_reach2,
             "reach3": self.create_scenario_reach3,
@@ -580,6 +584,17 @@ class ReachAO(Task):
             self.create_obstacle_sphere(radius=0.05)
 
         self.robot_pose_randomizer = lambda: self.set_robot_random_joint_position_ik_goal_space(self._sample_goal)
+
+    def create_scenario_reachao_dr(self):
+        """Procedural fixtures + path-blocking obstacles + varied starts (see scene_randomization.py)."""
+        self._sample_goal = lambda: self.sample_within_hollow_sphere(0.5, 0.8, upper_half_only=True)
+        self.dr = SceneRandomizer(self, level_replay=self.scenario.endswith("_plr"))
+
+    def rebuild_collision_detector(self, obstacle_names):
+        """Distance observations only for the obstacles that are currently placed."""
+        pairs = [(NamedCollisionObject("robot", link_name=link), NamedCollisionObject(name))
+                 for link in self.collision_links for name in obstacle_names]
+        self.collision_detector = CollisionDetector(col_id=self.sim_id, bodies=self.bodies, named_collision_pairs=pairs)
 
     def create_scenario_reachao_rand(self):
         """Random number of obstacles up to 6, random position, overlapping allowed; Rest as in reachao3"""
@@ -959,6 +974,11 @@ class ReachAO(Task):
     def reset(self) -> None:
         self.goal_reached = False
         self.is_collided = False
+        self.robot.recent_action = None
+        self.robot.previous_action = None
+        if self.dr is not None:
+            self.dr.reset()
+            return
 
         if self.random_size_cuboids:
             # remove all cuboids
@@ -1235,7 +1255,10 @@ class ReachAO(Task):
         self.robot.set_joint_neutral()
 
     def is_success(self, achieved_goal: np.ndarray, desired_goal: np.ndarray) -> np.ndarray:
-        return np.array(distance(achieved_goal, desired_goal) < self.ee_error_threshold, dtype=bool)
+        success = np.array(distance(achieved_goal, desired_goal) < self.ee_error_threshold, dtype=bool)
+        if self.dr is not None:  # episode outcome for level replay
+            self.dr.last_success = bool(success) and not self.is_collided
+        return success
 
     def is_failure(self) -> bool:
         return bool(self.is_collided and self.config.terminate_on_collision)

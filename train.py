@@ -43,7 +43,7 @@ HER = dict(replay_buffer_class=HerReplayBuffer, replay_buffer_kwargs=dict(n_samp
 
 
 def make_env(env_id, n_envs, seed, scenario=None, max_episode_steps=None, vec_env_cls=SubprocVecEnv):
-    kwargs = {"scenario": scenario} if scenario else {}
+    kwargs = {"render_mode": None, **({"scenario": scenario} if scenario else {})}  # SB3 defaults to rgb_array
     if max_episode_steps:
         kwargs["max_episode_steps"] = max_episode_steps
     return make_vec_env(env_id, n_envs=n_envs, seed=seed, env_kwargs=kwargs, vec_env_cls=vec_env_cls)
