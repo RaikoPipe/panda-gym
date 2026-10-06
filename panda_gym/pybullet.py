@@ -23,7 +23,7 @@ class PyBullet:
     """
 
     def __init__(self, render: bool = False, n_substeps: int = 20,
-                 background_color: Optional[np.ndarray] = None, ) -> None:
+                 background_color: Optional[np.ndarray] = None, egl: bool = False) -> None:
         background_color = background_color if background_color is not None else np.array([0.0, 134.0, 201.0])
         self.background_color = background_color.astype(np.float32) / 255
         options = "--background_color_red={} --background_color_green={} --background_color_blue={}".format(
@@ -34,6 +34,8 @@ class PyBullet:
         self.render_env = render
         self.physics_client = bc.BulletClient(connection_mode=self.connection_mode, options=options if render else "")
         self._egl_plugin = None
+        if egl:  # must be loaded before any body is created, otherwise those bodies are invisible
+            self.enable_egl()
         # self.dummy_collision_client = None
         # if dummy_client:
         #     self.dummy_collision_client = bc.BulletClient(connection_mode=p.DIRECT)
@@ -153,7 +155,6 @@ class PyBullet:
             self.physics_client.configureDebugVisualizer(self.physics_client.COV_ENABLE_SINGLE_STEP_RENDERING)
             time.sleep(self.dt)  # wait to seems like real speed
         if mode == "rgb_array":
-            self.enable_egl()
             view_matrix = self.physics_client.computeViewMatrixFromYawPitchRoll(
                 cameraTargetPosition=target_position,
                 distance=distance,
@@ -768,7 +769,7 @@ class PyBullet:
             mass=0.0,
             position=np.array([0.0, 0.0, z_offset - 0.01]),
             specular_color=np.zeros(3),
-            rgba_color=np.array([0.15, 0.15, 0.15, 1.0]),
+            rgba_color=np.array([0.82, 0.84, 0.87, 1.0]),
             physics_client=physics_client
         )
 
@@ -805,7 +806,7 @@ class PyBullet:
             mass=0.0,
             position=np.array([x_offset, 0.0, -height / 2]),
             specular_color=np.zeros(3),
-            rgba_color=np.array([0.3, 0.3, 0.3, 1]),
+            rgba_color=np.array([0.32, 0.36, 0.42, 1.0]),
             lateral_friction=lateral_friction,
             spinning_friction=spinning_friction,
             physics_client=physics_client

@@ -14,14 +14,14 @@ from panda_gym.envs.tasks.stack import Stack
 from panda_gym.pybullet import PyBullet
 
 # camera for rgb_array rendering of the table-top tasks
-TABLE_CAMERA = dict(target_position=np.array([-0.1, 0.0, 0.0]), distance=1.0, yaw=45, pitch=-25)
+TABLE_CAMERA = dict(target_position=np.array([-0.15, 0.0, 0.15]), distance=1.35, yaw=45, pitch=-28)
 
 
 class PandaTaskEnv(RobotTaskEnv):
     """Classic panda-gym task: robot base at x=-0.6, table-top scene."""
 
     def __init__(self, task_cls, block_gripper, render_mode, reward_type, control_type) -> None:
-        sim = PyBullet(render=render_mode == "human")
+        sim = PyBullet(render=render_mode == "human", egl=render_mode == "rgb_array")
         robot = Panda(sim, block_gripper=block_gripper, base_position=np.array([-0.6, 0.0, 0.0]),
                       control_type=control_type)
         kwargs = {"get_ee_position": robot.get_ee_position} if task_cls is Reach else {}
@@ -66,7 +66,7 @@ class PandaReachAOEnv(RobotTaskEnv):
     def __init__(self, render_mode: Optional[str] = None, scenario: str = "reachao1",
                  ee_error_threshold: float = 0.05, config: Optional[ReachAOConfig] = None) -> None:
         config = config or ReachAOConfig()
-        sim = PyBullet(render=render_mode == "human", n_substeps=config.n_substeps)
+        sim = PyBullet(render=render_mode == "human", n_substeps=config.n_substeps, egl=render_mode == "rgb_array")
         robot = Panda(sim, block_gripper=True, base_position=np.zeros(3), control_type=config.control_type,
                       obs_type=config.obs_type, action_limiter=config.action_limiter, n_substeps=config.n_substeps)
         task = ReachAO(sim, robot, get_ee_position=robot.get_ee_position, scenario=scenario,
