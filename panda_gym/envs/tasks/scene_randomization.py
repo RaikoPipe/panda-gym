@@ -4,9 +4,16 @@ Domain randomization follows the neural-motion-planning datasets (MpiNets, Fishm
 Dalal et al. 2024): besides blobs, scenes contain thin plates, shelf boards and two-wall tunnels, placed so that they
 block the straight path to the goal or enclose the goal, and episodes start from varied robot configurations.
 
+Optional automatic curriculum ("_adr"): a per-environment difficulty d in [0, 1] scales the number of objects, the
+share of path-blocking/enclosing placements and of varied starts. It grows when >= 70 % of the last 20 episodes
+succeed and shrinks when >= 30 % collide (two-sided rule, Kulkarni & Alexis ICRA 2024; boundary expansion as in
+OpenAI's ADR); 20 % of episodes stay easy (d = 0) against forgetting.
+
 Optional level replay ("_plr") follows Sampling For Learnability (Rutherford et al., NeurIPS 2024): half of the
 episodes replay stored scenes ranked by p(1-p), i.e. scenes the agent solves only sometimes.
 """
+from collections import deque
+
 import numpy as np
 
 PARK = np.array([0.0, 0.0, -10.0])  # unused pool bodies wait below the floor
@@ -21,7 +28,8 @@ def yaw_quat(yaw, pitch=0.0):
 
 
 class SceneRandomizer:
-    def __init__(self, task, level_replay=False, max_objects=4, regenerate_every=200, buffer_size=200):
+    def __init__(self, task, level_replay=False, curriculum=False, max_objects=4, regenerate_every=200,
+                 buffer_size=200):
         self.task, self.sim, self.rng = task, task.sim, None
         self.level_replay = level_replay
         self.max_objects = max_objects
@@ -32,6 +40,9 @@ class SceneRandomizer:
         self.levels = []  # [level, attempts, successes]
         self.current = None
         self.last_success = False
+        self.curriculum = curriculum
+        self.difficulty = 0.0 if curriculum else 1.0
+        self.outcomes = deque(maxlen=20)  # (success, collided) of recent episodes
 
     # --- obstacle pool (bodies are reused; shapes are re-drawn every `regenerate_every` episodes) ---------------
     def build_pool(self):
@@ -61,16 +72,19 @@ class SceneRandomizer:
         self.task.bodies[name] = uid
 
     # --- episode reset --------------------------------------------------------------------------------------
-    def reset(self):
+    def reset(self, collided=False):
         rng = self.task.np_random
-        if self.current is not None and self.level_replay:
-            self._record(self.current, self.last_success)
+        if self.current is not None:
+            if self.level_replay:
+                self._record(self.current, self.last_success)
+            self._update_difficulty(self.last_success, collided)
         if self.episodes % self.regenerate_every == 0:
             self.build_pool()
         self.episodes += 1
 
         replay = self.level_replay and len(self.levels) >= 20 and rng.random() < 0.5
-        level = self._pick_level() if replay else self._sample_level()
+        d = 0.0 if self.curriculum and rng.random() < 0.2 else self.difficulty
+        level = self._pick_level() if replay else self._sample_level(d)
         self._apply(level)
         self.current = level
 
@@ -86,10 +100,20 @@ class SceneRandomizer:
             self.sim.set_base_pose(name, pos, quat)
         self.task.rebuild_collision_detector([name for name, _, _ in placements])
 
-    def _sample_level(self):
+    def _update_difficulty(self, success, collided):
+        if not self.curriculum:
+            return
+        self.outcomes.append((success, collided))
+        if len(self.outcomes) == self.outcomes.maxlen:
+            succ, coll = np.mean(self.outcomes, axis=0)
+            if succ >= 0.7 or coll >= 0.3:
+                self.difficulty = float(np.clip(self.difficulty + (0.05 if succ >= 0.7 else -0.05), 0.0, 1.0))
+                self.outcomes.clear()
+
+    def _sample_level(self, d=1.0):
         task, rng = self.task, self.task.np_random
         robot_q = None
-        if rng.random() < 0.5:  # varied start configuration (collision-free with the table)
+        if rng.random() < 0.5 * d:  # varied start configuration (collision-free with the table)
             for _ in range(10):
                 target = task.sample_within_hollow_sphere(0.35, 0.7, upper_half_only=True, three_quarter_front_half_only=True)
                 robot_q = task.robot.ik(target)
@@ -106,8 +130,8 @@ class SceneRandomizer:
         placements = []
         free = list(self.pool)
         rng.shuffle(free)
-        for _ in range(rng.integers(1, self.max_objects + 1)):
-            mode = rng.choice(["block", "enclose", "wang"], p=[0.4, 0.3, 0.3])
+        for _ in range(rng.integers(1, 1 + round(1 + (self.max_objects - 1) * d))):
+            mode = rng.choice(["block", "enclose", "wang"], p=[0.4 * d, 0.3 * d, 1 - 0.7 * d])
             group = self._propose(mode, free, ee, goal)
             if group and self._place_ok(group):
                 placements += group

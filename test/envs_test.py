@@ -149,3 +149,15 @@ def test_reach_ao_her_reward_uses_stored_collisions():
     rewards = env.unwrapped.compute_reward(goal, goal, infos)
     assert rewards.tolist() == [0.0, -101.0]
     env.close()
+
+
+def test_scene_curriculum_moves_difficulty_both_ways():
+    from panda_gym.envs.tasks.scene_randomization import SceneRandomizer
+
+    dr = SceneRandomizer(task=type("T", (), {"sim": None})(), curriculum=True)
+    for _ in range(20):
+        dr._update_difficulty(success=True, collided=False)
+    assert dr.difficulty == 0.05
+    for _ in range(20):
+        dr._update_difficulty(success=False, collided=True)
+    assert dr.difficulty == 0.0

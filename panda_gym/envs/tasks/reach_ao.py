@@ -252,6 +252,8 @@ class ReachAO(Task):
             "reachao_rand_shape": self.create_scenario_reachao_rand_shape,
             "reachao_dr": self.create_scenario_reachao_dr,
             "reachao_dr_plr": self.create_scenario_reachao_dr,
+            "reachao_dr_adr": self.create_scenario_reachao_dr,
+            "reachao_dr_adr_plr": self.create_scenario_reachao_dr,
             "reach1": self.create_scenario_reach1,
             "reach2": self.create_scenario_reach2,
             "reach3": self.create_scenario_reach3,
@@ -588,7 +590,7 @@ class ReachAO(Task):
     def create_scenario_reachao_dr(self):
         """Procedural fixtures + path-blocking obstacles + varied starts (see scene_randomization.py)."""
         self._sample_goal = lambda: self.sample_within_hollow_sphere(0.5, 0.8, upper_half_only=True)
-        self.dr = SceneRandomizer(self, level_replay=self.scenario.endswith("_plr"))
+        self.dr = SceneRandomizer(self, level_replay="_plr" in self.scenario, curriculum="_adr" in self.scenario)
 
     def rebuild_collision_detector(self, obstacle_names):
         """Distance observations only for the obstacles that are currently placed."""
@@ -972,12 +974,11 @@ class ReachAO(Task):
         return ee_position
 
     def reset(self) -> None:
-        self.goal_reached = False
-        self.is_collided = False
+        collided, self.goal_reached, self.is_collided = self.is_collided, False, False
         self.robot.recent_action = None
         self.robot.previous_action = None
         if self.dr is not None:
-            self.dr.reset()
+            self.dr.reset(collided)
             return
 
         if self.random_size_cuboids:
