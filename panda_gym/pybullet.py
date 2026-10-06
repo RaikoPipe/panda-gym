@@ -1,6 +1,6 @@
 import os
+import importlib.util
 import time
-import warnings
 from contextlib import contextmanager
 from typing import Any, Dict, Iterator, Optional
 
@@ -26,18 +26,14 @@ class PyBullet:
                  background_color: Optional[np.ndarray] = None, ) -> None:
         background_color = background_color if background_color is not None else np.array([0.0, 134.0, 201.0])
         self.background_color = background_color.astype(np.float32) / 255
-        options = "--background_color_red={} \
-                    --background_color_green={} \
-                    --background_color_blue={}".format(
+        options = "--background_color_red={} --background_color_green={} --background_color_blue={}".format(
             *self.background_color
         )
 
         self.connection_mode = p.GUI if render else p.DIRECT
         self.render_env = render
-        if render:
-            options += " --mp4=\"test.mp4\" --mp4fps=60"
-
-        self.physics_client = bc.BulletClient(connection_mode=self.connection_mode, options=options)
+        self.physics_client = bc.BulletClient(connection_mode=self.connection_mode, options=options if render else "")
+        self._egl_plugin = None
         # self.dummy_collision_client = None
         # if dummy_client:
         #     self.dummy_collision_client = bc.BulletClient(connection_mode=p.DIRECT)
@@ -69,6 +65,13 @@ class PyBullet:
         """Step the simulation."""
         for _ in range(self.n_substeps):
             self.physics_client.stepSimulation()
+
+    def enable_egl(self) -> bool:
+        """Load the EGL plugin for GPU offscreen rendering in DIRECT mode (much nicer than TinyRenderer)."""
+        if self._egl_plugin is None and self.connection_mode == p.DIRECT:
+            egl = importlib.util.find_spec("eglRenderer")
+            self._egl_plugin = self.physics_client.loadPlugin(egl.origin, "_eglRendererPlugin") if egl else -1
+        return bool(self._egl_plugin is not None and self._egl_plugin >= 0)
 
     def close(self) -> None:
         """Close the simulation."""
@@ -150,14 +153,7 @@ class PyBullet:
             self.physics_client.configureDebugVisualizer(self.physics_client.COV_ENABLE_SINGLE_STEP_RENDERING)
             time.sleep(self.dt)  # wait to seems like real speed
         if mode == "rgb_array":
-            if self.connection_mode == p.DIRECT:
-                warnings.warn(
-                    "The use of the render method is not recommended when the environment "
-                    "has not been created with render=True. The rendering will probably be weird. "
-                    "Prefer making the environment with option `render=True`. For example: "
-                    "`env = gym.make('PandaReach-v3', render=True)`.",
-                    UserWarning,
-                )
+            self.enable_egl()
             view_matrix = self.physics_client.computeViewMatrixFromYawPitchRoll(
                 cameraTargetPosition=target_position,
                 distance=distance,
@@ -175,9 +171,10 @@ class PyBullet:
                 viewMatrix=view_matrix,
                 projectionMatrix=proj_matrix,
                 renderer=p.ER_BULLET_HARDWARE_OPENGL,
+                shadow=1,
+                lightDirection=[1.0, 1.0, 2.0],
             )
-
-            return px
+            return np.asarray(px, dtype=np.uint8).reshape(height, width, 4)[..., :3]
 
     def get_base_position(self, body: str) -> np.ndarray:
         """Get the position of the body.
@@ -435,7 +432,7 @@ class PyBullet:
         self.physics_client.resetJointState(bodyUniqueId=self._bodies_idx[body], jointIndex=joint, targetValue=angle)
 
     def control_joints(self, body: str, joints: np.ndarray, action: np.ndarray, forces: np.ndarray,
-                       control_mode: int) -> None:
+                       control_mode: int = p.POSITION_CONTROL) -> None:
         """Control the joints motor.
 
         Args:

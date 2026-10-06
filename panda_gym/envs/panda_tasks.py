@@ -4,190 +4,73 @@ import numpy as np
 
 from panda_gym.envs.core import RobotTaskEnv
 from panda_gym.envs.robots.panda import Panda
-from panda_gym.envs.robots.mycobot import MyCobot
 from panda_gym.envs.tasks.flip import Flip
 from panda_gym.envs.tasks.pick_and_place import PickAndPlace
 from panda_gym.envs.tasks.push import Push
 from panda_gym.envs.tasks.reach import Reach
+from panda_gym.envs.tasks.reach_ao import ReachAO, ReachAOConfig
 from panda_gym.envs.tasks.slide import Slide
 from panda_gym.envs.tasks.stack import Stack
-from panda_gym.envs.tasks.reach_ao import ReachAO
 from panda_gym.pybullet import PyBullet
 
-from classes.train_config import TrainConfig
+# camera for rgb_array rendering of the table-top tasks
+TABLE_CAMERA = dict(target_position=np.array([-0.1, 0.0, 0.0]), distance=1.0, yaw=45, pitch=-25)
 
 
-class PandaFlipEnv(RobotTaskEnv):
-    """Pick and Place task wih Panda robot.
+class PandaTaskEnv(RobotTaskEnv):
+    """Classic panda-gym task: robot base at x=-0.6, table-top scene."""
 
-    Args:
-        render (bool, optional): Activate rendering. Defaults to False.
-        reward_type (str, optional): "sparse" or "dense". Defaults to "sparse".
-        control_type (str, optional): "ee" to control end-effector position or "joints" to control joint values.
-            Defaults to "ee".
-    """
-
-    def __init__(self, render: bool = False, reward_type: str = "sparse", control_type: str = "ee") -> None:
-        sim = PyBullet(render=render)
-        robot = Panda(sim, block_gripper=False, base_position=np.array([-0.6, 0.0, 0.0]), control_type=control_type)
-        task = Flip(sim, reward_type=reward_type)
-        super().__init__(robot, task)
+    def __init__(self, task_cls, block_gripper, render_mode, reward_type, control_type) -> None:
+        sim = PyBullet(render=render_mode == "human")
+        robot = Panda(sim, block_gripper=block_gripper, base_position=np.array([-0.6, 0.0, 0.0]),
+                      control_type=control_type)
+        kwargs = {"get_ee_position": robot.get_ee_position} if task_cls is Reach else {}
+        task = task_cls(sim, reward_type=reward_type, **kwargs)
+        super().__init__(robot, task, render_mode=render_mode, render_kwargs=TABLE_CAMERA)
 
 
-class PandaPickAndPlaceEnv(RobotTaskEnv):
-    """Pick and Place task wih Panda robot.
-
-    Args:
-        render (bool, optional): Activate rendering. Defaults to False.
-        reward_type (str, optional): "sparse" or "dense". Defaults to "sparse".
-        control_type (str, optional): "ee" to control end-effector position or "joints" to control joint values.
-            Defaults to "ee".
-    """
-
-    def __init__(self, render: bool = False, reward_type: str = "sparse", control_type: str = "ee") -> None:
-        sim = PyBullet(render=render)
-        robot = Panda(sim, block_gripper=False, base_position=np.array([-0.6, 0.0, 0.0]), control_type=control_type)
-        task = PickAndPlace(sim, reward_type=reward_type)
-        super().__init__(robot, task)
+def PandaReachEnv(render_mode: Optional[str] = None, reward_type: str = "sparse", control_type: str = "ee"):
+    return PandaTaskEnv(Reach, True, render_mode, reward_type, control_type)
 
 
-class PandaPushEnv(RobotTaskEnv):
-    """Push task wih Panda robot.
-
-    Args:
-        render (bool, optional): Activate rendering. Defaults to False.
-        reward_type (str, optional): "sparse" or "dense". Defaults to "sparse".
-        control_type (str, optional): "ee" to control end-effector position or "joints" to control joint values.
-            Defaults to "ee".
-    """
-
-    def __init__(self, render: bool = False, reward_type: str = "sparse", control_type: str = "js") -> None:
-        sim = PyBullet(render=render)
-        robot = Panda(sim, block_gripper=True, base_position=np.array([-0.6, 0.0, 0.0]), control_type=control_type)
-        task = Push(sim, reward_type=reward_type)
-        super().__init__(robot, task)
+def PandaPushEnv(render_mode: Optional[str] = None, reward_type: str = "sparse", control_type: str = "ee"):
+    return PandaTaskEnv(Push, True, render_mode, reward_type, control_type)
 
 
-class PandaReachEnv(RobotTaskEnv):
-    """Reach task wih Panda robot.
-
-    Args:
-        render (bool, optional): Activate rendering. Defaults to False.
-        reward_type (str, optional): "sparse" or "dense". Defaults to "sparse".
-        control_type (str, optional): "ee" to control end-effector position or "joints" to control joint values.
-            Defaults to "ee".
-    """
-
-    def __init__(self, render: bool = False, realtime: bool = False, reward_type: str = "sparse",
-                 control_type: str = "js",
-                 goal_range=0.3, show_goal_space=False) -> None:
-        sim = PyBullet(render=render)
-        robot = Panda(sim, block_gripper=True, base_position=np.array([-0.6, 0.0, 0.0]), control_type=control_type)
-        task = Reach(sim, reward_type=reward_type, get_ee_position=robot.get_ee_position, goal_range=goal_range,
-                     show_goal_space=show_goal_space)
-        super().__init__(robot, task)
+def PandaSlideEnv(render_mode: Optional[str] = None, reward_type: str = "sparse", control_type: str = "ee"):
+    return PandaTaskEnv(Slide, True, render_mode, reward_type, control_type)
 
 
-class MyCobotReachEnv(RobotTaskEnv):
-    """Reach task wih Panda robot.
-
-    Args:
-        render (bool, optional): Activate rendering. Defaults to False.
-        reward_type (str, optional): "sparse" or "dense". Defaults to "sparse".
-        control_type (str, optional): "ee" to control end-effector position or "joints" to control joint values.
-            Defaults to "ee".
-    """
-
-    def __init__(self, render: bool = False, realtime: bool = False, reward_type: str = "sparse",
-                 control_type: str = "js",
-                 goal_range=0.3, show_goal_space=False) -> None:
-        sim = PyBullet(render=render)
-        robot = MyCobot(sim, block_gripper=True, base_position=np.array([-0.6, 0.0, 0.0]), control_type=control_type)
-        task = Reach(sim, reward_type=reward_type, get_ee_position=robot.get_ee_position, goal_range=goal_range,
-                     show_goal_space=show_goal_space)
-        super().__init__(robot, task)
+def PandaPickAndPlaceEnv(render_mode: Optional[str] = None, reward_type: str = "sparse", control_type: str = "ee"):
+    return PandaTaskEnv(PickAndPlace, False, render_mode, reward_type, control_type)
 
 
-class PandaReachCheckerEnv(RobotTaskEnv):
-    """Reach task wih Panda robot.
+def PandaStackEnv(render_mode: Optional[str] = None, reward_type: str = "sparse", control_type: str = "ee"):
+    return PandaTaskEnv(Stack, False, render_mode, reward_type, control_type)
 
-    Args:
-        render (bool, optional): Activate rendering. Defaults to False.
-        reward_type (str, optional): "sparse" or "dense". Defaults to "sparse".
-        control_type (str, optional): "ee" to control end-effector position or "joints" to control joint values.
-            Defaults to "ee".
-    """
 
-    def __init__(self, render: bool = False, realtime: bool = False, reward_type: str = "sparse",
-                 control_type: str = "js",
-                 goal_range=0.3, show_goal_space=False) -> None:
-        sim = PyBullet(render=False)
-        robot = Panda(sim, block_gripper=True, base_position=np.array([-0.6, 0.0, 0.0]), control_type=control_type,
-                      use_robotics_toolbox=False, action_limiter="clip")
-        task = Reach(sim, reward_type=reward_type, get_ee_position=robot.get_ee_position, goal_range=goal_range,
-                     show_goal_space=show_goal_space)
-        super().__init__(robot, task)
+def PandaFlipEnv(render_mode: Optional[str] = None, reward_type: str = "sparse", control_type: str = "ee"):
+    return PandaTaskEnv(Flip, False, render_mode, reward_type, control_type)
 
 
 class PandaReachAOEnv(RobotTaskEnv):
-    """Reach task wih Panda robot.
+    """Reach a goal with the Panda while avoiding obstacles (benchmark scenes, curriculum stages).
 
     Args:
-        render (bool, optional): Activate rendering. Defaults to False.
-        reward_type (str, optional): "sparse" or "dense". Defaults to "sparse".
-        control_type (str, optional): "ee" to control end-effector position or "joints" to control joint values.
-            Defaults to "ee".
+        render_mode: None, "human" or "rgb_array".
+        scenario: Scenario name, e.g. "reachao1", "library2", "narrow_tunnel", "wangexp-3".
+        ee_error_threshold: Goal tolerance in meters.
+        config: Further environment settings.
     """
 
-    def __init__(self, render: bool = False, ee_error_threshold: float = 0.05,
-                 speed_threshold=0.1,
-                 scenario: str = "reachao1",
-                 config=TrainConfig()
-                 ) -> None:
-        sim = PyBullet(render=render, n_substeps=config.n_substeps)
-        robot = Panda(sim, block_gripper=True, base_position=np.array([0.0, 0.0, 0.0]),
-                      control_type=config.control_type,
-                      obs_type=config.obs_type,
-                      limiter=config.limiter, action_limiter=config.action_limiter, n_substeps=config.n_substeps)
-        task = ReachAO(sim, robot,
-                       ee_error_threshold=ee_error_threshold,
-                       speed_threshold=speed_threshold,
-                       scenario=scenario,
-                       get_ee_position=robot.get_ee_position,
-                       config=config
-                       )
-        super().__init__(robot, task, config.terminate_on_success)
-
-
-class PandaSlideEnv(RobotTaskEnv):
-    """Slide task wih Panda robot.
-
-    Args:
-        render (bool, optional): Activate rendering. Defaults to False.
-        reward_type (str, optional): "sparse" or "dense". Defaults to "sparse".
-        control_type (str, optional): "ee" to control end-effector position or "joints" to control joint values.
-            Defaults to "ee".
-    """
-
-    def __init__(self, render: bool = False, reward_type: str = "sparse", control_type: str = "ee") -> None:
-        sim = PyBullet(render=render)
-        robot = Panda(sim, block_gripper=True, base_position=np.array([-0.6, 0.0, 0.0]), control_type=control_type)
-        task = Slide(sim, reward_type=reward_type)
-        super().__init__(robot, task)
-
-
-class PandaStackEnv(RobotTaskEnv):
-    """Stack task wih Panda robot.
-
-    Args:
-        render (bool, optional): Activate rendering. Defaults to False.
-        reward_type (str, optional): "sparse" or "dense". Defaults to "sparse".
-        control_type (str, optional): "ee" to control end-effector position or "joints" to control joint values.
-            Defaults to "ee".
-    """
-
-    def __init__(self, render: bool = False, reward_type: str = "sparse", control_type: str = "ee") -> None:
-        sim = PyBullet(render=render)
-        robot = Panda(sim, block_gripper=False, base_position=np.array([-0.6, 0.0, 0.0]), control_type=control_type)
-        task = Stack(sim, reward_type=reward_type)
-        super().__init__(robot, task)
+    def __init__(self, render_mode: Optional[str] = None, scenario: str = "reachao1",
+                 ee_error_threshold: float = 0.05, config: Optional[ReachAOConfig] = None) -> None:
+        config = config or ReachAOConfig()
+        sim = PyBullet(render=render_mode == "human", n_substeps=config.n_substeps)
+        robot = Panda(sim, block_gripper=True, base_position=np.zeros(3), control_type=config.control_type,
+                      obs_type=config.obs_type, action_limiter=config.action_limiter, n_substeps=config.n_substeps)
+        task = ReachAO(sim, robot, get_ee_position=robot.get_ee_position, scenario=scenario,
+                       ee_error_threshold=ee_error_threshold, config=config)
+        camera = dict(target_position=np.array(task.cameraTargetPosition), distance=task.cameraDistance,
+                      yaw=task.cameraYaw, pitch=task.cameraPitch)
+        super().__init__(robot, task, config.terminate_on_success, render_mode=render_mode, render_kwargs=camera)

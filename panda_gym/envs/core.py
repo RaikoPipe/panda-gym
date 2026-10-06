@@ -242,9 +242,13 @@ class Task(ABC):
     def is_success(self, achieved_goal: np.ndarray, desired_goal: np.ndarray, info: Dict[str, Any] = {}) -> np.ndarray:
         """Returns whether the achieved goal match the desired goal."""
 
-    @abstractmethod
-    def is_truncated(self) -> np.ndarray:
-        """Returns whether the episode was truncated because some condition was violated."""
+    def is_failure(self) -> bool:
+        """Whether the episode ended in a terminal failure state (e.g. a collision)."""
+        return False
+
+    def step_info(self) -> Dict[str, Any]:
+        """Extra per-step info, stored in the replay buffer and passed back to compute_reward (HER)."""
+        return {}
 
     @abstractmethod
     def compute_reward(self, achieved_goal: np.ndarray, desired_goal: np.ndarray,
@@ -260,10 +264,13 @@ class RobotTaskEnv(gym.Env):
         task (Task): The task.
     """
 
-    metadata = {"render_modes": ["human", "rgb_array"]}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 25}
 
-    def __init__(self, robot: PyBulletRobot, task: Task, terminate_on_success=False) -> None:
+    def __init__(self, robot: PyBulletRobot, task: Task, terminate_on_success=False,
+                 render_mode: Optional[str] = None, render_kwargs: Optional[dict] = None) -> None:
         assert robot.sim == task.sim, "The robot and the task must belong to the same simulation."
+        self.render_mode = render_mode
+        self.render_kwargs = render_kwargs or {}
         self.sim = robot.sim
         self.robot = robot
         self.task = task
@@ -335,20 +342,6 @@ class RobotTaskEnv(gym.Env):
         self._saved_goal.pop(state_id)
         self.sim.remove_state(state_id)
 
-    # def step(self, action: np.ndarray) -> Tuple[Dict[str, np.ndarray], float, bool, bool, Dict[str, Any]]:
-    #     self.robot.set_action(action)
-    #     self.sim.step()
-    #     observation = self._get_obs()
-    #
-    #     # An episode is terminated if the agent has reached the target
-    #     terminated = bool(self.task.is_success(observation["achieved_goal"], self.task.get_goal()))
-    #     truncated = bool(self.task.is_truncated())
-    #
-    #     info = {"is_success": terminated, "is_truncated": truncated}
-    #     reward = float(self.task.compute_reward(observation["achieved_goal"], self.task.get_goal(), info))
-    #
-    #     return observation, reward, terminated, truncated, info
-
     def step(self, action: np.ndarray) -> Tuple[Dict[str, np.ndarray], float, bool, bool, Dict[str, Any]]:
         self.robot.set_action(action)
         self.sim.step()
@@ -360,9 +353,10 @@ class RobotTaskEnv(gym.Env):
         if self.terminate_on_success:
             terminated = is_success
 
-        truncated = bool(self.task.is_truncated())
+        terminated = terminated or self.task.is_failure()
+        truncated = False  # time limits are added by gymnasium's TimeLimit wrapper
 
-        info = {"is_success": is_success, "is_truncated": truncated}
+        info = {"is_success": is_success, **self.task.step_info()}
         reward = float(self.task.compute_reward(observation["achieved_goal"], self.task.get_goal(), info))
 
         return observation, reward, terminated, truncated, info
@@ -370,45 +364,9 @@ class RobotTaskEnv(gym.Env):
     def close(self) -> None:
         self.sim.close()
 
-    def render(
-            self,
-            mode: str = "human",
-            width: int = 720,
-            height: int = 480,
-            target_position: Optional[np.ndarray] = None,
-            distance: float = 1.4,
-            yaw: float = 45,
-            pitch: float = -30,
-            roll: float = 0,
-    ) -> Optional[np.ndarray]:
-        """Render.
-
-        If mode is "human", make the rendering real-time. All other arguments are
-        unused. If mode is "rgb_array", return an RGB array of the scene.
-
-        Args:
-            mode (str): "human" of "rgb_array". If "human", this method waits for the time necessary to have
-                a realistic temporal rendering and all other args are ignored. Else, return an RGB array.
-            width (int, optional): Image width. Defaults to 720.
-            height (int, optional): Image height. Defaults to 480.
-            target_position (np.ndarray, optional): Camera targetting this postion, as (x, y, z).
-                Defaults to [0., 0., 0.].
-            distance (float, optional): Distance of the camera. Defaults to 1.4.
-            yaw (float, optional): Yaw of the camera. Defaults to 45.
-            pitch (float, optional): Pitch of the camera. Defaults to -30.
-            roll (int, optional): Rool of the camera. Defaults to 0.
-
-        Returns:
-            RGB np.ndarray or None: An RGB array if mode is 'rgb_array', else None.
-        """
-        target_position = target_position if target_position is not None else np.zeros(3)
-        return self.sim.render(
-            mode,
-            width=width,
-            height=height,
-            target_position=target_position,
-            distance=distance,
-            yaw=yaw,
-            pitch=pitch,
-            roll=roll,
-        )
+    def render(self) -> Optional[np.ndarray]:
+        """Real-time pacing for "human", an RGB frame for "rgb_array" (camera via render_kwargs)."""
+        if self.render_mode is None:
+            return None
+        kwargs = {"target_position": np.zeros(3), **self.render_kwargs}
+        return self.sim.render(self.render_mode, **kwargs)

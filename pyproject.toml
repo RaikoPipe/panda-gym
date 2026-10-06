@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "panda_gym"
+version = "4.0.0"
+description = "PyBullet Franka Panda environments (manipulation + obstacle avoidance) for gymnasium. Fork of qgallouedec/panda-gym."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Richard Reider", email = "richard.reider@ovgu.de" }]
+requires-python = ">=3.11"
+dependencies = ["gymnasium>=1.0", "pybullet>=3.2.6", "numpy>=1.26"]
+
+[project.optional-dependencies]
+train = ["stable-baselines3>=2.7", "sb3-contrib>=2.7", "torch", "tensorboard", "imageio[ffmpeg]", "tqdm", "rich"]
+develop = ["pytest"]
+
+[tool.setuptools.packages.find]
+include = ["panda_gym*"]
+
+[tool.setuptools.package-data]
+panda_gym = ["assets/**/*"]

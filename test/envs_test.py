@@ -1,4 +1,5 @@
 import gymnasium as gym
+import numpy as np
 
 import panda_gym
 
@@ -132,3 +133,19 @@ def test_dense_stack_joints():
 def test_dense_flip_joints():
     env = gym.make("PandaFlipJointsDense-v3")
     run_env(env)
+
+
+def test_reach_ao_scenarios():
+    for scenario in ["reachao1", "reachao3", "library2", "narrow_tunnel"]:
+        run_env(gym.make("PandaReachAO-v3", scenario=scenario))
+
+
+def test_reach_ao_her_reward_uses_stored_collisions():
+    """HER relabels batches of transitions: the collision penalty must come from each stored info."""
+    env = gym.make("PandaReachAO-v3", scenario="reachao1")
+    env.reset(seed=0)
+    goal = np.zeros((2, 3))
+    infos = np.array([{"is_collided": False}, {"is_collided": True}])
+    rewards = env.unwrapped.compute_reward(goal, goal, infos)
+    assert rewards.tolist() == [0.0, -101.0]
+    env.close()

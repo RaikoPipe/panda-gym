@@ -2,27 +2,43 @@ import itertools
 import json
 import logging
 import random
-import sys
 import time
 from copy import copy
 from math import exp
 from pathlib import Path
-from typing import Any, Dict
+from dataclasses import dataclass
+from typing import Any, Dict, Optional
 
-import gymnasium
 import numpy as np
 import pybullet as p
-from pyb_utils.collision import NamedCollisionObject, CollisionDetector
 
+from panda_gym.collision import CollisionDetector, NamedCollisionObject
 from panda_gym.envs.core import Task
 from panda_gym.envs.robots.panda import Panda
 from panda_gym.utils import distance, unit_vector
-from classes.train_config import TrainConfig
 
-sys.modules["gym"] = gymnasium
+SCENARIO_DIR = Path(__file__).parent.parent.parent / "assets" / "scenarios"
 
-ROOT_DIR = Path(__file__).parent.parent.parent
-SCENARIO_DIR = f"{ROOT_DIR}\\assets\\scenarios"
+
+@dataclass
+class ReachAOConfig:
+    """Environment settings of the obstacle avoidance reach task."""
+
+    n_substeps: int = 20
+    control_type: str = "js"  # "js": joint position deltas, "ee": end-effector displacement
+    obs_type: tuple = ("ee", "js")
+    action_limiter: str = "clip"
+    obstacle_obs: str = "vectors+closest_per_link"  # see ReachAO.get_obs
+    reward_type: str = "sparse"  # "sparse" or "dense"
+    collision_reward: float = -100.0
+    terminate_on_collision: bool = True
+    terminate_on_success: bool = True
+    randomize_robot_pose: bool = False
+    fixed_target: Optional[list] = None
+    safety_distance: float = 0.0
+    show_goal_space: bool = False
+    show_debug_labels: bool = False
+    debug_collision: bool = False
 
 
 class ReachAO(Task):
@@ -32,17 +48,14 @@ class ReachAO(Task):
             robot,
             get_ee_position,
             scenario='wangexp_3',
-            config=TrainConfig(),
+            config: Optional[ReachAOConfig] = None,
             ee_error_threshold=0.05,
             speed_threshold=0.5,
 
     ) -> None:
         super().__init__(sim)
 
-        self.config = config
-
-        if self.config.task_observations is None:
-            task_observations = {'obstacles': 'vectors+closest_per_link', 'prior': None}
+        self.config = config = config or ReachAOConfig()
 
         self.sim_id = self.sim.physics_client._client
 
@@ -50,12 +63,12 @@ class ReachAO(Task):
         self.obstacles = {}
 
         self.past_obstacle_observations = []
-        if "vectors+past" in self.config.task_observations["obstacles"]:
+        if "vectors+past" in self.config.obstacle_obs:
             self.obstacle_obs = "vectors"
             for _ in range(10):
                 self.get_obs()
 
-        self.obstacle_obs = self.config.task_observations["obstacles"]
+        self.obstacle_obs = self.config.obstacle_obs
 
         self.scenario = scenario
         self.randomize_robot_pose = config.randomize_robot_pose
@@ -81,9 +94,6 @@ class ReachAO(Task):
         self.goal_range_low = np.array([-self.goal_range / 2.5 + self.x_offset, -self.goal_range / 1.5, 0])
         self.goal_range_high = np.array([self.goal_range / 2.5 + self.x_offset, self.goal_range / 1.5, self.goal_range])
 
-        self.truncate_episode_on_collision = config.truncate_on_collision
-        if not self.truncate_episode_on_collision:
-            self.is_truncated = lambda: ()
 
         # # init pose generator env
         # self.reach_checker_env = gym.make("PandaReachChecker", control_type = "js", render=False)
@@ -172,7 +182,7 @@ class ReachAO(Task):
         self.self_collision_detector = CollisionDetector(col_id=self.sim_id, bodies=self.bodies,
                                                          named_collision_pairs=named_collision_pairs_robot)
 
-        if self.config.render:
+        if self.sim.render_env:
             # set camera
             p.resetDebugVisualizerCamera(cameraDistance=self.cameraDistance, cameraYaw=self.cameraYaw,
                                          cameraPitch=self.cameraPitch, cameraTargetPosition=self.cameraTargetPosition,
@@ -186,14 +196,6 @@ class ReachAO(Task):
                 self.is_collided = self.check_collided()
                 if self.is_collided:
                     break
-
-        def step_check_collision_once():
-            """Step the simulation for n steps and check for collision once after (Higher performance, but can lead to
-            collisions not being caught)."""
-            for _ in range(config.n_substeps):
-                self.sim.physics_client.stepSimulation()
-            if not self.is_collided:
-                self.is_collided = self.check_collided()
 
         sim.step = lambda: step_check_collision()
 
@@ -290,15 +292,16 @@ class ReachAO(Task):
         )
 
     def setup_benchmark_scenario(self, scenario_name):
-        scenario_dir = f"{SCENARIO_DIR}\\{scenario_name}"
+        scenario_dir = SCENARIO_DIR / scenario_name
 
-        with open(f"{scenario_dir}\\{scenario_name}.json") as t:
+        with open(scenario_dir / f"{scenario_name}.json") as t:
             urdfs = json.load(t)
 
         # append path
         for urdf in urdfs.values():
+            urdf.pop("bodyName", None)
             fileName = urdf["fileName"]
-            urdf["fileName"] = f"{scenario_dir}\\urdf\\{fileName}"
+            urdf["fileName"] = str(scenario_dir / "urdf" / fileName)
 
         indexes = self.sim.load_scenario(urdfs)
         for idx, body_name, urdf in zip(indexes, urdfs.keys(), urdfs.values()):
@@ -311,10 +314,8 @@ class ReachAO(Task):
             range_low = np.array([0.0, -0.6, 0.2])
             range_high = np.array([0.5, -0.5, 0.7])
             target = self.np_random.uniform(range_low, range_high)
-            joint_positions = self.robot.rtb_ik(target)
+            joint_positions = self.robot.ik(target)
             self.robot.set_joint_angles(joint_positions)
-
-            self.visualize_space_from_range(range_low, range_high, np.array([1.0, 0.0, 0.0, 0.1]))
 
         self.randomize_robot_pose = True
         self.robot_pose_randomizer = robot_pose_randomizer
@@ -364,12 +365,8 @@ class ReachAO(Task):
                 pose_sampling_range_low = np.array([-0.5, -0.6, 0.6])
                 pose_sampling_range_high = np.array([0.2, -0.3, 0.7])
                 target = self.np_random.uniform(pose_sampling_range_low, pose_sampling_range_high)
-                joint_positions = self.robot.rtb_ik(target)
+                joint_positions = self.robot.ik(target)
                 self.robot.set_joint_angles(joint_positions)
-
-                self.visualize_space_from_range(pose_sampling_range_low, pose_sampling_range_high, np.array([1.0, 0.0, 0.0, 0.1]))
-
-
 
             self.randomize_robot_pose = True
             self.robot_pose_randomizer = robot_pose_randomizer
@@ -794,13 +791,13 @@ class ReachAO(Task):
         collided = True
         while collided:
             ee_target = self.sample_within_hollow_sphere(radius_minor, radius_major, upper_half_only=True)
-            joint_positions = self.robot.rtb_ik(ee_target)
+            joint_positions = self.robot.ik(ee_target)
             self.robot.set_joint_angles(joint_positions)
             collided = self.check_collided(0.0)
 
     def set_robot_random_joint_position_ik_goal_space(self, goal_space):
         ee_target = goal_space()
-        joint_positions = self.robot.rtb_ik(ee_target)
+        joint_positions = self.robot.ik(ee_target)
         self.robot.set_joint_angles(joint_positions)
 
     def set_robot_random_pose(self, target_func):
@@ -810,7 +807,7 @@ class ReachAO(Task):
         with self.sim.no_rendering():
             while not valid_pose_found:
                 ee_target = target_func()
-                joint_positions = self.robot.rtb_ik(ee_target)
+                joint_positions = self.robot.ik(ee_target)
                 self.robot.set_joint_angles(joint_positions)
                 # limits prevent unwanted robot poses
                 if z_upper_limit >= self.robot.get_link_position(11)[2] >= z_lower_limit:
@@ -894,10 +891,16 @@ class ReachAO(Task):
         return goal
 
     def check_collided(self, safety_distance=0.0) -> bool:
-        self.distances_closest_obstacles = self.collision_detector.get_distances_per_link(max_distance=999.0)
-        distances_table = self.collision_detector.get_link_object_distance(object_name="table", ignore_link=["panda_link0", "panda_link1"])
-        return (min(self.distances_closest_obstacles) <= safety_distance
-                or min(distances_table) <= safety_distance)  # safety distance
+        """Robot touches an obstacle or the table (base links may rest on the table). Uses the contact manifold
+        of the last physics step, which is far cheaper than distance queries. The fixed base link is ignored."""
+        table = self.bodies["table"]
+        for c in p.getContactPoints(bodyA=self.robot.id, physicsClientId=self.sim_id):
+            other, link, dist = c[2], c[3], c[8]
+            if other == self.robot.id or link == -1 or (other == table and link == 0):
+                continue
+            if dist <= safety_distance:
+                return True
+        return False
 
     def get_obs(self) -> np.ndarray:
 
@@ -927,16 +930,7 @@ class ReachAO(Task):
                     closest_dist_per_link = np.array([min(i) for i in obs_per_link.values()])
                     obstacle_obs = np.concatenate((closest_dist_per_link, closest_dist_vectors_per_link))
 
-        prior_action = np.empty(0)
-        if self.config.task_observations["prior"] == "rrmc_neo":
-            prior_action = self.robot.compute_action_neo(
-                self.goal,
-                self.obstacles,
-                self.collision_detector,
-                self.robot.inverse_kinematics(link=11, position=self.goal)[:7],
-                'default')
-
-        observations = np.concatenate((obstacle_obs, prior_action))
+        observations = obstacle_obs
 
         return observations
 
@@ -1241,27 +1235,13 @@ class ReachAO(Task):
         self.robot.set_joint_neutral()
 
     def is_success(self, achieved_goal: np.ndarray, desired_goal: np.ndarray) -> np.ndarray:
-        d = distance(achieved_goal, desired_goal)
-        # if self.config.reward_type == "sparse":
-        #     return np.array(d < self.distance_threshold, dtype=bool)
-        # else:
-        # if self.config.goal_condition == "reach":
-        #     return np.array(d < self.distance_threshold, dtype=bool)
-        # else:
-        #
-        #     return np.array(np.logical_and((d < self.distance_threshold), (ee_speed < self.ee_speed_threshold)), dtype=bool)
-        if self.config.goal_condition == "halt":
-            if not self.goal_reached:
-                ee_speed = np.linalg.norm(self.robot.get_ee_velocity())
-                self.goal_reached = np.array(
-                    np.logical_and((d < self.ee_error_threshold), (ee_speed < self.ee_speed_threshold)), dtype=bool)
+        return np.array(distance(achieved_goal, desired_goal) < self.ee_error_threshold, dtype=bool)
 
-        else:
-            return np.array(d < self.ee_error_threshold, dtype=bool)
-        return np.array(self.goal_reached, dtype=bool)
+    def is_failure(self) -> bool:
+        return bool(self.is_collided and self.config.terminate_on_collision)
 
-    def is_truncated(self) -> np.ndarray:
-        return np.array(self.is_collided, dtype=bool)
+    def step_info(self) -> Dict[str, Any]:
+        return {"is_collided": bool(self.is_collided)}
 
     def update_labels(self, manipulability, distance, obstacle_distances, action_difference, effort, jerk, reward):
         with self.sim.no_rendering():
@@ -1305,82 +1285,25 @@ class ReachAO(Task):
     def get_norm_jerk(self):
         return np.linalg.norm(self.robot.current_joint_jerk)
 
-    def compute_reward(self, achieved_goal, desired_goal, info: Dict[str, Any]) -> np.ndarray:
+    def compute_reward(self, achieved_goal, desired_goal, info) -> np.ndarray:
+        """Vectorized (HER relabeling): collisions are read from the stored step info, not the live sim."""
         ee_error = distance(achieved_goal, desired_goal)
-        ee_speed = np.linalg.norm(self.robot.get_ee_velocity())
-        manipulability = self.robot.get_manipulability()
-        obs_distance = self.distances_closest_obstacles
-        action_diff = self.get_norm_action_difference()
-        effort = self.get_norm_effort()
-        jerk = self.get_norm_jerk()
+        if isinstance(info, dict):
+            collided = np.float32(info.get("is_collided", False))
+        else:
+            collided = np.array([i.get("is_collided", False) for i in info], dtype=np.float32)
 
         if self.config.reward_type == "sparse":
-            if self.config.goal_condition == "reach":
-                ee_error += self.is_collided  # if collided and reached goal, don't give reward
-                reward = -1 + np.array((ee_error < self.ee_error_threshold), dtype=np.float32)
-            else:
-                reward = np.array(1 - np.logical_and((ee_error < self.ee_error_threshold),
-                                                     (ee_speed < self.ee_speed_threshold)), dtype=np.float32)
-
-        elif self.config.reward_type == "wang":
-            weight_distance = 10e-3
-            weight_obs = 0.1
-            tolerance_distance = 10e-4
-            # IPPO reward
-            distance_reward = weight_distance * np.square(ee_error) + np.log(
-                np.square(ee_error) + tolerance_distance)
-            obstacle_reward = weight_obs * np.sum([np.max([0, 1 - d / 0.05]) for d in obs_distance])
-            reward = -np.array(distance_reward + obstacle_reward, dtype=np.float32)
-        elif self.config.reward_type == "kumar_her":
-            if self.config.goal_condition == "reach":
-                reward = -np.array((ee_error > self.ee_error_threshold) * jerk, dtype=np.float32)
-            else:
-                reward = np.array(np.logical_and((ee_error < self.ee_error_threshold),
-                                                 (ee_speed < self.ee_speed_threshold)), dtype=np.float32)
-                reward -= jerk
-        elif self.config.reward_type == "kumar_optim":
-            weight_effort = 0.005
-            reward = -np.array((ee_error > self.ee_error_threshold), dtype=np.float32)
-            reward -= effort
-
-        elif self.config.reward_type == "kumar":
-            weight_distance = 20
-            weight_effort = 0.005
-            weight_obs = 0.1
-
-            distance_reward = np.exp(-weight_distance * np.square(ee_error))
-            effort_reward = - weight_effort * effort
-            obstacle_reward = - weight_obs * np.sum([np.max([0, 1 - d / 0.05]) for d in obs_distance])
-
-            # finish_reward =  1000 * np.array(np.logical_and((ee_error < self.distance_threshold), (ee_speed < self.ee_speed_threshold)), dtype=np.float32)
-            # speed_reward = np.array(ee_error < self.distance_threshold, dtype=np.float32) * np.exp(-weight_distance * np.square(ee_speed))
-            # print(speed_reward)
-
-            reward = np.array(distance_reward + effort_reward + obstacle_reward, dtype=np.float32)
-
+            # success only counts without collision
+            reward = -1.0 + ((ee_error < self.ee_error_threshold) & (collided == 0))
         else:
-            # calculate dense rewards
-            reward = -np.array(effort * self.factor_punish_effort, dtype=np.float32)
-
-            ee_error *= self.factor_punish_distance
-            if self.is_collided:
-                reward += -np.array(ee_error + 100 * self.factor_punish_collision, dtype=np.float32)
-            else:
-                # punish being close to obstacles
-                reward += -np.array(ee_error + exp(-self.is_collided) * self.factor_punish_obstacle_proximity,
-                                    dtype=np.float32)
+            reward = -ee_error
+        reward = reward + collided * self.config.collision_reward
 
         if self.sim.render_env and self.config.show_debug_labels:
-            self.update_labels(manipulability, ee_error, obs_distance, action_diff, effort, jerk, reward)
-
-        if self.truncate_episode_on_collision and self.config.reward_type in ["sparse", "kumar_her", "kumar_optim"]:
-            reward += self.is_collided * self.config.collision_reward
-
-        self.action_diff = action_diff
-        self.action_magnitude = effort
-        self.manipulability = manipulability
-
-        return reward
+            self.update_labels(self.robot.get_manipulability(), ee_error, self.distances_closest_obstacles,
+                               self.get_norm_action_difference(), self.get_norm_effort(), self.get_norm_jerk(), reward)
+        return np.asarray(reward, dtype=np.float32)
 
     def visualize_space_from_range(self, range_low, range_high, color=np.array([0.0, 1.0, 0.0, 0.2])):
         x = (range_high[0] - range_low[0])

@@ -50,9 +50,6 @@ class Reach(Task):
             )
         return
 
-    def is_truncated(self) -> np.ndarray:
-        return np.array(False)
-
     def get_obs(self) -> np.ndarray:
         return np.array([])  # no task-specific observation
 
@@ -79,7 +76,7 @@ class Reach(Task):
 
     def is_success(self, achieved_goal: np.ndarray, desired_goal: np.ndarray) -> np.ndarray:
         d = distance(achieved_goal, desired_goal)
-        return np.array(d < self.distance_threshold, dtype=np.bool8)
+        return np.array(d < self.distance_threshold, dtype=bool)
 
     def compute_reward(self, achieved_goal, desired_goal, info: Dict[str, Any]) -> np.ndarray:
         d = distance(achieved_goal, desired_goal)
