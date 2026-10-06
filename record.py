@@ -60,7 +60,7 @@ def episode(model, env, seed, title, subtitle, orbit):
     frames, done, info = [], False, {}
     while not done:
         frames.append(overlay(env.render(), title, subtitle))
-        env.unwrapped.render_kwargs["yaw"] += orbit
+        orbit(env)
         action, _ = model.predict(obs, deterministic=True)
         obs, _, terminated, truncated, info = env.step(action)
         done = terminated or truncated
@@ -82,6 +82,12 @@ def main(args):
         kwargs["max_episode_steps"] = args.max_episode_steps
     env = gym.make(args.env, render_mode="rgb_array", **kwargs)
     env.unwrapped.render_kwargs.update(width=args.width, height=args.height)
+    base_yaw, frame = env.unwrapped.render_kwargs["yaw"], [0]
+
+    def orbit(env):
+        """Swing the camera around the scene's own viewpoint (a full orbit ends up behind furniture)."""
+        frame[0] += 1
+        env.unwrapped.render_kwargs["yaw"] = base_yaw + args.orbit * np.sin(2 * np.pi * frame[0] / (12 * FPS))
     task = args.env.removesuffix("-v3") + (f" · {args.scenario}" if args.scenario else "")
     out = Path("videos")
     out.mkdir(exist_ok=True)
@@ -95,7 +101,7 @@ def main(args):
             for ckpt in checkpoints:
                 model = load(ckpt)
                 for i in range(args.episodes_per_checkpoint):
-                    frames, _ = episode(model, env, 1000 + i, task, f"training step {steps(ckpt):,}", args.orbit)
+                    frames, _ = episode(model, env, 1000 + i, task, f"training step {steps(ckpt):,}", orbit)
                     for f in frames:
                         writer.append_data(f)
                 print(f"{ckpt.name} done")
@@ -105,7 +111,7 @@ def main(args):
     successes = 0
     with imageio.get_writer(out / f"{name}_deploy.mp4", fps=FPS, quality=8) as writer:
         for i in range(args.episodes):
-            frames, ok = episode(model, env, 2000 + i, task, f"trained agent · episode {i + 1}/{args.episodes}", args.orbit)
+            frames, ok = episode(model, env, 2000 + i, task, f"trained agent · episode {i + 1}/{args.episodes}", orbit)
             successes += ok
             for f in frames:
                 writer.append_data(f)
@@ -124,7 +130,7 @@ if __name__ == "__main__":
     parser.add_argument("--checkpoint-filter", default="", help="e.g. a curriculum stage name")
     parser.add_argument("--episodes-per-checkpoint", type=int, default=2)
     parser.add_argument("--episodes", type=int, default=8)
-    parser.add_argument("--orbit", type=float, default=0.15, help="camera yaw change per frame (degrees)")
+    parser.add_argument("--orbit", type=float, default=20, help="camera swing amplitude in degrees (12 s period)")
     parser.add_argument("--width", type=int, default=1280)
     parser.add_argument("--height", type=int, default=720)
     main(parser.parse_args())
