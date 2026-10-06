@@ -76,7 +76,7 @@ def episode(model, env, seed, title, subtitle, orbit):
 
 def main(args):
     run = Path(args.run)
-    name = run.name + (f"_{args.scenario}" if args.scenario else "")
+    name = args.name or run.name + (f"_{args.scenario}" if args.scenario else "")
     kwargs = {"scenario": args.scenario} if args.scenario else {}
     if args.max_episode_steps:
         kwargs["max_episode_steps"] = args.max_episode_steps
@@ -118,6 +118,7 @@ if __name__ == "__main__":
     parser.add_argument("run")
     parser.add_argument("env")
     parser.add_argument("--scenario")
+    parser.add_argument("--name", help="output file prefix (default: run name + scenario)")
     parser.add_argument("--max-episode-steps", type=int)
     parser.add_argument("--model", default="final.zip", help="model for the deployment video (falls back to best/)")
     parser.add_argument("--checkpoint-filter", default="", help="e.g. a curriculum stage name")

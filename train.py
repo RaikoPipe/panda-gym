@@ -98,6 +98,7 @@ def train(args):
         if model is None and args.init:  # fine-tune a trained agent (fresh replay buffer, short random warm-up)
             model = {"crossq": CrossQ, "tqc": TQC}[args.algo].load(args.init, env=env, tensorboard_log=str(run_dir))
             model.learning_starts = model.num_timesteps + args.learning_starts
+            model.save(run_dir / "checkpoints" / f"model_{scenario}_{model.num_timesteps}_steps")  # zero-shot policy
         elif model is None:
             model = make_model(args.algo, env, args, run_dir)
             model.save(run_dir / "checkpoints" / "model_0_steps")  # untrained policy for the first video
@@ -111,7 +112,7 @@ def train(args):
                                name_prefix=f"model{tag}"),
             EvalCallback(eval_env, n_eval_episodes=args.n_eval_episodes, eval_freq=max(args.eval_freq // args.n_envs, 1),
                          best_model_save_path=str(run_dir / f"best{tag}"), verbose=1,
-                         callback_after_eval=StopOnSuccessRate(threshold) if threshold and not last else None),
+                         callback_after_eval=StopOnSuccessRate(threshold) if threshold is not None and not last else None),
         ]
         steps_before = model.num_timesteps
         model.learn(total_timesteps=budget, callback=callbacks, reset_num_timesteps=False,
