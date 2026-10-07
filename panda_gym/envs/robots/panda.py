@@ -62,7 +62,10 @@ class Panda(PyBulletRobot):
         )
 
         self.fingers_indices = np.array(fingers)
-        self.neutral_joint_values = np.array([0, -0.3, 0, -2.2, 0, 2.0, np.pi / 4, 0.00, 0.00])
+        if urdf == "franka":  # upstream panda-gym start pose: gripper 20 cm above the cube area, pointing down
+            self.neutral_joint_values = np.array([0.00, 0.41, 0.00, -1.85, 0.00, 2.26, 0.79, 0.00, 0.00])
+        else:  # thesis start pose for obstacle avoidance
+            self.neutral_joint_values = np.array([0, -0.3, 0, -2.2, 0, 2.0, np.pi / 4, 0.00, 0.00])
         self.ee_link = 11 # 17
         self.sim.set_lateral_friction(self.body_name, self.fingers_indices[0], lateral_friction=1.0)
         self.sim.set_lateral_friction(self.body_name, self.fingers_indices[1], lateral_friction=1.0)

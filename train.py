@@ -42,8 +42,8 @@ sb3_contrib.crossq.crossq.th = _DictCatTorch()
 HER = dict(replay_buffer_class=HerReplayBuffer, replay_buffer_kwargs=dict(n_sampled_goal=4, goal_selection_strategy="future"))
 
 
-def make_env(env_id, n_envs, seed, scenario=None, max_episode_steps=None, vec_env_cls=SubprocVecEnv):
-    kwargs = {"render_mode": None, **({"scenario": scenario} if scenario else {})}  # SB3 defaults to rgb_array
+def make_env(env_id, n_envs, seed, scenario=None, max_episode_steps=None, vec_env_cls=SubprocVecEnv, **env_kwargs):
+    kwargs = {"render_mode": None, **({"scenario": scenario} if scenario else {}), **env_kwargs}  # SB3 defaults to rgb_array
     if max_episode_steps:
         kwargs["max_episode_steps"] = max_episode_steps
     return make_vec_env(env_id, n_envs=n_envs, seed=seed, env_kwargs=kwargs, vec_env_cls=vec_env_cls)
@@ -93,7 +93,8 @@ def train(args):
         last = i == len(stages) - 1
         max_steps = int(rest[0]) if rest else None
         threshold = float(rest[1]) if len(rest) > 1 else None
-        env = make_env(args.env, args.n_envs, args.seed + i, scenario, max_steps)
+        extra = {"grasp_start_prob": args.grasp_start_prob} if args.grasp_start_prob else {}
+        env = make_env(args.env, args.n_envs, args.seed + i, scenario, max_steps, **extra)  # eval env: normal starts
         eval_env = make_env(args.env, 4, args.seed + 1000 + i, scenario, max_steps)
         if model is None and args.init:  # fine-tune a trained agent (fresh replay buffer, short random warm-up)
             model = {"crossq": CrossQ, "tqc": TQC}[args.algo].load(args.init, env=env, tensorboard_log=str(run_dir))
@@ -144,4 +145,6 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--name")
     parser.add_argument("--init", help="model .zip to fine-tune instead of starting from scratch")
+    parser.add_argument("--grasp-start-prob", type=float, default=0.0,
+                        help="PickAndPlace/Stack: share of training episodes that start with the cube in the gripper")
     train(parser.parse_args())
