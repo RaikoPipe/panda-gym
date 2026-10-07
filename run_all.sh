@@ -16,11 +16,11 @@ done
 
 # classic manipulation tasks, roughly by difficulty
 train Reach PandaReach-v3 --steps 30000 --learning-starts 2000 --eval-freq 5000 --n-checkpoints 6
-train Push PandaPush-v3 --steps 400000
-train PickAndPlace PandaPickAndPlace-v3 --steps 1000000
-train Slide PandaSlide-v3 --steps 1000000
-train Flip PandaFlip-v3 --steps 800000
-train Stack PandaStack-v3 --steps 1200000
+train Push PandaPush-v3 --steps 300000
+train PickAndPlace PandaPickAndPlace-v3 --steps 500000
+train Slide PandaSlide-v3 --steps 500000
+train Flip PandaFlip-v3 --steps 400000
+train Stack PandaStack-v3 --steps 500000
 
 # videos
 for t in Reach Push PickAndPlace Slide Flip Stack; do
