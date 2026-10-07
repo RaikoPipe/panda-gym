@@ -32,7 +32,8 @@ class Panda(PyBulletRobot):
             obs_type: tuple = ("ee",),
             limiter: str = "sim",
             action_limiter: str = "clip",
-            n_substeps=20
+            n_substeps=20,
+            urdf: str = "franka",
     ) -> None:
         base_position = base_position if base_position is not None else np.zeros(3)
         self.block_gripper = block_gripper
@@ -42,7 +43,13 @@ class Panda(PyBulletRobot):
         n_action += 0 if self.block_gripper else 1
         action_space = spaces.Box(-1.0, 1.0, shape=(n_action,), dtype=np.float32)
 
-        path_to_urdf = os.path.join(os.path.dirname(__file__), "..", "..", "assets", "robots", "panda", "panda.urdf")
+        # "franka": standard Panda from pybullet_data with movable fingers (grasping tasks, as in upstream panda-gym).
+        # "custom": thesis model used by ReachAO; its finger joints are fixed and shifted by one index.
+        if urdf == "franka":
+            path_to_urdf, fingers = "franka_panda/panda.urdf", [9, 10]
+        else:
+            path_to_urdf = os.path.join(os.path.dirname(__file__), "..", "..", "assets", "robots", "panda", "panda.urdf")
+            fingers = [10, 11]
 
         super().__init__(
             sim,
@@ -50,11 +57,11 @@ class Panda(PyBulletRobot):
             file_name=path_to_urdf,
             base_position=base_position,
             action_space=action_space,
-            joint_indices=np.array([0, 1, 2, 3, 4, 5, 6, 9, 10]),
+            joint_indices=np.array([0, 1, 2, 3, 4, 5, 6, *fingers]),
             joint_forces=np.array([87.0, 87.0, 87.0, 87.0, 12.0, 120.0, 120.0, 170.0, 170.0]),
         )
 
-        self.fingers_indices = np.array([9, 10])
+        self.fingers_indices = np.array(fingers)
         self.neutral_joint_values = np.array([0, -0.3, 0, -2.2, 0, 2.0, np.pi / 4, 0.00, 0.00])
         self.ee_link = 11 # 17
         self.sim.set_lateral_friction(self.body_name, self.fingers_indices[0], lateral_friction=1.0)

@@ -68,7 +68,8 @@ class PandaReachAOEnv(RobotTaskEnv):
         config = config or ReachAOConfig()
         sim = PyBullet(render=render_mode == "human", n_substeps=config.n_substeps, egl=render_mode == "rgb_array")
         robot = Panda(sim, block_gripper=True, base_position=np.zeros(3), control_type=config.control_type,
-                      obs_type=config.obs_type, action_limiter=config.action_limiter, n_substeps=config.n_substeps)
+                      obs_type=config.obs_type, action_limiter=config.action_limiter, n_substeps=config.n_substeps,
+                      urdf="custom")
         task = ReachAO(sim, robot, get_ee_position=robot.get_ee_position, scenario=scenario,
                        ee_error_threshold=ee_error_threshold, config=config)
         camera = dict(target_position=np.array(task.cameraTargetPosition), distance=task.cameraDistance,

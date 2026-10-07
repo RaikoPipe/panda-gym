@@ -162,3 +162,16 @@ def test_scene_curriculum_moves_difficulty_both_ways():
     for _ in range(20):
         dr._update_difficulty(success=False, collided=True)
     assert dr.difficulty == 0.0
+
+
+def test_gripper_opens_and_closes():
+    """The grasping tasks need movable fingers (the ReachAO model's finger joints are fixed)."""
+    env = gym.make("PandaPickAndPlace-v3")
+    env.reset(seed=0)
+    for _ in range(3):
+        env.step(np.array([0, 0, 0, 1.0], dtype=np.float32))
+    assert env.unwrapped.robot.get_fingers_width() > 0.07
+    for _ in range(3):
+        env.step(np.array([0, 0, 0, -1.0], dtype=np.float32))
+    assert env.unwrapped.robot.get_fingers_width() < 0.01
+    env.close()
