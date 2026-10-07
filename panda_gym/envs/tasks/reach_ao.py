@@ -20,6 +20,20 @@ from panda_gym.utils import distance, unit_vector
 
 SCENARIO_DIR = Path(__file__).parent.parent.parent / "assets" / "scenarios"
 
+THESIS_IGNORE_LINKS = ("panda_leftfinger", "panda_rightfinger", "panda_grasptarget")
+
+# Named collision definitions (evaluate.py/train.py --collision-def). "thesis" reproduces the thesis-era code
+# (1624534): fingers and grasp target ignored, table not an obstacle, and the check is a distance query once per
+# control step (after all substeps) instead of the contact manifold of every substep.
+COLLISION_DEFS = {
+    "strict": dict(collision_ignore_links=(), table_collides=True, collision_check="contact"),
+    "strict_notable": dict(collision_ignore_links=(), table_collides=False, collision_check="contact"),
+    "thesis": dict(collision_ignore_links=THESIS_IGNORE_LINKS, table_collides=False, collision_check="distance"),
+    "thesis_table": dict(collision_ignore_links=THESIS_IGNORE_LINKS, table_collides=True, collision_check="distance"),
+    # thesis link/table set, but checked like HEAD (every substep): separates the timing effect from the link set
+    "thesis_substep": dict(collision_ignore_links=THESIS_IGNORE_LINKS, table_collides=False, collision_check="contact"),
+}
+
 
 @dataclass
 class ReachAOConfig:
@@ -40,6 +54,26 @@ class ReachAOConfig:
     show_goal_space: bool = False
     show_debug_labels: bool = False
     debug_collision: bool = False
+    # collision definition (defaults = HEAD behavior; see COLLISION_DEFS, ReachAOConfig.thesis())
+    collision_ignore_links: tuple = ()  # robot link names whose contacts never count
+    table_collides: bool = True  # panda_link1 resting on the table never counts
+    collision_check: str = "contact"  # "contact": contact manifold of every substep; "distance": once per step
+    collision_semantics: str = "terminate"  # "terminate" or "truncate" (thesis: bootstraps through crashes)
+    her_penalty_source: str = "info"  # "info": stored per-transition flag; "live": thesis bug, G2 fidelity only
+
+    @classmethod
+    def strict(cls, **kwargs) -> "ReachAOConfig":
+        return cls(**{**COLLISION_DEFS["strict"], **kwargs})
+
+    @classmethod
+    def thesis(cls, **kwargs) -> "ReachAOConfig":
+        """Thesis-era (1624534) collision definition and training semantics."""
+        return cls(**{**COLLISION_DEFS["thesis"], "collision_semantics": "truncate", "her_penalty_source": "live",
+                      **kwargs})
+
+    @classmethod
+    def from_collision_def(cls, name: str, **kwargs) -> "ReachAOConfig":
+        return cls(**{**COLLISION_DEFS[name], **kwargs})
 
 
 class ReachAO(Task):
@@ -192,14 +226,25 @@ class ReachAO(Task):
                                          cameraPitch=self.cameraPitch, cameraTargetPosition=self.cameraTargetPosition,
                                          physicsClientId=self.sim_id)
 
+        unknown = set(config.collision_ignore_links) - set(self.robot.link_names)
+        if unknown:
+            raise ValueError(f"collision_ignore_links: unknown robot links {sorted(unknown)}")
+        self.ignored_link_ids = {i for i, n in enumerate(self.robot.link_names) if n in config.collision_ignore_links}
+        self.collision_link = None  # (robot link, other body) of the last collision, for evaluation records
+
         # overwrite standard pybullet step
         def step_check_collision():
-            """Step the simulation and check for collision at each step."""
+            """Step the simulation; "contact" checks every substep and stops at the first collision, "distance"
+            (thesis) checks once after all substeps."""
+            self.collision_link = None
             for _ in range(config.n_substeps):
                 self.sim.physics_client.stepSimulation()
+                if config.collision_check == "contact":
+                    self.is_collided = self.check_collided()
+                    if self.is_collided:
+                        break
+            if config.collision_check == "distance":
                 self.is_collided = self.check_collided()
-                if self.is_collided:
-                    break
 
         sim.step = lambda: step_check_collision()
 
@@ -910,15 +955,33 @@ class ReachAO(Task):
         goal = self.np_random.uniform(self.goal_range_low, self.goal_range_high)
         return goal
 
-    def check_collided(self, safety_distance=0.0) -> bool:
-        """Robot touches an obstacle or the table (base links may rest on the table). Uses the contact manifold
-        of the last physics step, which is far cheaper than distance queries. The fixed base link is ignored."""
+    def _ignored_contact(self, other, link) -> bool:
+        """Contacts that never count: self contacts, the fixed base, panda_link1 resting on the table, the table
+        if it is not an obstacle, and links in config.collision_ignore_links."""
         table = self.bodies["table"]
-        for c in p.getContactPoints(bodyA=self.robot.id, physicsClientId=self.sim_id):
+        return (other == self.robot.id or link == -1 or link in self.ignored_link_ids
+                or (other == table and (link == 0 or not self.config.table_collides)))
+
+    def _record_collision(self, other, link):
+        names = {uid: name for name, uid in self.bodies.items()}
+        self.collision_link = (self.robot.link_names[link], names.get(other, str(other)))
+
+    def check_collided(self, safety_distance=0.0) -> bool:
+        """Robot touches an obstacle or the table (see _ignored_contact). "contact" reads the contact manifold of
+        the last physics step, which is far cheaper than distance queries; "distance" (thesis) queries the closest
+        points to every obstacle (and the table if it collides)."""
+        if self.config.collision_check == "distance":
+            others = list(self.obstacles.values()) + ([self.bodies["table"]] if self.config.table_collides else [])
+            points = (c for o in others
+                      for c in p.getClosestPoints(self.robot.id, o, safety_distance, physicsClientId=self.sim_id))
+        else:
+            points = p.getContactPoints(bodyA=self.robot.id, physicsClientId=self.sim_id)
+        for c in points:
             other, link, dist = c[2], c[3], c[8]
-            if other == self.robot.id or link == -1 or (other == table and link == 0):
+            if self._ignored_contact(other, link):
                 continue
             if dist <= safety_distance:
+                self._record_collision(other, link)
                 return True
         return False
 
@@ -1278,7 +1341,12 @@ class ReachAO(Task):
         return success
 
     def is_failure(self) -> bool:
-        return bool(self.is_collided and self.config.terminate_on_collision)
+        return bool(self.is_collided and self.config.terminate_on_collision
+                    and self.config.collision_semantics == "terminate")
+
+    def is_truncated(self) -> bool:
+        return bool(self.is_collided and self.config.terminate_on_collision
+                    and self.config.collision_semantics == "truncate")
 
     def step_info(self) -> Dict[str, Any]:
         return {"is_collided": bool(self.is_collided)}
@@ -1328,6 +1396,12 @@ class ReachAO(Task):
     def compute_reward(self, achieved_goal, desired_goal, info) -> np.ndarray:
         """Vectorized (HER relabeling): collisions are read from the stored step info, not the live sim."""
         ee_error = distance(achieved_goal, desired_goal)
+        if self.config.her_penalty_source == "live" and self.config.reward_type == "sparse":
+            # Thesis-era reward (1624534), kept for the G2 ablation only: the penalty reads the live collision flag
+            # of the env that computes the reward, not the (relabelled) transition's, and success is not gated
+            # by the collision. Wrong for HER, which recomputes rewards of stored transitions.
+            return np.asarray(-(ee_error >= self.ee_error_threshold).astype(np.float32)
+                              + float(self.is_collided) * self.config.collision_reward, dtype=np.float32)
         if isinstance(info, dict):
             collided = np.float32(info.get("is_collided", False))
         else:

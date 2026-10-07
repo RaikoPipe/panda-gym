@@ -246,6 +246,11 @@ class Task(ABC):
         """Whether the episode ended in a terminal failure state (e.g. a collision)."""
         return False
 
+    def is_truncated(self) -> bool:
+        """Whether the episode is cut off without being terminal (e.g. a collision under thesis semantics, which
+        lets off-policy learners bootstrap through it). Time limits are handled by gymnasium's TimeLimit."""
+        return False
+
     def step_info(self) -> Dict[str, Any]:
         """Extra per-step info, stored in the replay buffer and passed back to compute_reward (HER)."""
         return {}
@@ -274,7 +279,9 @@ class RobotTaskEnv(gym.Env):
         self.sim = robot.sim
         self.robot = robot
         self.task = task
-        observation, _ = self.reset()  # required for init; seed can be changed later
+        # required for init; seeded because some scenes sample the start pose by IK from the current joint state,
+        # so the first seeded episode of a fresh env must not depend on an unseeded constructor reset
+        observation, _ = self.reset(seed=0)
         observation_shape = observation["observation"].shape
         achieved_goal_shape = observation["achieved_goal"].shape
         desired_goal_shape = observation["achieved_goal"].shape
@@ -354,7 +361,7 @@ class RobotTaskEnv(gym.Env):
             terminated = is_success
 
         terminated = terminated or self.task.is_failure()
-        truncated = False  # time limits are added by gymnasium's TimeLimit wrapper
+        truncated = self.task.is_truncated()  # time limits are added by gymnasium's TimeLimit wrapper
 
         info = {"is_success": is_success, **self.task.step_info()}
         reward = float(self.task.compute_reward(observation["achieved_goal"], self.task.get_goal(), info))
