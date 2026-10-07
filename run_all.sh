@@ -10,7 +10,7 @@ mkdir -p runs
 # obstacle avoidance: curriculum on random obstacles, then fine-tuning on the benchmark scenes
 AO_SCENES="library1 library2 narrow_tunnel workshop"
 train ReachAO PandaReachAO-v3 --curriculum reachao1:50:0.9 reachao2:75:0.9 reachao3:100 --steps 1200000 --n-checkpoints 30
-for s in $AO_SCENES; do
+[ "${FINETUNE:-1}" = 1 ] && for s in $AO_SCENES; do  # FINETUNE=0 ./run_all.sh skips the scene fine-tunes
   train "ReachAO_$s" PandaReachAO-v3 --init runs/ReachAO/final_reachao3.zip --curriculum "$s:150" --steps 150000 --n-checkpoints 6
 done
 
@@ -30,7 +30,7 @@ for st in reachao1:50 reachao2:75 reachao3:100; do  # curriculum stages, each in
   $PY record.py runs/ReachAO PandaReachAO-v3 --scenario "${st%:*}" --max-episode-steps "${st#*:}" \
     --checkpoint-filter "${st%:*}" --model "final_${st%:*}.zip"
 done
-for s in $AO_SCENES; do
+[ "${FINETUNE:-1}" = 1 ] && for s in $AO_SCENES; do
   $PY record.py runs/ReachAO PandaReachAO-v3 --scenario "$s" --max-episode-steps 150 --model final_reachao3.zip \
     --checkpoint-filter none --name "ReachAO_${s}_zeroshot"  # generalist on the unseen scene
   $PY record.py "runs/ReachAO_$s" PandaReachAO-v3 --scenario "$s" --max-episode-steps 150 --model "final_$s.zip" \
