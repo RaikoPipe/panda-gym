@@ -20,8 +20,8 @@ SCENES = {"reachao3": 100, "wangexp-3": 100, "library1": 200, "library2": 150, "
           "workshop": 150, "workshop2": 150, "industrial": 150, "bookshelves": 150}
 
 
-def evaluate(model, scene, max_steps, episodes, n_envs=8, seed=10_000):
-    env = make_vec_env("PandaReachAO-v3", n_envs=n_envs, seed=seed, vec_env_cls=SubprocVecEnv,
+def evaluate(model, scene, max_steps, episodes, env_id="PandaReachAO-v3", n_envs=8, seed=10_000):
+    env = make_vec_env(env_id, n_envs=n_envs, seed=seed, vec_env_cls=SubprocVecEnv,
                        env_kwargs={"scenario": scene, "max_episode_steps": max_steps, "render_mode": None})
     counts = {"success": 0, "collision": 0, "timeout": 0}
     obs = env.reset()
@@ -42,13 +42,14 @@ if __name__ == "__main__":
     torch.set_num_threads(1)
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("model")
+    parser.add_argument("--env", default="PandaReachAO-v3")
     parser.add_argument("--episodes", type=int, default=50)
     parser.add_argument("--scenes", nargs="*", default=list(SCENES))
     args = parser.parse_args()
     model = load(args.model)
     results = {}
     for scene in args.scenes:
-        results[scene] = evaluate(model, scene, SCENES.get(scene, 150), args.episodes)
+        results[scene] = evaluate(model, scene, SCENES.get(scene, 150), args.episodes, args.env)
         r = results[scene]
         print(f"{scene:15s} success {r['success']:5.0%}  collision {r['collision']:5.0%}  timeout {r['timeout']:5.0%}", flush=True)
     bench = [s for s in results if s not in ("reachao3", "wangexp-3")]

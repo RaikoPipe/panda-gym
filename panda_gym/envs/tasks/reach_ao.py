@@ -29,7 +29,7 @@ class ReachAOConfig:
     control_type: str = "js"  # "js": joint position deltas, "ee": end-effector displacement
     obs_type: tuple = ("ee", "js")
     action_limiter: str = "clip"
-    obstacle_obs: str = "vectors+closest_per_link"  # see ReachAO.get_obs
+    obstacle_obs: str = "vectors+closest_per_link"  # see ReachAO.get_obs; "knn<k>" also senses the table
     reward_type: str = "sparse"  # "sparse" or "dense"
     collision_reward: float = -100.0
     terminate_on_collision: bool = True
@@ -70,6 +70,7 @@ class ReachAO(Task):
                 self.get_obs()
 
         self.obstacle_obs = self.config.obstacle_obs
+        self.knn = int(self.obstacle_obs[3:]) if self.obstacle_obs.startswith("knn") else 0
 
         self.scenario = scenario
         self.dr = None  # SceneRandomizer for the procedural "reachao_dr*" scenarios
@@ -169,10 +170,11 @@ class ReachAO(Task):
         # add collision detector for robot
         self.named_collision_pairs_rob_obs = []
         self.named_collision_links = []
+        observed = self.collision_objects + ([NamedCollisionObject("table")] if self.knn else [])
         for link_name in self.collision_links:
             link = NamedCollisionObject("robot", link_name=link_name)
             self.named_collision_links.append(link)
-            for obstacle in self.collision_objects:
+            for obstacle in observed:
                 self.named_collision_pairs_rob_obs.append((link, obstacle))
         self.collision_detector = CollisionDetector(col_id=self.sim_id, bodies=self.bodies,
                                                     named_collision_pairs=self.named_collision_pairs_rob_obs)
@@ -594,8 +596,9 @@ class ReachAO(Task):
 
     def rebuild_collision_detector(self, obstacle_names):
         """Distance observations only for the obstacles that are currently placed."""
+        names = list(obstacle_names) + (["table"] if self.knn else [])
         pairs = [(NamedCollisionObject("robot", link_name=link), NamedCollisionObject(name))
-                 for link in self.collision_links for name in obstacle_names]
+                 for link in self.collision_links for name in names]
         self.collision_detector = CollisionDetector(col_id=self.sim_id, bodies=self.bodies, named_collision_pairs=pairs)
 
     def create_scenario_reachao_rand(self):
@@ -941,6 +944,8 @@ class ReachAO(Task):
                     self.past_obstacle_observations.append(self.get_vector_obs(obs_per_link, info))
                     # concatenate latest observations
                     obstacle_obs = np.concatenate(self.past_obstacle_observations[-3:])
+                case _ if self.knn:
+                    obstacle_obs = self.get_knn_obs(obs_per_link, info)
                 case "vectors+closest_per_link":
                     # Concatenates unit vectors pointing to the closest obstacles and closest obstacle per link
                     closest_dist_vectors_per_link = self.get_vector_obs(obs_per_link, info)
@@ -950,6 +955,17 @@ class ReachAO(Task):
         observations = obstacle_obs
 
         return observations
+
+    def get_knn_obs(self, obs_per_link, info, far=2.0):
+        """Per link: the k nearest obstacles (table included) as (distance, unit vector link->obstacle).
+        Several directions per link let the agent tell a tunnel or shelf from a single blob."""
+        out = []
+        for link, dists in obs_per_link.items():
+            nearest = sorted(zip(dists, info["closest_points"][link]), key=lambda t: t[0])[: self.knn]
+            feats = [[min(d, far), *unit_vector(np.array(a), np.array(b))] for d, (a, b) in nearest]
+            feats += [[far, 0.0, 0.0, 0.0]] * (self.knn - len(feats))
+            out.append(np.array(feats).ravel())
+        return np.concatenate(out)
 
     def get_vector_obs(self, obs_per_link, info):
         closest_points = list(info["closest_points"].values())
