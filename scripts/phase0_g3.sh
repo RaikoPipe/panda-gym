@@ -10,7 +10,8 @@ cd "$(dirname "$0")/.."
 : "${COLLISION_DEF:?set the frozen collision definition (G1/G2 outcome), e.g. COLLISION_DEF=strict}"
 MODE=${MODE:-sequential}
 STEPS=${STEPS:-1200000}
-CURRICULUM=${CURRICULUM:-"reachao1:50:0.9:300000 reachao2:75:0.9:300000 reachao3:100::300000"}
+# stages 1-2 capped at 300 k steps, the last stage gets the rest of the budget (matched budgets for both algorithms)
+CURRICULUM=${CURRICULUM:-"reachao1:50:0.9:300000 reachao2:75:0.9:300000 reachao3:100"}
 EPISODES=${EPISODES:-200}
 module load python/python-3.13.2 2>/dev/null || true
 VALIDATION=$(.venv/bin/python -c "from panda_gym.scenes import VALIDATION; print(' '.join(VALIDATION))")
@@ -18,18 +19,19 @@ VALIDATION=$(.venv/bin/python -c "from panda_gym.scenes import VALIDATION; print
 
 cell() {  # algo utd batch seed
   local algo=$1 utd=$2 batch=$3 seed=$4 name="g3_$1_utd$2_b$3_s$4" preset=""
-  [ "$algo" = tqc ] && preset="--preset thesis_tqc"
+  # thesis TQC preset, but at the frozen control rate (25 Hz; the preset's 10 ms steps would not match evaluation)
+  [ "$algo" = tqc ] && preset="--preset thesis_tqc --n-substeps 20"
   echo "cd $PWD && module load python/python-3.13.2 && set -e
 [ -f runs/sweep/$name/done ] && exit 0
 .venv/bin/python train.py PandaReachAO-v3 $preset --algo $algo --utd $utd --batch-size $batch --n-envs 16 \
   --seed $seed --steps $STEPS --curriculum $CURRICULUM --collision-def $COLLISION_DEF --n-checkpoints 24 \
   --name sweep/$name
 last5=\$(ls runs/sweep/$name/checkpoints/model_reachao3_*_steps.zip | sed 's/.*model_reachao3_\\([0-9]*\\)_steps.zip/\\1 &/' | sort -n | tail -5 | cut -d' ' -f2)
-.venv/bin/python evaluate.py runs/sweep/$name/final_reachao3.zip --scenes reachao3 --collision-def $COLLISION_DEF \
+cd $PWD && .venv/bin/python evaluate.py runs/sweep/$name/final_reachao3.zip --scenes reachao3 --collision-def $COLLISION_DEF \
   --episodes $EPISODES --workers 16 --out runs/eval/${name}_indist.jsonl
-.venv/bin/python evaluate.py runs/sweep/$name/final_reachao3.zip --scenes $VALIDATION --collision-def $COLLISION_DEF \
+cd $PWD && .venv/bin/python evaluate.py runs/sweep/$name/final_reachao3.zip --scenes $VALIDATION --collision-def $COLLISION_DEF \
   --episodes $EPISODES --workers 16 --out runs/eval/${name}_final_val.jsonl
-.venv/bin/python evaluate.py \$last5 --select-best --scenes $VALIDATION --collision-def $COLLISION_DEF \
+cd $PWD && .venv/bin/python evaluate.py \$last5 --select-best --scenes $VALIDATION --collision-def $COLLISION_DEF \
   --episodes $EPISODES --workers 16 --out runs/eval/${name}_last5_val.jsonl
 touch runs/sweep/$name/done"
 }

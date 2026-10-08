@@ -234,3 +234,13 @@ HEAD `0596f5d` behaviour except where an entry says otherwise.
   100 Hz for 100 steps = 1 s, which cannot produce 60.8 %, so the reported number used another setting).
 - Verified: `test/neo_test.py` (Jacobian vs. central differences for three links, state untouched by a control
   step, finite actions with active obstacle constraints, shared episodes through the harness).
+
+## Decisions after G1/G2 — 2026-10-08
+
+- Frozen collision definition: strict (thesis as a secondary column). Frozen horizon: 150 control steps (6 s).
+- `library1` joins TEST (G1: ReachAO_s2 reaches 18-24 %, non-zero at horizon 400; T6 rule).
+- NEO: the corrected port is accepted; its +15 pp deviation from the thesis value is reported, not tuned.
+- `dynamic_cross_fast` uses one sphere (two collided in 81 % of hold-q0 episodes). Re-measured on 200 episodes:
+  slow (two spheres) 36 %, fast (one sphere) 65 %, i.e. at the upper edge of the 20-60 % band (95 % CI ~58-71 %).
+- G3 (`scripts/phase0_g3.sh`): the TQC cells use the thesis preset at `--n-substeps 20` (the frozen 25 Hz control
+  rate), and the last curriculum stage is uncapped, so every cell trains 1.2 M steps.

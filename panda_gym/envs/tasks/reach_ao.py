@@ -649,17 +649,20 @@ class ReachAO(Task):
 
     # --- dynamic-obstacle test scene (research design T9) ------------------------------------------------------------
     DYNAMIC_SPEEDS = {"dynamic_cross_slow": 0.1, "dynamic_cross_fast": 0.3}
+    # one sphere at the fast level: with two, a policy holding its start pose collided in 81 % of episodes, above
+    # the design's 20-60 % band for a non-trivial but solvable scene (authors' decision, 2026-10-08)
+    DYNAMIC_SPHERES = {"dynamic_cross_slow": 2, "dynamic_cross_fast": 1}
     SHOULDER = np.array([0.0, 0.0, 0.333])
     SPAWN_RADIUS = 1.0  # m from the shoulder; the arm reaches ~0.85 m, so spheres start outside the reach envelope
 
     def create_scenario_dynamic_cross(self):
-        """Two 5 cm spheres (mass 0, moved by their velocity) cross the workspace on straight lines through random
-        points between the start end-effector position and the goal, in random directions, at 0.1 or 0.3 m/s.
+        """5 cm spheres (two at 0.1 m/s, one at 0.3 m/s; mass 0, moved by their velocity) cross the workspace on straight lines through random
+        points between the start end-effector position and the goal, in random directions.
         Goals as in reachao3, neutral start. Test scene only. The observation is unchanged: it carries no obstacle
         velocity (partial observability) unless obstacle_obs="vectors+past"."""
         self.dynamic_speed = self.DYNAMIC_SPEEDS[self.scenario]
         self._sample_goal = lambda: self.sample_within_hollow_sphere(0.5, 0.8, upper_half_only=True)
-        for _ in range(2):
+        for _ in range(self.DYNAMIC_SPHERES[self.scenario]):
             self.create_obstacle_sphere(radius=0.05, position=np.array([0.0, 0.0, -5.0]))
 
     def reset_dynamic(self):

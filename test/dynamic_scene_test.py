@@ -42,8 +42,8 @@ def test_trajectories_are_seeded():
 
 
 def test_holding_the_start_pose_collides_sometimes():
-    """Design T9 acceptance: a policy holding q0 collides in 20-60 % of episodes (slow level; 32 % on 100 episodes,
-    the fast level collides in ~80 %, see CHANGELOG_paper.md)."""
+    """Design T9 acceptance: a policy holding q0 collides in 20-60 % of episodes (slow level: 36 % on 200 episodes;
+    fast level, one sphere: 65 %, see CHANGELOG_paper.md)."""
     collisions = 0
     for seed in range(30):
         env = gym.make("PandaReachAO-v3", scenario="dynamic_cross_slow", max_episode_steps=150)

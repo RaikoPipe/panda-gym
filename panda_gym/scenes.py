@@ -20,10 +20,10 @@ BENCHMARK = ("library1", "library2", "narrow_tunnel", "tunnel", "workshop", "wor
 
 # Scene split of the research design v4, section 4. wall, kasys and tabletop2 (and warehouse, which loads tabletop2)
 # are unfinished environments that were never meant for testing (authors, 2026-10-08) and are not part of the split.
-# Still pending: library1 (test only if an agent reaches non-zero success at horizon 400, T6).
+# library1 is a test scene: an agent reached 20-24 % at horizon 400 (G1, ReachAO_s2; T6 rule).
 TRAIN = ("reachao1", "reachao2", "reachao3", "reachao_dr", "reachao_dr_plr", "reachao_dr_adr", "reachao_dr_adr_plr")
 VALIDATION = ("tunnel", "workshop2", "industrial", "bookshelves", "kitchen", "countertop", "raised_shelves", "tabletop")
-TEST = ("narrow_tunnel", "library2", "workshop", "dynamic_cross_slow", "dynamic_cross_fast")
+TEST = ("narrow_tunnel", "library2", "workshop", "library1", "dynamic_cross_slow", "dynamic_cross_fast")
 
 # Unfinished environments (fail scripts/check_scenes.py; robot starts inside the scene or goals out of reach), never
 # to be used for validation or testing. All other scenarios pass the check (runs/scene_check.json, 2026-10-08).
