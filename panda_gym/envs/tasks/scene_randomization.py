@@ -140,9 +140,15 @@ class SceneRandomizer:
             else:
                 for name, _, _ in group:
                     self.sim.set_base_pose(name, PARK, IDENTITY)
-        if not placements:  # observations need at least one obstacle
+        if not placements:  # observations need at least one obstacle, clear of the start and the goal like the others
             name = next(n for n in free if self.pool[n] == "sphere")
-            placements = [(name, task.sample_obstacle_wang(), IDENTITY)]
+            for _ in range(100):
+                group = [(name, task.sample_obstacle_wang(), IDENTITY)]
+                if self._place_ok(group):
+                    break
+            else:
+                group = [(name, PARK, IDENTITY)]  # parked: no obstacle in reach this episode
+            placements = group
             self.sim.set_base_pose(name, placements[0][1], IDENTITY)
         self.sim.set_base_pose("dummy_sphere", PARK, IDENTITY)
         return robot_q, goal, placements

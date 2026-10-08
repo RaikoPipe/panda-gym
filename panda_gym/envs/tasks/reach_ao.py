@@ -167,6 +167,9 @@ class ReachAO(Task):
         self.cameraPitch = -33.20000076293945
         self.cameraYaw = 51.800025939941406
 
+        self.np_random = np.random.default_rng(0)  # some scenario builders sample before the first reset (showcase)
+        self.require_reachable_goal = False  # resample goals the end effector cannot reach (see goal_reachable)
+
         # set scene
         with self.sim.no_rendering():
             self._create_scene()
@@ -403,6 +406,8 @@ class ReachAO(Task):
         self.setup_benchmark_scenario("tunnel")
 
     def create_scenario_workshop(self):
+        # the default goal box reaches (-0.7, -0.7), ~1 m from the base: ~10 % of its goals are out of reach
+        self.require_reachable_goal = True
 
         # default workshop scenario
         self.goal_range_low = np.array([-0.7, -0.7, 0.4])
@@ -706,6 +711,7 @@ class ReachAO(Task):
             return self.robot.get_ee_position() + sample
 
     def create_scenario_wang(self):
+        self.require_reachable_goal = True  # goal shell reaches 0.95 m
         goal_radius_minor = 0.4
         goal_radius_major = 0.95
 
@@ -805,7 +811,7 @@ class ReachAO(Task):
         #             ghost=True
         #         )
         for i in range(3):
-            self.create_obstacle_sphere(self.sample_within_hollow_sphere(goal_radius_minor, goal_radius_major))
+            self.create_obstacle_sphere(position=self.sample_within_hollow_sphere(goal_radius_minor, goal_radius_major))
 
         self.sim.create_sphere(
             body_name=f"{obstacle_name}_{len(self.obstacles)}",
@@ -853,12 +859,23 @@ class ReachAO(Task):
         self.robot.set_joint_angles(joint_positions)
 
     def set_robot_random_joint_position_ik_sphere(self, radius_minor, radius_major):
-        collided = True
-        while collided:
+        """Random start pose clear of the table. Runs as robot.reset(), before this episode's obstacles are placed;
+        set_coll_free_robot clears the obstacles afterwards."""
+        for _ in range(1000):
             ee_target = self.sample_within_hollow_sphere(radius_minor, radius_major, upper_half_only=True)
             joint_positions = self.robot.ik(ee_target)
             self.robot.set_joint_angles(joint_positions)
-            collided = self.check_collided(0.0)
+            if not self.robot_touches_table():
+                return
+        self.robot.set_joint_neutral()
+
+    def robot_touches_table(self) -> bool:
+        """Contact with the table under the current collision definition, computed for the current pose (a plain
+        check_collided would read the contact manifold of the previous physics step)."""
+        p.performCollisionDetection(physicsClientId=self.sim_id)
+        table = self.bodies["table"]
+        return any(not self._ignored_contact(c[2], c[3]) and c[8] <= 0.0
+                   for c in p.getContactPoints(self.robot.id, table, physicsClientId=self.sim_id))
 
     def set_robot_random_joint_position_ik_goal_space(self, goal_space):
         ee_target = goal_space()
@@ -1212,6 +1229,8 @@ class ReachAO(Task):
             self.sim.set_base_pose("dummy_sphere", self.goal, np.array([0.0, 0.0, 0.0, 1.0]))
             # self.sim.physics_client.performCollisionDetection()
             collision = [self.check_collision("dummy_sphere", obj, margin=margin) for obj in coll_obj]
+            if self.require_reachable_goal and not any(collision):
+                collision.append(not self.goal_reachable(self.goal))
             # collision = [self.check_collision("dummy_sphere", "robot", margin=0.05),
             #              self.check_collision("dummy_sphere", "table", margin=0.05)]
 
@@ -1259,6 +1278,20 @@ class ReachAO(Task):
             #         self.sim.set_base_pose_dummy(self.dummy_obstacle_id[obstacle_id], pos,
             #                                      np.array([0.0, 0.0, 0.0, 1.0]),
             #                                      physics_client=self.sim.dummy_collision_client)
+
+    def goal_reachable(self, goal, tolerance=0.01) -> bool:
+        """Position-only IK brings the end-effector point (the ee link's centre of mass, as in get_ee_position)
+        within `tolerance` of the goal. Not collision aware. The robot's configuration is restored."""
+        q = self.robot.get_joint_angles(self.robot.joint_indices)
+        target = np.array(goal, dtype=float)
+        for _ in range(5):  # IK targets the link frame; shift the target until the centre of mass lands on the goal
+            q_ik = p.calculateInverseKinematics(self.robot.id, self.robot.ee_link, target.tolist(), maxNumIterations=500,
+                                                residualThreshold=1e-6, physicsClientId=self.sim_id)[:7]
+            self.robot.set_joint_angles(np.concatenate([q_ik, q[7:]]))
+            target += goal - self.robot.get_ee_position()
+        reachable = np.linalg.norm(self.robot.get_ee_position() - goal) < tolerance
+        self.robot.set_joint_angles(q)
+        return bool(reachable)
 
     def check_collision(self, obstacle_1, obstacle_2, margin=0.0):
         """Check if given bodies collide."""

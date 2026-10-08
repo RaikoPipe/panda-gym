@@ -12,6 +12,13 @@ Per reset (fresh env, seed 50_000 + i, HEAD collision definition):
 A scene passes when no reset collides at the start or first step and every goal is reachable.
 Writes runs/scene_check.json.
 """
+import os
+
+# one BLAS/OpenMP thread per worker process (set before numpy is imported; spawned workers inherit it):
+# with the default (one thread per core) a pool of workers exhausts the per-user thread limit
+for _var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
+    os.environ.setdefault(_var, "1")
+
 import argparse
 import inspect
 import json

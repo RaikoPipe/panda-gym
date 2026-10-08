@@ -8,6 +8,13 @@ collision definition and horizon sees the same goals, obstacles and start config
 hash of them to check that. Writes one JSON line per episode to --out, prints success / collision / timeout rates
 per scene and appends the summary line to runs/eval.jsonl.
 """
+import os
+
+# one BLAS/OpenMP thread per worker process (set before numpy is imported; spawned workers inherit it):
+# with the default (one thread per core) a pool of workers exhausts the per-user thread limit
+for _var in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
+    os.environ.setdefault(_var, "1")
+
 import argparse
 import glob
 import hashlib

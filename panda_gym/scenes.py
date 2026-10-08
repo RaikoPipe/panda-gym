@@ -24,13 +24,14 @@ TRAIN: tuple = ()
 VALIDATION: tuple = ()
 TEST: tuple = ()
 
-# scripts/check_scenes.py, 20 resets each (runs/scene_check.json, 2026-10-07):
-#   wall, tabletop2, warehouse  robot starts inside an obstacle in 20/20 resets (panda_link3)
-#   kasys                       20/20 goals out of reach (x = 1.4-1.7 m)
-#   workshop, workshop3         2/20 goals out of reach (goal box reaches (-0.7, -0.7), ~1 m from the base)
-#   wang-3                      1/20 goals out of reach
-#   showcase                    crashes at construction
-FAILED_SCENE_CHECK = ("wall", "tabletop2", "warehouse", "kasys", "workshop", "workshop3", "wang-3", "showcase")
+# scripts/check_scenes.py, 20 resets each (runs/scene_check.json, 2026-10-08, after the scene fixes):
+#   wall                  robot starts inside the wall in 20/20 resets (panda_link3); repair needs a 36 cm shift
+#   tabletop2, warehouse  a second table top at 0.48-0.50 m spans the robot base (panda_link3 inside it, 20/20);
+#                         warehouse also loads tabletop2 (its own asset puts shelving on the robot base)
+#   kasys                 goals at x = 1.4-1.7 m, out of reach (20/20); the scene is laid out for another base
+# Fixed on 2026-10-08: workshop/workshop3/wang-3 (unreachable goals are resampled), showcase (crashed),
+# reachao_dr/_plr (fallback obstacle could touch the start pose), reachao_rand_start (start pose check).
+FAILED_SCENE_CHECK = ("wall", "tabletop2", "warehouse", "kasys")
 assert not set(VALIDATION + TEST) & set(FAILED_SCENE_CHECK), "scenes failing check_scenes.py in VALIDATION/TEST"
 
 

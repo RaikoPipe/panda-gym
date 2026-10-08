@@ -98,6 +98,28 @@ HEAD `0596f5d` behaviour except where an entry says otherwise.
   start-goal path at any offset, including the original. Stop-and-ask point 4.
 - `library1` horizon-400 check pending (needs the agents).
 
+## T6b Scene fixes — 2026-10-08
+
+- `workshop`, `workshop3`, `wang-3`: goals the end effector cannot reach are resampled (`ReachAO.goal_reachable`:
+  position-only IK for the end-effector point within 1 cm, robot pose restored; enabled per scene by
+  `require_reachable_goal`). The goal distribution becomes the reachable part of the old goal box.
+- `reachao_rand_start`: the start-pose sampler read the previous physics step's contact manifold, so it never saw
+  a collision. With a real check it looped forever, because it runs as `robot.reset()` before the episode's
+  obstacles are placed (they still sit at their creation point next to the base). It now only rejects table
+  contacts (`robot_touches_table`; obstacle clearance is `set_coll_free_robot`'s job) and gives up after 1000
+  tries (neutral pose).
+- `reachao_dr`, `reachao_dr_plr`: the fallback obstacle (placed when no other placement succeeded) is now checked
+  for clearance from the start pose and the goal like every other placement; parked if no position is found.
+- `showcase`: built before the task had an RNG and passed a position as the obstacle name; fixed.
+- Not fixed (need the intended layout): `wall` (stop-and-ask point 4), `tabletop2`/`warehouse` (a second table top
+  at 0.48-0.50 m spans the robot base; `create_scenario_warehouse` loads `tabletop2`, and the unused `warehouse`
+  asset puts shelving on the base), `kasys` (laid out for a base about 1 m further forward).
+- `evaluate.py`, `scripts/check_scenes.py`: one BLAS/OpenMP thread per worker. With the default, pools of workers
+  exhausted the per-user thread limit on a shared node (numpy import hung).
+- Verified: `scripts/check_scenes.py` on all scenarios: only wall, tabletop2, warehouse, kasys fail. Goals and
+  start poses of reachao1-3, library2 and workshop2 are identical before and after (the training runs started on
+  930af2b are unaffected). `test/scenes_test.py` (8 tests), full suite (117 passed).
+
 ## T7 Ensemble inference — 2026-10-07
 
 - `panda_gym/ensemble.py`: `PolicyEnsemble(models, strategy, space, reduce, rng)` with mean, precision_weighted,
