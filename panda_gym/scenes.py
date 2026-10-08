@@ -18,22 +18,18 @@ DEFAULT_HORIZON = {"reachao1": 50, "reachao2": 75, "reachao3": 100, "wangexp-3":
 IN_DISTRIBUTION = ("reachao3", "wangexp-3")
 BENCHMARK = ("library1", "library2", "narrow_tunnel", "tunnel", "workshop", "workshop2", "industrial", "bookshelves")
 
-# Scene split of the research design v4, section 4, restricted to scenes that pass scripts/check_scenes.py.
-# Left out for now: kasys, tabletop2 (validation in the design; fail the check), wall (test once repaired),
-# library1 (test only if an agent reaches non-zero success at horizon 400, T6), the dynamic scene (T9, not built).
+# Scene split of the research design v4, section 4. wall, kasys and tabletop2 (and warehouse, which loads tabletop2)
+# are unfinished environments that were never meant for testing (authors, 2026-10-08) and are not part of the split.
+# Still pending: library1 (test only if an agent reaches non-zero success at horizon 400, T6) and the dynamic
+# scene (T9, not built).
 TRAIN = ("reachao1", "reachao2", "reachao3", "reachao_dr", "reachao_dr_plr", "reachao_dr_adr", "reachao_dr_adr_plr")
 VALIDATION = ("tunnel", "workshop2", "industrial", "bookshelves", "kitchen", "countertop", "raised_shelves", "tabletop")
 TEST = ("narrow_tunnel", "library2", "workshop")
 
-# scripts/check_scenes.py, 20 resets each (runs/scene_check.json, 2026-10-08, after the scene fixes):
-#   wall                  robot starts inside the wall in 20/20 resets (panda_link3); repair needs a 36 cm shift
-#   tabletop2, warehouse  a second table top at 0.48-0.50 m spans the robot base (panda_link3 inside it, 20/20);
-#                         warehouse also loads tabletop2 (its own asset puts shelving on the robot base)
-#   kasys                 goals at x = 1.4-1.7 m, out of reach (20/20); the scene is laid out for another base
-# Fixed on 2026-10-08: workshop/workshop3/wang-3 (unreachable goals are resampled), showcase (crashed),
-# reachao_dr/_plr (fallback obstacle could touch the start pose), reachao_rand_start (start pose check).
-FAILED_SCENE_CHECK = ("wall", "tabletop2", "warehouse", "kasys")
-assert not set(VALIDATION + TEST) & set(FAILED_SCENE_CHECK), "scenes failing check_scenes.py in VALIDATION/TEST"
+# Unfinished environments (fail scripts/check_scenes.py; robot starts inside the scene or goals out of reach), never
+# to be used for validation or testing. All other scenarios pass the check (runs/scene_check.json, 2026-10-08).
+UNFINISHED_SCENES = ("wall", "tabletop2", "warehouse", "kasys")
+assert not set(VALIDATION + TEST) & set(UNFINISHED_SCENES), "unfinished scenes in VALIDATION/TEST"
 
 
 def scene_index(scene: str) -> int:

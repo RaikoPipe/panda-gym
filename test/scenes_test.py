@@ -52,7 +52,7 @@ def test_scene_split_is_disjoint_known_and_checked():
     roles = [set(S.TRAIN), set(S.VALIDATION), set(S.TEST)]
     assert all(not (a & b) for i, a in enumerate(roles) for b in roles[i + 1:])
     assert set().union(*roles) <= set(S.SCENARIO_ORDER)
-    assert not set(S.VALIDATION + S.TEST) & set(S.FAILED_SCENE_CHECK)
+    assert not set(S.VALIDATION + S.TEST) & set(S.UNFINISHED_SCENES)
 
 
 def test_selection_refuses_test_scenes():

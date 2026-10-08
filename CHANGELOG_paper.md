@@ -133,6 +133,12 @@ HEAD `0596f5d` behaviour except where an entry says otherwise.
 - Verified: `test/scenes_test.py` (split disjoint, known, checked; selection refuses test scenes), summary on
   synthetic records, full suite.
 
+## Unfinished scenes — 2026-10-08
+
+- Authors' decision: `wall`, `kasys` and `tabletop2` are unfinished environments that were never meant for testing;
+  they leave the design (no wall repair, stop-and-ask point 4 closed). `warehouse` loads `tabletop2` and is treated
+  the same. `scenes.FAILED_SCENE_CHECK` renamed to `UNFINISHED_SCENES`.
+
 ## T7 Ensemble inference — 2026-10-07
 
 - `panda_gym/ensemble.py`: `PolicyEnsemble(models, strategy, space, reduce, rng)` with mean, precision_weighted,
