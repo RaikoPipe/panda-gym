@@ -18,11 +18,12 @@ DEFAULT_HORIZON = {"reachao1": 50, "reachao2": 75, "reachao3": 100, "wangexp-3":
 IN_DISTRIBUTION = ("reachao3", "wangexp-3")
 BENCHMARK = ("library1", "library2", "narrow_tunnel", "tunnel", "workshop", "workshop2", "industrial", "bookshelves")
 
-# Scene split of the research design (section 4). Not filled in yet: until it is, nothing may be selected on
-# any scene (evaluate.py --select-best refuses). Scenes failing scripts/check_scenes.py stay out of VALIDATION/TEST.
-TRAIN: tuple = ()
-VALIDATION: tuple = ()
-TEST: tuple = ()
+# Scene split of the research design v4, section 4, restricted to scenes that pass scripts/check_scenes.py.
+# Left out for now: kasys, tabletop2 (validation in the design; fail the check), wall (test once repaired),
+# library1 (test only if an agent reaches non-zero success at horizon 400, T6), the dynamic scene (T9, not built).
+TRAIN = ("reachao1", "reachao2", "reachao3", "reachao_dr", "reachao_dr_plr", "reachao_dr_adr", "reachao_dr_adr_plr")
+VALIDATION = ("tunnel", "workshop2", "industrial", "bookshelves", "kitchen", "countertop", "raised_shelves", "tabletop")
+TEST = ("narrow_tunnel", "library2", "workshop")
 
 # scripts/check_scenes.py, 20 resets each (runs/scene_check.json, 2026-10-08, after the scene fixes):
 #   wall                  robot starts inside the wall in 20/20 resets (panda_link3); repair needs a 36 cm shift

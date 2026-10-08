@@ -120,6 +120,19 @@ HEAD `0596f5d` behaviour except where an entry says otherwise.
   start poses of reachao1-3, library2 and workshop2 are identical before and after (the training runs started on
   930af2b are unaffected). `test/scenes_test.py` (8 tests), full suite (117 passed).
 
+## Scene split (design v4, section 4) — 2026-10-08
+
+- `panda_gym/scenes.py`: TRAIN = reachao1-3 and the DR variants; VALIDATION = tunnel, workshop2, industrial,
+  bookshelves, kitchen, countertop, raised_shelves, tabletop; TEST = narrow_tunnel, library2, workshop.
+  Left out: kasys and tabletop2 (validation in the design, fail check_scenes.py), wall (test once repaired),
+  library1 (pending its horizon-400 check, T6), the dynamic scenes (T9, not built). `evaluate.py --select-best`
+  now works on validation scenes and refuses test scenes.
+- `scripts/summarize_g1.py` also reports the validation and test means. G1 runs on the design's 8 checked scenes,
+  three of which (narrow_tunnel, library2, workshop) are test scenes; the G1 decision should rest on the
+  validation mean (tunnel, workshop2, industrial, bookshelves).
+- Verified: `test/scenes_test.py` (split disjoint, known, checked; selection refuses test scenes), summary on
+  synthetic records, full suite.
+
 ## T7 Ensemble inference — 2026-10-07
 
 - `panda_gym/ensemble.py`: `PolicyEnsemble(models, strategy, space, reduce, rng)` with mean, precision_weighted,

@@ -30,4 +30,4 @@ for agent in $AGENTS; do
     done
   done
 done
-$PY scripts/summarize_g1.py
+PYTHONPATH=. $PY scripts/summarize_g1.py
