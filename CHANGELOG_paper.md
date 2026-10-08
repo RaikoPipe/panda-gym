@@ -244,3 +244,7 @@ HEAD `0596f5d` behaviour except where an entry says otherwise.
   slow (two spheres) 36 %, fast (one sphere) 65 %, i.e. at the upper edge of the 20-60 % band (95 % CI ~58-71 %).
 - G3 (`scripts/phase0_g3.sh`): the TQC cells use the thesis preset at `--n-substeps 20` (the frozen 25 Hz control
   rate), and the last curriculum stage is uncapped, so every cell trains 1.2 M steps.
+
+## Cluster usage — 2026-10-09
+
+- GPU jobs submitted by the runners exclude gpu01-gpu03 (reserved for other work; `EXCLUDE_NODES` overrides).

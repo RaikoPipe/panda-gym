@@ -7,6 +7,7 @@
 #   DRY_RUN=1 ...                                print the commands only
 # Reads configs/paper_frozen.json (format: configs/paper_frozen.example.json; CONFIG=... to override).
 # Seeds whose run directory holds a "done" marker are skipped. Every run saves 24 checkpoints (~every 50 k steps).
+# GPU jobs avoid gpu01-gpu03 (reserved for other work); override with EXCLUDE_NODES=<slurm node list>.
 set -eu
 cd "$(dirname "$0")/.."
 CONFIG=${CONFIG:-configs/paper_frozen.json}
@@ -29,7 +30,7 @@ run() {  # run_dir command...
   if [ -n "${DRY_RUN:-}" ]; then echo "$cmd"
   elif [ "$MODE" = sbatch ]; then
     mkdir -p runs/slurm
-    sbatch --parsable --job-name="pop-$(basename "$(dirname "$dir")")-$(basename "$dir")" --partition=gpu \
+    sbatch --parsable --job-name="pop-$(basename "$(dirname "$dir")")-$(basename "$dir")" --partition=gpu --exclude="${EXCLUDE_NODES-gpu[01-03]}" \
       --gres=gpu:1 --cpus-per-task=16 --mem=48G --time=1-00:00:00 --output="runs/slurm/pop-%j.out" ${DEPEND:-} \
       --wrap="$cmd"
   else bash -c "$cmd"; fi

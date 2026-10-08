@@ -5,6 +5,7 @@
 # Each cell trains runs/sweep/<cell>, then evaluates the final model and the validation-best of the last 5
 # checkpoints on the VALIDATION scenes (panda_gym/scenes.py) and the final model on reachao3 (in-distribution).
 # Summary: python scripts/summarize_g3.py -> runs/sweep/g3_summary.csv
+# GPU jobs avoid gpu01-gpu03 (reserved for other work); override with EXCLUDE_NODES=<slurm node list>.
 set -eu
 cd "$(dirname "$0")/.."
 : "${COLLISION_DEF:?set the frozen collision definition (G1/G2 outcome), e.g. COLLISION_DEF=strict}"
@@ -42,7 +43,7 @@ for utd in 0.125 0.25 0.5 1; do
     for batch in 256 1024; do
       for seed in 0 1; do
         if [ "$MODE" = sbatch ]; then
-          sbatch --job-name="g3-$algo-$utd-$batch-$seed" --partition=gpu --gres=gpu:1 --cpus-per-task=20 \
+          sbatch --job-name="g3-$algo-$utd-$batch-$seed" --partition=gpu --exclude="${EXCLUDE_NODES-gpu[01-03]}" --gres=gpu:1 --cpus-per-task=20 \
             --time=1-00:00:00 --output="runs/sweep/slurm-%j-$algo-$utd-$batch-$seed.out" \
             --wrap="$(cell $algo $utd $batch $seed)"
         else
