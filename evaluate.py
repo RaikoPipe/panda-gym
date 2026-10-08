@@ -113,6 +113,23 @@ class _Single:
         self.model.set_random_seed(seed)  # stochastic evaluation replays per episode seed
 
 
+class _Neo:
+    """NEO reference controller (panda_gym/baselines/neo.py); needs the env, bound per episode."""
+
+    def __init__(self):
+        from panda_gym.baselines.neo import NEO
+        self.neo = NEO()
+
+    def bind(self, env):
+        self.neo.bind(env)
+
+    def __call__(self, obs, deterministic):
+        return self.neo(obs)
+
+    def reseed(self, seed):
+        pass
+
+
 class _Ensemble:
     def __init__(self, models, strategy, space, reduce):
         from panda_gym.ensemble import PolicyEnsemble
@@ -131,6 +148,9 @@ def get_policy(spec):
     if spec not in _POLICIES:
         from record import load
         strategy, paths, options = spec
+        if strategy == "neo":
+            _POLICIES[spec] = _Neo()
+            return _POLICIES[spec]
         models = [load(path) for path in paths]
         _POLICIES[spec] = _Single(models[0]) if strategy == "single" else _Ensemble(models, strategy, *options)
     return _POLICIES[spec]
@@ -144,10 +164,14 @@ def _work(task):
     torch.set_num_threads(1)
     policy = get_policy(spec)
     out = []
+    config = env_config(env_id, collision_def, **(overrides or {}))
+    if spec[0] == "neo":
+        config = replace(config, control_type="jsd")  # NEO outputs joint velocities (velocity control, as the thesis)
     for s in seeds:
         policy.reseed(s)
-        env = gym.make(env_id, scenario=scene, max_episode_steps=horizon, render_mode=None,
-                       config=env_config(env_id, collision_def, **(overrides or {})))
+        env = gym.make(env_id, scenario=scene, max_episode_steps=horizon, render_mode=None, config=config)
+        if hasattr(policy, "bind"):
+            policy.bind(env.unwrapped)
         out.append(run_episode(policy, env, s, deterministic))
         env.close()
     return out
@@ -192,12 +216,14 @@ def expand_models(patterns):
 
 
 def main(args):
-    models = expand_models(args.model + (args.models or []))
+    models = ["neo"] if args.controller == "neo" else expand_models(args.model + (args.models or []))
     if not models:
         raise SystemExit("no model given")
     if args.select_best:
         S.check_selectable(args.scenes)
-    if args.ensemble_strategy:
+    if args.controller == "neo":
+        specs = [("neo", ("neo",), None)]
+    elif args.ensemble_strategy:
         specs = [(args.ensemble_strategy, tuple(models), (args.space, args.reduce))]
     else:
         specs = [("single", (m,), None) for m in models]
@@ -210,7 +236,7 @@ def main(args):
             t0 = time.time()
             records = evaluate(spec, args.scenes, args, pool)
             results, mean = summarize(records, args.scenes)
-            name = spec[1][0] if spec[0] == "single" else f"ensemble[{spec[0]}, K={len(spec[1])}]"
+            name = spec[1][0] if spec[0] in ("single", "neo") else f"ensemble[{spec[0]}, K={len(spec[1])}]"
             print(f"{name}  [{args.collision_def}, horizon {args.horizon or 'scene default'}, "
                   f"{args.episodes} episodes, {time.time() - t0:.0f} s]")
             for scene, r in results.items():
@@ -251,6 +277,8 @@ def parser():
     ap.add_argument("--episode-seed-base", type=int, default=10_000)
     ap.add_argument("--stochastic", dest="deterministic", action="store_false", help="sample actions")
     ap.add_argument("--deterministic", dest="deterministic", action="store_true", default=True)
+    ap.add_argument("--controller", choices=["policy", "neo"], default="policy",
+                    help="neo: the NEO reference controller (panda_gym/baselines/neo.py) instead of --models")
     ap.add_argument("--ensemble-strategy", choices=["mean", "precision_weighted", "bayes_sample", "min_variance",
                                                     "critic_argmax", "random"],
                     help="evaluate all --models as one ensemble (panda_gym/ensemble.py)")

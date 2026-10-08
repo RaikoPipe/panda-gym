@@ -212,3 +212,25 @@ HEAD `0596f5d` behaviour except where an entry says otherwise.
 - Two G1 jobs on BeeGFS failed after ~20 min: every new Python process reported "failed to make path absolute"
   (the job's working directory went stale on the compute node). `phase0_g1.sh` and `phase0_g2.sh` now re-enter
   the repository by absolute path before every evaluation. Completed result files were kept (runners resume).
+
+## T8 NEO reference — 2026-10-08
+
+- `panda_gym/baselines/neo.py`: port of the thesis NEO (`9e12871^:panda_gym/envs/robots/panda.py:compute_action_neo`
+  plus the collision damper of the thesis' roboticstoolbox fork, `RaikoPipe/robotics-toolbox-python` e07d313).
+  Same gains, QP weights (incl. the thesis error e with rpy * pi/180), joint-limit damper, manipulability term,
+  one distance per link-obstacle pair (panda_link1..panda_hand + panda_ee, obstacles without the table),
+  IK-derived target orientation, velocity control (`control_type="jsd"`, actions clipped to +-1 rad/s as in the
+  thesis), 25 Hz. roboticstoolbox -> pybullet Jacobians, Gurobi -> OSQP (`qpsolvers[osqp]` in the train extra).
+- Corrected relative to the thesis: its damper multiplied a world-frame normal with an end-effector-frame Jacobian of
+  a tool offset equal to the link's world pose; here it is the world-frame Jacobian of the closest point.
+- pybullet's `calculateJacobian` takes `localPosition` in the link's URDF frame, not the centre-of-mass frame its
+  documentation suggests (a first version using the COM frame was off by up to 0.04 m/rad). pybullet's kinematics
+  are single precision: finite-difference checks need steps around 1e-3 rad.
+- `evaluate.py --controller neo` runs NEO on the shared episodes (record `strategy: "neo"`).
+- Acceptance (reachao3, thesis collision definition): 4 % (h100 = 4 s, 50 ep.), 36 % (h150, 50), 70 % (h200, 50),
+  **76 % (h400 = 16 s, 200 ep.; Wilson 95 % CI about 70-81 %)**, no collisions, timeouts otherwise; median 158 steps
+  (6.3 s) to success, 6 ms/step. Thesis Tab. 6-4: 60.8 % -> +15 pp, outside +-10 pp: stop-and-ask point 5. Likely
+  causes: the corrected damper Jacobian, and the thesis' NEO evaluation setting (the thesis-era code ran NEO at
+  100 Hz for 100 steps = 1 s, which cannot produce 60.8 %, so the reported number used another setting).
+- Verified: `test/neo_test.py` (Jacobian vs. central differences for three links, state untouched by a control
+  step, finite actions with active obstacle constraints, shared episodes through the harness).
