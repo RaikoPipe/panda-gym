@@ -139,6 +139,17 @@ HEAD `0596f5d` behaviour except where an entry says otherwise.
   they leave the design (no wall repair, stop-and-ask point 4 closed). `warehouse` loads `tabletop2` and is treated
   the same. `scenes.FAILED_SCENE_CHECK` renamed to `UNFINISHED_SCENES`.
 
+## G2 setup — 2026-10-08
+
+- `--preset thesis_tqc` now includes `n_substeps=5` (10 ms control steps, as the thesis base training; authors'
+  decision). Episode lengths of the preset curriculum (50/75/100 steps) are thus 0.5/0.75/1 s, as in the thesis.
+- `evaluate.py --n-substeps`: agents are evaluated at the control rate they were trained with; recorded per episode.
+- `scripts/phase0_g2.sh`: 3 seeds x {head, thesis} semantics as SLURM GPU jobs, each followed by an evaluation job
+  under both collision definitions on reachao3 + the 8 G1 scenes at 400 x 10 ms = 4 s.
+  `scripts/summarize_g1.py --out` summarizes any set of runs (G2: runs/eval/g2_summary.csv).
+- Verified: 6 k-step run with the thesis semantics at n_substeps=5 (run_meta shows the config), evaluation at
+  `--n-substeps 5 --horizon 400` (400 steps recorded), full suite.
+
 ## T7 Ensemble inference — 2026-10-07
 
 - `panda_gym/ensemble.py`: `PolicyEnsemble(models, strategy, space, reduce, rng)` with mean, precision_weighted,

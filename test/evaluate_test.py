@@ -25,7 +25,7 @@ def test_episodes_do_not_depend_on_order_or_chunking(model_path, scene):
     seeds = [12000, 12001, 12002, 12003]
 
     def run(chunk):
-        return E._work((spec, "PandaReachAO-v3", scene, 30, "strict", chunk, True))
+        return E._work((spec, "PandaReachAO-v3", scene, 30, "strict", chunk, True, None))
 
     whole = run(seeds)
     chunked = run(seeds[:2]) + run(seeds[2:])
@@ -34,7 +34,7 @@ def test_episodes_do_not_depend_on_order_or_chunking(model_path, scene):
 
 
 def test_records_have_the_design_fields(model_path):
-    r = E._work((("single", (model_path,), None), "PandaReachAO-v3", "reachao3", 20, "thesis", [12000], True))[0]
+    r = E._work((("single", (model_path,), None), "PandaReachAO-v3", "reachao3", 20, "thesis", [12000], True, None))[0]
     for field in ("episode_seed", "hash", "outcome", "steps", "path_length", "mean_jerk", "max_jerk",
                   "mean_ee_speed", "latency_ms_mean", "latency_ms_p99", "collision_link"):
         assert field in r
@@ -45,6 +45,6 @@ def test_records_have_the_design_fields(model_path):
 def test_random_start_scenes_are_shared_across_collision_definitions(model_path, scene):
     """These scenes sample the start pose by IK from the current joint state (seeded constructor reset)."""
     spec = ("single", (model_path,), None)
-    hashes = [[r["hash"] for r in E._work((spec, "PandaReachAO-v3", scene, 5, d, [25000, 25001], True))]
+    hashes = [[r["hash"] for r in E._work((spec, "PandaReachAO-v3", scene, 5, d, [25000, 25001], True, None))]
               for d in ("strict", "thesis")]
     assert hashes[0] == hashes[1]

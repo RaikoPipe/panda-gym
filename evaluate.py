@@ -37,10 +37,11 @@ from panda_gym.run_meta import RunMeta
 EPISODES_PER_TASK = 25  # episodes per worker task
 
 
-def env_config(env_id, collision_def):
-    """The env's registered config (e.g. v4 observations) with the collision definition swapped in."""
+def env_config(env_id, collision_def, n_substeps=None):
+    """The env's registered config (e.g. v4 observations) with the collision definition (and control rate) swapped
+    in. Agents must be evaluated at the n_substeps they were trained with (thesis preset: 5, i.e. 10 ms steps)."""
     base = gym.spec(env_id).kwargs.get("config") or ReachAOConfig()
-    return replace(base, **COLLISION_DEFS[collision_def])
+    return replace(base, **COLLISION_DEFS[collision_def], **({"n_substeps": n_substeps} if n_substeps else {}))
 
 
 def episode_hash(env):
@@ -138,14 +139,14 @@ def _work(task):
     """A fresh env per episode: PyBullet's contact solver order depends on the env's history (the bodies
     teleported in earlier episodes), and panda_link1 always rubs on the table, so a reused env does not replay an
     episode seed exactly. Costs ~0.25 s per episode."""
-    spec, env_id, scene, horizon, collision_def, seeds, deterministic = task
+    spec, env_id, scene, horizon, collision_def, seeds, deterministic, n_substeps = task
     torch.set_num_threads(1)
     policy = get_policy(spec)
     out = []
     for s in seeds:
         policy.reseed(s)
         env = gym.make(env_id, scenario=scene, max_episode_steps=horizon, render_mode=None,
-                       config=env_config(env_id, collision_def))
+                       config=env_config(env_id, collision_def, n_substeps))
         out.append(run_episode(policy, env, s, deterministic))
         env.close()
     return out
@@ -159,13 +160,13 @@ def evaluate(spec, scenes, args, pool):
         seeds = [args.episode_seed_base + 1000 * S.scene_index(scene) + i for i in range(args.episodes)]
         for k in range(0, len(seeds), EPISODES_PER_TASK):
             tasks.append((spec, args.env, scene, horizon, args.collision_def, seeds[k:k + EPISODES_PER_TASK],
-                          args.deterministic))
+                          args.deterministic, args.n_substeps))
     records = []
     for task, recs in zip(tasks, pool.imap(_work, tasks)):
         for r in recs:
             records.append({"model": spec[1][0] if len(spec[1]) == 1 else list(spec[1]), "strategy": spec[0],
                             "scene": task[2], "horizon": task[3], "collision_def": task[4], "ensemble_options": spec[2],
-                            "deterministic": task[6], **r})
+                            "deterministic": task[6], "n_substeps": task[7], **r})
     return records
 
 
@@ -200,7 +201,7 @@ def main(args):
     else:
         specs = [("single", (m,), None) for m in models]
     out = Path(args.out) if args.out else None
-    meta = RunMeta(out.with_suffix(".run_meta.json"), args, config=env_config(args.env, args.collision_def),
+    meta = RunMeta(out.with_suffix(".run_meta.json"), args, config=env_config(args.env, args.collision_def, args.n_substeps),
                    models=models) if out else None
     all_records, summaries = [], []
     with mp.get_context("spawn").Pool(args.workers) as pool:
@@ -243,6 +244,8 @@ def parser():
     ap.add_argument("--episodes", type=int, default=200)
     ap.add_argument("--horizon", type=int, help="control steps per episode (default: per scene, scenes.py)")
     ap.add_argument("--collision-def", choices=list(COLLISION_DEFS), default="strict")
+    ap.add_argument("--n-substeps", type=int, help="physics substeps per control step (default: the env's, 20); "
+                    "use the value the agent was trained with")
     ap.add_argument("--episode-seed-base", type=int, default=10_000)
     ap.add_argument("--stochastic", dest="deterministic", action="store_false", help="sample actions")
     ap.add_argument("--deterministic", dest="deterministic", action="store_true", default=True)

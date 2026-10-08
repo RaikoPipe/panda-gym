@@ -55,7 +55,7 @@ PRESETS = {
     "thesis_tqc": dict(
         algo="tqc", learning_rate=1e-3, lr_schedule="linear", gamma=0.98, tau=0.02, buffer_size=300_000,
         batch_size=256, train_freq=8, gradient_steps=8, use_sde=True, log_std_init=-3.0, net_arch="256,256",
-        n_envs=8, eval_freq=5_000, n_eval_episodes=40,
+        n_envs=8, eval_freq=5_000, n_eval_episodes=40, n_substeps=5,  # thesis base training ran at 10 ms steps
         curriculum=["reachao1:50:0.9:300000", "reachao2:75:0.9:300000", "reachao3:100::300000"],
     ),
 }
@@ -63,7 +63,8 @@ PRESETS = {
 # defaults when neither a flag nor the preset sets a value (None: algorithm-specific, see make_model)
 DEFAULTS = dict(algo="crossq", learning_rate=1e-3, lr_schedule="const", gamma=0.95, tau=None, buffer_size=1_000_000,
                 batch_size=None, train_freq=None, gradient_steps=None, use_sde=False, log_std_init=None,
-                net_arch=None, n_envs=8, eval_freq=20_000, n_eval_episodes=40, curriculum=[], utd=None)
+                net_arch=None, n_envs=8, eval_freq=20_000, n_eval_episodes=40, curriculum=[], utd=None,
+                n_substeps=None)
 
 
 def resolve(args):

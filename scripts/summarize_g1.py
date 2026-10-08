@@ -1,15 +1,16 @@
 """Summarize the G1 ablation: success per agent x collision definition x horizon and scene, with Wilson 95 % CIs.
 
-    python scripts/summarize_g1.py [runs/eval/g1_*.jsonl ...]
+    python scripts/summarize_g1.py [runs/eval/g1_*.jsonl ...] [--out runs/eval/g1_summary.csv]
+    python scripts/summarize_g1.py runs/eval/g2_*.jsonl --out runs/eval/g2_summary.csv   (same table for G2)
 
 Prints the table, writes runs/eval/g1_summary.csv, and checks that all runs saw the same episodes (hashes).
 Besides the mean over all evaluated scenes it reports the validation and test means (panda_gym/scenes.py): G1 decides
 the collision definition and horizon, so the read-out must rest on the validation mean, not on test scenes.
 """
+import argparse
 import csv
 import glob
 import json
-import sys
 from collections import defaultdict
 from pathlib import Path
 
@@ -47,7 +48,7 @@ def check_shared_episodes(records):
     return not bad
 
 
-def main(files):
+def main(files, out):
     files = [f for f in files if not f.endswith(".part.jsonl")]
     records = load(files)
     if not records:
@@ -86,7 +87,7 @@ def main(files):
               + f" {r['mean']:6.1%} [{r['mean_lo']:.1%}, {r['mean_hi']:.1%}]"
               + f" {r['val_mean']:8.1%} [{r['val_lo']:.1%}, {r['val_hi']:.1%}] {r['test_mean']:6.1%}")
     print("Decide on the VAL mean (validation scenes); the test scenes are listed for information only.")
-    out = Path("runs/eval/g1_summary.csv")
+    out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     with open(out, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=list(rows[0]))
@@ -96,4 +97,8 @@ def main(files):
 
 
 if __name__ == "__main__":
-    main(sys.argv[1:] or sorted(glob.glob("runs/eval/g1_*.jsonl")))
+    ap = argparse.ArgumentParser()
+    ap.add_argument("files", nargs="*")
+    ap.add_argument("--out", default="runs/eval/g1_summary.csv")
+    args = ap.parse_args()
+    main(args.files or sorted(glob.glob("runs/eval/g1_*.jsonl")), args.out)
