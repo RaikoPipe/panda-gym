@@ -107,8 +107,9 @@ def reach_ao_config(args):
     return replace(base or ReachAOConfig(), **overrides)
 
 
-def make_env(env_id, n_envs, seed, scenario=None, max_episode_steps=None, vec_env_cls=SubprocVecEnv, config=None):
-    kwargs = {"render_mode": None, **({"scenario": scenario} if scenario else {})}  # SB3 defaults to rgb_array
+def make_env(env_id, n_envs, seed, scenario=None, max_episode_steps=None, vec_env_cls=SubprocVecEnv, config=None,
+             **env_kwargs):
+    kwargs = {"render_mode": None, **({"scenario": scenario} if scenario else {}), **env_kwargs}  # SB3 defaults to rgb_array
     if max_episode_steps:
         kwargs["max_episode_steps"] = max_episode_steps
     if config is not None:
@@ -222,8 +223,9 @@ def train(args):
     t_start = time.time()
     for i, (scenario, max_steps, threshold, stage_cap) in enumerate(stages):
         last = i == len(stages) - 1
-        env = make_env(args.env, args.n_envs, args.seed + i, scenario, max_steps, config=config)
-        eval_env = make_env(args.env, 4, args.seed + 1000 + i, scenario, max_steps, config=config)
+        extra = {"grasp_start_prob": args.grasp_start_prob} if args.grasp_start_prob else {}
+        env = make_env(args.env, args.n_envs, args.seed + i, scenario, max_steps, config=config, **extra)
+        eval_env = make_env(args.env, 4, args.seed + 1000 + i, scenario, max_steps, config=config)  # normal starts
         if model is None and args.init:  # fine-tune a trained agent (fresh replay buffer, short random warm-up)
             model = {"crossq": CrossQ, "tqc": TQC}[args.algo].load(args.init, env=env, tensorboard_log=str(run_dir))
             model.learning_starts = model.num_timesteps + args.learning_starts
@@ -291,6 +293,8 @@ def parser():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--name")
     ap.add_argument("--init", help="model .zip to fine-tune instead of starting from scratch")
+    ap.add_argument("--grasp-start-prob", type=float, default=0.0,
+                    help="PickAndPlace/Stack: share of training episodes that start with the cube in the gripper")
     return ap
 
 
