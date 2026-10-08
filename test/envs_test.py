@@ -185,3 +185,11 @@ def test_grasp_start_holds_cube():
         env.step(np.array([0, 0, 0.5, -1.0], dtype=np.float32))
     assert env.unwrapped.sim.get_base_position("object")[2] > z0 + 0.05
     env.close()
+
+
+def test_flip_reward_is_vectorized():
+    """HER computes rewards for whole batches; angle_distance must stay row-wise."""
+    env = gym.make("PandaFlip-v3")
+    obs, _ = env.reset(seed=0)
+    goals = np.repeat(obs["desired_goal"][None], 5, axis=0)
+    assert env.unwrapped.compute_reward(goals, goals, {}).shape == (5,)
