@@ -108,6 +108,7 @@ class ReachAO(Task):
 
         self.scenario = scenario
         self.dr = None  # SceneRandomizer for the procedural "reachao_dr*" scenarios
+        self.dynamic_speed = None  # m/s of the crossing spheres in the "dynamic_cross_*" test scenes
         self.randomize_robot_pose = config.randomize_robot_pose
         self.robot_pose_randomizer = lambda: self.set_robot_random_pose(
             self.sample_inside_torus)  # lambda: self.set_robot_random_joint_position_ik_sphere(0.45, 0.5)
@@ -304,6 +305,8 @@ class ReachAO(Task):
             "reachao_dr_plr": self.create_scenario_reachao_dr,
             "reachao_dr_adr": self.create_scenario_reachao_dr,
             "reachao_dr_adr_plr": self.create_scenario_reachao_dr,
+            "dynamic_cross_slow": self.create_scenario_dynamic_cross,
+            "dynamic_cross_fast": self.create_scenario_dynamic_cross,
             "reach1": self.create_scenario_reach1,
             "reach2": self.create_scenario_reach2,
             "reach3": self.create_scenario_reach3,
@@ -643,6 +646,49 @@ class ReachAO(Task):
         """Procedural fixtures + path-blocking obstacles + varied starts (see scene_randomization.py)."""
         self._sample_goal = lambda: self.sample_within_hollow_sphere(0.5, 0.8, upper_half_only=True)
         self.dr = SceneRandomizer(self, level_replay="_plr" in self.scenario, curriculum="_adr" in self.scenario)
+
+    # --- dynamic-obstacle test scene (research design T9) ------------------------------------------------------------
+    DYNAMIC_SPEEDS = {"dynamic_cross_slow": 0.1, "dynamic_cross_fast": 0.3}
+    SHOULDER = np.array([0.0, 0.0, 0.333])
+    SPAWN_RADIUS = 1.0  # m from the shoulder; the arm reaches ~0.85 m, so spheres start outside the reach envelope
+
+    def create_scenario_dynamic_cross(self):
+        """Two 5 cm spheres (mass 0, moved by their velocity) cross the workspace on straight lines through random
+        points between the start end-effector position and the goal, in random directions, at 0.1 or 0.3 m/s.
+        Goals as in reachao3, neutral start. Test scene only. The observation is unchanged: it carries no obstacle
+        velocity (partial observability) unless obstacle_obs="vectors+past"."""
+        self.dynamic_speed = self.DYNAMIC_SPEEDS[self.scenario]
+        self._sample_goal = lambda: self.sample_within_hollow_sphere(0.5, 0.8, upper_half_only=True)
+        for _ in range(2):
+            self.create_obstacle_sphere(radius=0.05, position=np.array([0.0, 0.0, -5.0]))
+
+    def reset_dynamic(self):
+        names = list(self.obstacles)
+        for i, name in enumerate(names):  # park while the goal is sampled
+            self.sim.set_base_pose(name, np.array([5.0 + i, 5.0, -5.0]), np.array([0.0, 0.0, 0.0, 1.0]))
+            self.sim.set_base_velocity(name, np.zeros(3))
+        self.set_coll_free_goal(["table", "robot"])
+        ee = self.robot.get_ee_position()
+        for name in names:
+            for _ in range(1000):
+                cross = ee + self.np_random.uniform() * (self.goal - ee)
+                direction = np.array([*self.np_random.normal(size=2), self.np_random.uniform(-0.3, 0.3)])
+                direction /= np.linalg.norm(direction)
+                rel = cross - self.SHOULDER
+                b = direction @ rel  # start = cross - L * direction lies on the spawn sphere
+                length = b + np.sqrt(b ** 2 - rel @ rel + self.SPAWN_RADIUS ** 2)
+                start = cross - length * direction
+                if start[2] < 0.05:  # stays above the table at the start
+                    continue
+                self.sim.set_base_pose(name, start, np.array([0.0, 0.0, 0.0, 1.0]))
+                if not self.check_collision("robot", name, margin=0.05):
+                    break
+            self.sim.set_base_velocity(name, self.dynamic_speed * direction)
+        self.sim.set_base_pose("dummy_sphere", np.array([0.0, 0.0, -5.0]), np.array([0.0, 0.0, 0.0, 1.0]))
+        self.past_obstacle_observations = []
+        if self.obstacle_obs == "vectors+past":
+            for _ in range(2):
+                self.get_obs()
 
     def rebuild_collision_detector(self, obstacle_names):
         """Distance observations only for the obstacles that are currently placed."""
@@ -1075,6 +1121,9 @@ class ReachAO(Task):
         self.robot.previous_action = None
         if self.dr is not None:
             self.dr.reset(collided)
+            return
+        if self.dynamic_speed is not None:
+            self.reset_dynamic()
             return
 
         if self.random_size_cuboids:

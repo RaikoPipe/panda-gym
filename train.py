@@ -98,11 +98,12 @@ def reach_ao_config(args):
     """ReachAOConfig from the collision/semantics flags (None for the classic tasks)."""
     base = gym.spec(args.env).kwargs.get("config")
     if "ReachAO" not in args.env:
-        if args.collision_def or args.collision_semantics or args.her_penalty_source or args.n_substeps:
+        if (args.collision_def or args.collision_semantics or args.her_penalty_source or args.n_substeps
+                or args.obstacle_obs):
             raise SystemExit("--collision-*, --her-penalty-source and --n-substeps only apply to PandaReachAO")
         return None
     overrides = dict(COLLISION_DEFS[args.collision_def]) if args.collision_def else {}
-    for key in ("collision_semantics", "her_penalty_source", "n_substeps"):
+    for key in ("collision_semantics", "her_penalty_source", "n_substeps", "obstacle_obs"):
         if getattr(args, key) is not None:
             overrides[key] = getattr(args, key)
     return replace(base or ReachAOConfig(), **overrides)
@@ -287,6 +288,8 @@ def parser():
     ap.add_argument("--collision-semantics", choices=["terminate", "truncate"])
     ap.add_argument("--her-penalty-source", choices=["info", "live"], help="live: thesis bug, G2 ablation only")
     ap.add_argument("--n-substeps", type=int, help="ReachAO physics substeps per control step (default 20)")
+    ap.add_argument("--obstacle-obs", help="ReachAO obstacle observation, e.g. vectors+past (history of closest-point "
+                    "vectors, for the dynamic scene); default: the env's")
     ap.add_argument("--learning-starts", type=int, default=10_000)
     ap.add_argument("--eval-freq", type=int)
     ap.add_argument("--n-eval-episodes", type=int)

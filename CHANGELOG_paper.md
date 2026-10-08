@@ -163,3 +163,27 @@ HEAD `0596f5d` behaviour except where an entry says otherwise.
 
 - `pyproject.toml`: `scipy` added to the dependencies (imported by `panda_gym.envs.tasks.flip`; a fresh install
   could not import panda_gym); pytest runs with the repository root on the path.
+
+## T9 Dynamic-obstacle test scenes — 2026-10-08
+
+- `dynamic_cross_slow` (0.1 m/s) and `dynamic_cross_fast` (0.3 m/s): two 5 cm mass-0 spheres per episode, each on a
+  straight line through a uniformly random point between the start end-effector position and the goal, random
+  direction (horizontal plus a vertical component in [-0.3, 0.3] before normalization), spawned on a sphere of 1 m
+  around the shoulder (outside the ~0.85 m reach) and above the table, moved by their base velocity. Goals as in
+  reachao3, neutral start. Trajectories are seeded by the episode seed. Added to `scenes.TEST` and `SCENARIO_ORDER`.
+- `--obstacle-obs` for train.py and evaluate.py (e.g. `vectors+past`, the history of closest-point vectors). Default
+  observation unchanged (partial observability: no obstacle velocity).
+- Acceptance: check_scenes.py passes both. A policy holding q0 (150 steps = 6 s) collides in **32 %** (slow, 100
+  episodes; within 20-60 %) and **81 %** (fast; above 60 %). Sampling the crossing point only from the last 75 % of
+  the start-goal segment gave 20 % / 74 %, so it was not adopted; the fast level is reported as is (decision for the
+  authors: e.g. one sphere at the fast level, or accept).
+- Verified: `test/dynamic_scene_test.py` (speed, spawn outside the envelope and clear of the robot, seeded
+  trajectories, slow-level collision band, fixed history-observation shape).
+
+## T10 Seed-population runner — 2026-10-08
+
+- `scripts/phase1_seeds.sh`: reads `configs/paper_frozen.json` (format: `configs/paper_frozen.example.json`;
+  refuses to run without it), seeds 0-19 into `runs/pop/<name>/s<seed>/` with 24 checkpoints, skips `done`;
+  `--population xdist` trains the shared end-of-stage-2 checkpoint once, then 5 seeds per stage-3 distribution
+  with `--init`; `MODE=sbatch` submits one GPU job per run (stage 3 waits for stage 2), `DRY_RUN=1` prints.
+- Verified: dry runs against the example config (20 main runs; 1 + 15 xdist runs).

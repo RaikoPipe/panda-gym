@@ -8,7 +8,7 @@ SCENARIO_ORDER = (
     "reachao1", "reachao2", "reachao3", "wangexp-3", "reachao_rand", "reachao_dr", "reachao_dr_plr",
     "reachao_dr_adr", "reachao_dr_adr_plr", "library1", "library2", "narrow_tunnel", "tunnel", "workshop",
     "workshop2", "industrial", "bookshelves", "wall", "kasys", "kitchen", "countertop", "raised_shelves",
-    "tabletop", "tabletop2", "warehouse",
+    "tabletop", "tabletop2", "warehouse", "dynamic_cross_slow", "dynamic_cross_fast",
 )
 
 # default horizon (control steps at n_substeps=20, i.e. 40 ms each) per scene; others use 150
@@ -20,11 +20,10 @@ BENCHMARK = ("library1", "library2", "narrow_tunnel", "tunnel", "workshop", "wor
 
 # Scene split of the research design v4, section 4. wall, kasys and tabletop2 (and warehouse, which loads tabletop2)
 # are unfinished environments that were never meant for testing (authors, 2026-10-08) and are not part of the split.
-# Still pending: library1 (test only if an agent reaches non-zero success at horizon 400, T6) and the dynamic
-# scene (T9, not built).
+# Still pending: library1 (test only if an agent reaches non-zero success at horizon 400, T6).
 TRAIN = ("reachao1", "reachao2", "reachao3", "reachao_dr", "reachao_dr_plr", "reachao_dr_adr", "reachao_dr_adr_plr")
 VALIDATION = ("tunnel", "workshop2", "industrial", "bookshelves", "kitchen", "countertop", "raised_shelves", "tabletop")
-TEST = ("narrow_tunnel", "library2", "workshop")
+TEST = ("narrow_tunnel", "library2", "workshop", "dynamic_cross_slow", "dynamic_cross_fast")
 
 # Unfinished environments (fail scripts/check_scenes.py; robot starts inside the scene or goals out of reach), never
 # to be used for validation or testing. All other scenarios pass the check (runs/scene_check.json, 2026-10-08).
