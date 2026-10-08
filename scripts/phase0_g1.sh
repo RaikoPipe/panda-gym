@@ -9,6 +9,8 @@
 #SBATCH --output=runs/slurm-%j-g1.out
 set -eu
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
+ROOT=$(pwd -P)  # re-entered before every run: on BeeGFS a long job's working directory can go stale on a compute
+                # node ("failed to make path absolute" in every new Python process)
 module load python/python-3.13.2 2>/dev/null || true
 PY=.venv/bin/python
 AGENTS=${AGENTS:-"runs/cmp/*/final_reachao3.zip runs/ReachAO/final_reachao3.zip"}
@@ -24,10 +26,11 @@ for agent in $AGENTS; do
     for h in $HORIZONS; do
       out="runs/eval/g1_${tag}_${def}_h${h}.jsonl"
       [ -f "$out" ] && continue
+      cd "$ROOT"
       $PY evaluate.py "$agent" --scenes library1 library2 narrow_tunnel tunnel workshop workshop2 industrial bookshelves \
         --collision-def "$def" --horizon "$h" --episodes "$EPISODES" --workers "$WORKERS" --out "${out%.jsonl}.part.jsonl" \
         && mv "${out%.jsonl}.part.run_meta.json" "${out%.jsonl}.run_meta.json" && mv "${out%.jsonl}.part.jsonl" "$out"
     done
   done
 done
-PYTHONPATH=. $PY scripts/summarize_g1.py
+cd "$ROOT" && PYTHONPATH=. $PY scripts/summarize_g1.py

@@ -28,7 +28,7 @@ for sem in head thesis; do
       --n-checkpoints 18 --seed $seed --name $name && touch runs/$name/done")
     evals=""
     for def in strict thesis; do
-      evals="$evals .venv/bin/python evaluate.py runs/$name/final_reachao3.zip --scenes $SCENES --collision-def $def \
+      evals="$evals cd $PWD && .venv/bin/python evaluate.py runs/$name/final_reachao3.zip --scenes $SCENES --collision-def $def \
         --n-substeps 5 --horizon 400 --episodes $EPISODES --workers 32 --out runs/eval/${name}_$def.jsonl &&"
     done
     ev=$(sbatch --parsable --dependency=afterok:$train --job-name="eval-$name" --partition=big --cpus-per-task=32 \

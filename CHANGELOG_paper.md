@@ -187,3 +187,28 @@ HEAD `0596f5d` behaviour except where an entry says otherwise.
   `--population xdist` trains the shared end-of-stage-2 checkpoint once, then 5 seeds per stage-3 distribution
   with `--init`; `MODE=sbatch` submits one GPU job per run (stage 3 waits for stage 2), `DRY_RUN=1` prints.
 - Verified: dry runs against the example config (20 main runs; 1 + 15 xdist runs).
+
+## T11 Analysis — 2026-10-08
+
+- `analysis/`: `load.py` (per-episode records -> DataFrame with members, K, run, seed, role, success; refuses
+  records whose episodes were not shared, by hash), `stats.py` (rliable mean/IQM with stratified-bootstrap CIs,
+  probability of improvement, paired stratified bootstrap, exact McNemar, Wilson), `rq1.py`, `rq2.py`, `rq3.py`
+  (CSV + PDF in `analysis/out/`), `subsets.py` (50 random subsets per K with `default_rng(0)`, prints the
+  evaluate.py commands). Run as `python -m analysis.rq1 <records> --collision-def ... --horizon ...`.
+- Choices the design left open:
+  - The RQ1 mixed model is the Bayesian `BinomialBayesMixedGLM` (`success ~ C(scene)` with seed and seed x scene
+    variance components) on OOD episodes; reported as posterior random-effect SDs with 95 % intervals.
+  - RQ2 baseline: the single policy with the highest mean validation success. Paired differences use, per test
+    episode, the fraction of subsets that solved it. McNemar is reported where a (strategy, K) has one subset.
+  - RQ3 source from the members' run directories: snapshot (one run), xdist (`*_xdist/<dist>` with several
+    distributions), hybrid, seed.
+- `analysis` extra in pyproject.toml: pandas<3, statsmodels, rliable, arch>=5.3.1,<8, matplotlib (rliable needs
+  arch<8, which needs pandas<3).
+- Verified: `test/analysis_test.py` on synthetic records (derived columns, hash check, all outputs written,
+  validation-only baseline selection, statistics, reproducible subsets).
+
+## Runner hardening — 2026-10-08
+
+- Two G1 jobs on BeeGFS failed after ~20 min: every new Python process reported "failed to make path absolute"
+  (the job's working directory went stale on the compute node). `phase0_g1.sh` and `phase0_g2.sh` now re-enter
+  the repository by absolute path before every evaluation. Completed result files were kept (runners resume).
