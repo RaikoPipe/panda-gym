@@ -248,3 +248,17 @@ HEAD `0596f5d` behaviour except where an entry says otherwise.
 ## Cluster usage — 2026-10-09
 
 - GPU jobs submitted by the runners exclude gpu01-gpu03 (reserved for other work; `EXCLUDE_NODES` overrides).
+
+## Kitchen-type validation scenes — 2026-10-09
+
+- G3 showed kitchen, countertop, raised_shelves and tabletop solved 94-100 % by every agent: their goal box
+  ([0.5, 0.85] x [-0.3, 0.3] x [0, 0.3], copied from tabletop2) lay in free space in front of the furniture.
+- `raised_shelves`: goals in and at the open shelf compartments, box [0.72, 0.92] x [-0.25, 0.45] x [0.12, 0.68];
+  `tabletop`: goals at the kitchen front (counters, sink, open fridge), box [0.75, 0.95] x [-0.6, 0.7] x [0.35, 0.9].
+  Both resample unreachable goals (`require_reachable_goal`); boxes measured for collision-free (env clearance rule)
+  and reachable goals. Check passes (goal-obstacle clearance down to the 8 cm minimum). On 100 episodes:
+  raised_shelves 80 / 83 / 77 %, tabletop 91 / 89 / 67 % for CrossQ UTD 0.5 b1024, CrossQ UTD 0.125 b256, TQC
+  UTD 0.125 b256 (previously ~100 % for all).
+- `kitchen` and `countertop` cannot be fixed by a goal box: a back wall at x = 0.80 spans the full width and every
+  fixture lies behind it with its doors opening away from the robot (laid out for a robot on the far side, like
+  kasys); collision-free reachable goals among the fixtures: ~0 %. Pending the authors' decision.

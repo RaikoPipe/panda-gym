@@ -554,16 +554,25 @@ class ReachAO(Task):
 
         self.setup_benchmark_scenario("raised_shelves")
 
-        self.goal_range_low = np.array([0.5, -0.3, 0])
-        self.goal_range_high = np.array([0.85, 0.3, 0.3])
+        # Goals in the open shelf compartments (boards every 0.2 m from z = 0.1, front at x = 0.8) and just in front
+        # of them, within reach. The former box (copied from tabletop2) put every goal in free space in front of the
+        # shelf, which every agent solved (G3 2026-10-09); this box was measured with goal_reachable and the
+        # clearance rule of set_coll_free_goal.
+        self.goal_range_low = np.array([0.72, -0.25, 0.12])
+        self.goal_range_high = np.array([0.92, 0.45, 0.68])
+        self.require_reachable_goal = True
 
     def create_scenario_tabletop(self):
         self.robot.set_joint_neutral()
 
         self.setup_benchmark_scenario("tabletop")
 
-        self.goal_range_low = np.array([0.5, -0.3, 0])
-        self.goal_range_high = np.array([0.85, 0.3, 0.3])
+        # Goals at and among the kitchen front (counters at z = 0.52, sink, open fridge with shelves; front at
+        # x = 0.78), within reach. The former box (copied from tabletop2) lay in free space in front of it, which every
+        # agent solved (G3 2026-10-09).
+        self.goal_range_low = np.array([0.75, -0.6, 0.35])
+        self.goal_range_high = np.array([0.95, 0.7, 0.9])
+        self.require_reachable_goal = True
 
     def create_scenario_tabletop2(self):
         self.robot.set_joint_neutral()
