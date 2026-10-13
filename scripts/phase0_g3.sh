@@ -38,18 +38,21 @@ touch runs/sweep/$name/done"
 }
 
 mkdir -p runs/sweep runs/eval
-for utd in 0.125 0.25 0.5 1; do
-  for algo in tqc crossq; do
-    for batch in 256 1024; do
-      for seed in 0 1; do
-        if [ "$MODE" = sbatch ]; then
-          sbatch --job-name="g3-$algo-$utd-$batch-$seed" --partition=gpu --exclude="${EXCLUDE_NODES-gpu[01-03]}" --gres=gpu:1 --cpus-per-task=20 \
-            --time=1-00:00:00 --output="runs/sweep/slurm-%j-$algo-$utd-$batch-$seed.out" \
-            --wrap="$(cell $algo $utd $batch $seed)"
-        else
-          bash -c "$(cell $algo $utd $batch $seed)"
-        fi
-      done
-    done
+# CELLS="algo:utd:batch ..." and SEEDS restrict the grid (e.g. extra seeds for the G4 candidates)
+if [ -z "${CELLS:-}" ]; then
+  CELLS=$(for utd in 0.125 0.25 0.5 1; do for algo in tqc crossq; do for batch in 256 1024; do
+            echo "$algo:$utd:$batch"; done; done; done)  # cheapest (low-UTD) cells first
+fi
+for c in $CELLS; do
+  IFS=: read -r algo utd batch <<< "$c"
+  for seed in ${SEEDS:-0 1}; do
+    [ -f "runs/sweep/g3_${algo}_utd${utd}_b${batch}_s${seed}/done" ] && continue
+    if [ "$MODE" = sbatch ]; then
+      sbatch --job-name="g3-$algo-$utd-$batch-$seed" --partition=gpu --exclude="${EXCLUDE_NODES-gpu[01-03]}" --gres=gpu:1 --cpus-per-task=20 \
+        --time=1-00:00:00 --output="runs/sweep/slurm-%j-$algo-$utd-$batch-$seed.out" \
+        --wrap="$(cell $algo $utd $batch $seed)"
+    else
+      bash -c "$(cell $algo $utd $batch $seed)"
+    fi
   done
 done

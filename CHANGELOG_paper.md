@@ -262,3 +262,12 @@ HEAD `0596f5d` behaviour except where an entry says otherwise.
 - `kitchen` and `countertop` cannot be fixed by a goal box: a back wall at x = 0.80 spans the full width and every
   fixture lies behind it with its doors opening away from the robot (laid out for a robot on the far side, like
   kasys); collision-free reachable goals among the fixtures: ~0 %. Pending the authors' decision.
+
+## Validation set after G3 — 2026-10-13
+
+- Authors' decision: `kitchen` and `countertop` leave the validation set (now `UNFINISHED_SCENES`).
+  VALIDATION = tunnel, workshop2, industrial, bookshelves, raised_shelves, tabletop.
+- `scripts/phase0_g3.sh`: `CELLS="algo:utd:batch ..."` and `SEEDS` restrict the grid (done runs are skipped).
+- `scripts/phase0_g3_reeval.sh`: re-evaluates finished G3 runs (final + last 5 checkpoints) on the current
+  validation scenes; records evaluated on the old set move to `runs/eval/g3_superseded/`.
+- G4 preparation: 2 more seeds (2, 3) for CrossQ UTD 0.5/b1024, 0.125/b256, 0.125/b1024, 1/b256.

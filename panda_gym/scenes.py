@@ -22,12 +22,14 @@ BENCHMARK = ("library1", "library2", "narrow_tunnel", "tunnel", "workshop", "wor
 # are unfinished environments that were never meant for testing (authors, 2026-10-08) and are not part of the split.
 # library1 is a test scene: an agent reached 20-24 % at horizon 400 (G1, ReachAO_s2; T6 rule).
 TRAIN = ("reachao1", "reachao2", "reachao3", "reachao_dr", "reachao_dr_plr", "reachao_dr_adr", "reachao_dr_adr_plr")
-VALIDATION = ("tunnel", "workshop2", "industrial", "bookshelves", "kitchen", "countertop", "raised_shelves", "tabletop")
+VALIDATION = ("tunnel", "workshop2", "industrial", "bookshelves", "raised_shelves", "tabletop")
 TEST = ("narrow_tunnel", "library2", "workshop", "library1", "dynamic_cross_slow", "dynamic_cross_fast")
 
 # Unfinished environments (fail scripts/check_scenes.py; robot starts inside the scene or goals out of reach), never
 # to be used for validation or testing. All other scenarios pass the check (runs/scene_check.json, 2026-10-08).
-UNFINISHED_SCENES = ("wall", "tabletop2", "warehouse", "kasys")
+# kitchen, countertop: every fixture lies behind a back wall at x = 0.8 with its doors opening away from the robot
+# (laid out for a robot on the far side); no reachable goals among the fixtures (authors, 2026-10-13).
+UNFINISHED_SCENES = ("wall", "tabletop2", "warehouse", "kasys", "kitchen", "countertop")
 assert not set(VALIDATION + TEST) & set(UNFINISHED_SCENES), "unfinished scenes in VALIDATION/TEST"
 
 
