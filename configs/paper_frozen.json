@@ -1,0 +1,21 @@
+{
+  "_comment": "Frozen configuration (research design v4, G4), approved by the authors 2026-10-14. Evidence: G3 sweep, 4 seeds, 6 validation scenes, strict collisions, horizon 150 (runs/sweep, runs/eval/g3_*_val.jsonl): final-model validation mean 48 % (seeds 50/38/59/44 %), best of the last 5 checkpoints 58 %, 1.4 h per run; cheapest cell within 3 pp of the best (CrossQ UTD 0.5 b1024, 50 %).",
+  "name": "crossq_utd0.125_b256",
+  "env": "PandaReachAO-v3",
+  "steps": 1200000,
+  "train_args": ["--algo", "crossq", "--utd", "0.125", "--batch-size", "256", "--n-envs", "16",
+                 "--curriculum", "reachao1:50:0.9:300000", "reachao2:75:0.9:300000", "reachao3:100",
+                 "--collision-def", "strict"],
+  "evaluation": {"collision_def": "strict", "secondary_collision_def": "thesis", "horizon": 150, "n_substeps": 20,
+                 "checkpoint_selection": "best of the last 5 checkpoints on VALIDATION",
+                 "validation": ["tunnel", "workshop2", "industrial", "bookshelves", "raised_shelves", "tabletop"],
+                 "test": ["narrow_tunnel", "library2", "workshop", "library1", "dynamic_cross_slow", "dynamic_cross_fast"]},
+  "xdist": {
+    "stage2_args": ["--curriculum", "reachao1:50:0.9:300000", "reachao2:75:0.9:300000"],
+    "stage2_steps": 100000,
+    "stage3_steps": 300000,
+    "stage3_horizon": 100,
+    "distributions": ["reachao3", "reachao_dr_plr", "reachao_dr_adr_plr"],
+    "seeds": 5
+  }
+}

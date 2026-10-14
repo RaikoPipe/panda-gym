@@ -271,3 +271,12 @@ HEAD `0596f5d` behaviour except where an entry says otherwise.
 - `scripts/phase0_g3_reeval.sh`: re-evaluates finished G3 runs (final + last 5 checkpoints) on the current
   validation scenes; records evaluated on the old set move to `runs/eval/g3_superseded/`.
 - G4 preparation: 2 more seeds (2, 3) for CrossQ UTD 0.5/b1024, 0.125/b256, 0.125/b1024, 1/b256.
+
+## G4 freeze — 2026-10-14
+
+- `configs/paper_frozen.json` (approved by the authors): CrossQ, UTD 0.125 (train_freq 1, 2 gradient steps per
+  step of 16 envs), batch 256, curriculum reachao1:50:0.9:300000 reachao2:75:0.9:300000 reachao3:100, 1.2 M steps,
+  strict collisions; evaluation at horizon 150 (25 Hz), checkpoint = best of the last 5 on VALIDATION.
+  Evidence: G3, 4 seeds, 6 validation scenes: 48 % final (50/38/59/44 %), 58 % best of last 5, 1.4 h per run;
+  the design's rule (cheapest within 3 pp of the best, CrossQ UTD 0.5 b1024 at 50 %).
+- Commit tagged `paper-frozen`.
