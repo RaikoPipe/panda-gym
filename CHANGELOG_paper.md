@@ -280,3 +280,11 @@ HEAD `0596f5d` behaviour except where an entry says otherwise.
   Evidence: G3, 4 seeds, 6 validation scenes: 48 % final (50/38/59/44 %), 58 % best of last 5, 1.4 h per run;
   the design's rule (cheapest within 3 pp of the best, CrossQ UTD 0.5 b1024 at 50 %).
 - Commit tagged `paper-frozen`.
+
+## Phase 2 — 2026-10-14
+
+- `scripts/phase2_eval.sh`: per seed (CPU job, waits for the training job): checkpoint selection = best of the last 5
+  on VALIDATION (200 episodes per scene, episode seeds from 10 000) -> `selected.txt`; the selected checkpoint on
+  reachao3 + VALIDATION + TEST, 500 episodes per scene with episode seeds from 20 000 (disjoint from the selection
+  episodes, so reported validation numbers are not selection-biased), strict and thesis definitions x horizons 150
+  and 400 -> `runs/eval/p2_<name>_s<seed>_<def>_h<h>.jsonl`. NEO on the same episodes -> `runs/eval/p2_neo_*`.
