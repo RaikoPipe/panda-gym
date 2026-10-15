@@ -39,9 +39,12 @@ for seed in $SEEDS; do
   script="set -e; module load python/python-3.13.2
 cd $ROOT
 if [ ! -f $run/selected.txt ]; then
-  last5=\$(ls $run/checkpoints/model_reachao3_*_steps.zip | sed 's/.*model_reachao3_\([0-9]*\)_steps.zip/\1 &/' | sort -n | tail -5 | cut -d' ' -f2)
-  $PY evaluate.py \$last5 --select-best --scenes $VALIDATION --collision-def strict --horizon 150 --episodes 200 \
-    --episode-seed-base 10000 --workers 32 --out runs/eval/p2_${NAME}_s${seed}_select.jsonl
+  if [ ! -f runs/eval/p2_${NAME}_s${seed}_select.jsonl ]; then
+    last5=\$(ls $run/checkpoints/model_reachao3_*_steps.zip | sed 's/.*model_reachao3_\([0-9]*\)_steps.zip/\1 &/' | sort -n | tail -5 | cut -d' ' -f2)
+    $PY evaluate.py \$last5 --select-best --scenes $VALIDATION --collision-def strict --horizon 150 --episodes 200 \
+      --episode-seed-base 10000 --workers 32 --out runs/eval/p2_${NAME}_s${seed}_select.jsonl
+  fi
+  cd $ROOT  # re-entered before every Python process (stale working directories on BeeGFS)
   $PY -c \"import json, collections
 succ = collections.defaultdict(lambda: collections.defaultdict(list))
 for line in open('runs/eval/p2_${NAME}_s${seed}_select.jsonl'):
@@ -49,6 +52,7 @@ for line in open('runs/eval/p2_${NAME}_s${seed}_select.jsonl'):
 score = {m: sum(sum(v) / len(v) for v in s.values()) / len(s) for m, s in succ.items()}
 open('$run/selected.txt', 'w').write(max(score, key=score.get) + '\n')\"
 fi
+cd $ROOT
 model=\$(cat $run/selected.txt)
 for def in strict thesis; do for h in 150 400; do
   out=runs/eval/p2_${NAME}_s${seed}_\${def}_h\${h}.jsonl
