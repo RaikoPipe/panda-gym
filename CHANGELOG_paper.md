@@ -288,3 +288,15 @@ HEAD `0596f5d` behaviour except where an entry says otherwise.
   reachao3 + VALIDATION + TEST, 500 episodes per scene with episode seeds from 20 000 (disjoint from the selection
   episodes, so reported validation numbers are not selection-biased), strict and thesis definitions x horizons 150
   and 400 -> `runs/eval/p2_<name>_s<seed>_<def>_h<h>.jsonl`. NEO on the same episodes -> `runs/eval/p2_neo_*`.
+
+## Dynamic scenes: timed crossings — 2026-10-16
+
+- Phase 2 showed the dynamic scenes did not test avoidance: agents reach the goal in ~0.8 s (median 19 steps),
+  while spheres spawned outside the reach envelope needed 1-14 s to reach the start-goal segment (87-99 % success,
+  ~1 % collisions, no seed variance).
+- Each sphere now crosses its random point on the start-goal segment after U(0.2, 1.5) s and spawns at that distance
+  back along its line, inside the workspace but >= 5 cm clear of the robot and >= 10 cm from the goal.
+- Hold-q0 collisions (200 episodes): slow (two spheres) 48 %, fast (one sphere) 52 %, both inside the 20-60 % band.
+  Three population seeds (200 episodes): slow 64-72 % success (22-28 % collisions), fast 85-90 % (10-14 %).
+- The Phase 2 dynamic-scene records are superseded (`runs/eval/p2_superseded/`); the dynamic scenes are re-evaluated
+  for all seeds and NEO into `runs/eval/p2_*_dyn_<def>_h<h>.jsonl`.

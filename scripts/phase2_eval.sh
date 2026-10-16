@@ -21,7 +21,7 @@ SEEDS=${SEEDS:-$(seq 0 19)}
 read -r VALIDATION TEST <<< "$($PY -c "from panda_gym import scenes as S; print(','.join(S.VALIDATION), ','.join(S.TEST))")"
 VALIDATION=${VALIDATION//,/ }
 TEST=${TEST//,/ }
-SCENES="reachao3 $VALIDATION $TEST"
+SCENES=${SCENES:-"reachao3 $VALIDATION $TEST"}  # override + TAG=<name> to (re-)evaluate a subset into separate files
 EVAL="--episodes 500 --episode-seed-base 20000 --workers 32"
 mkdir -p runs/slurm runs/eval
 
@@ -55,23 +55,23 @@ fi
 cd $ROOT
 model=\$(cat $run/selected.txt)
 for def in strict thesis; do for h in 150 400; do
-  out=runs/eval/p2_${NAME}_s${seed}_\${def}_h\${h}.jsonl
+  out=runs/eval/p2_${NAME}_s${seed}${TAG:+_$TAG}_\${def}_h\${h}.jsonl
   [ -f \$out ] && continue
   cd $ROOT
   $PY evaluate.py \$model --scenes $SCENES --collision-def \$def --horizon \$h $EVAL --out \${out%.jsonl}.part.jsonl
   mv \${out%.jsonl}.part.run_meta.json \${out%.jsonl}.run_meta.json && mv \${out%.jsonl}.part.jsonl \$out
 done; done"
-  echo "s$seed: eval job $(submit "p2-s$seed" "$dep" "$script")${job:+ (after training job $job)}"
+  echo "s$seed: eval job $(submit "p2${TAG:+-$TAG}-s$seed" "$dep" "$script")${job:+ (after training job $job)}"
 done
 
 if [ "${NEO:-1}" = 1 ]; then
   script="set -e; module load python/python-3.13.2
 for def in strict thesis; do for h in 150 400; do
-  out=runs/eval/p2_neo_\${def}_h\${h}.jsonl
+  out=runs/eval/p2_neo${TAG:+_$TAG}_\${def}_h\${h}.jsonl
   [ -f \$out ] && continue
   cd $ROOT
   $PY evaluate.py --controller neo --scenes $SCENES --collision-def \$def --horizon \$h $EVAL --out \${out%.jsonl}.part.jsonl
   mv \${out%.jsonl}.part.run_meta.json \${out%.jsonl}.run_meta.json && mv \${out%.jsonl}.part.jsonl \$out
 done; done"
-  echo "NEO: eval job $(submit p2-neo "" "$script")"
+  echo "NEO: eval job $(submit "p2${TAG:+-$TAG}-neo" "" "$script")"
 fi

@@ -14,14 +14,14 @@ def positions(env):
 
 
 @pytest.mark.parametrize("scene,speed", [("dynamic_cross_slow", 0.1), ("dynamic_cross_fast", 0.3)])
-def test_spheres_cross_at_the_set_speed_from_outside_the_reach_envelope(scene, speed):
+def test_spheres_cross_at_the_set_speed_clear_of_the_robot_and_the_goal(scene, speed):
     env = gym.make("PandaReachAO-v3", scenario=scene)
     task = env.unwrapped.task
     for seed in range(5):
         env.reset(seed=seed)
         start = positions(env)
-        assert np.all(np.linalg.norm(start - task.SHOULDER, axis=1) > 0.99)
         assert not any(task.check_collision("robot", n, margin=0.05) for n in task.obstacles)
+        assert np.all(np.linalg.norm(start - task.goal, axis=1) >= 0.1 - 1e-6)  # dummy sphere + obstacle radius
         for _ in range(10):
             env.step(np.zeros(7, dtype=np.float32))
         np.testing.assert_allclose(np.linalg.norm(positions(env) - start, axis=1), 10 * env.unwrapped.sim.dt * speed,
@@ -42,8 +42,8 @@ def test_trajectories_are_seeded():
 
 
 def test_holding_the_start_pose_collides_sometimes():
-    """Design T9 acceptance: a policy holding q0 collides in 20-60 % of episodes (slow level: 36 % on 200 episodes;
-    fast level, one sphere: 65 %, see CHANGELOG_paper.md)."""
+    """Design T9 acceptance: a policy holding q0 collides in 20-60 % of episodes (timed crossings, 200 episodes:
+    slow 48 %, fast 52 %, see CHANGELOG_paper.md)."""
     collisions = 0
     for seed in range(30):
         env = gym.make("PandaReachAO-v3", scenario="dynamic_cross_slow", max_episode_steps=150)

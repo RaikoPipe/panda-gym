@@ -662,7 +662,11 @@ class ReachAO(Task):
     # the design's 20-60 % band for a non-trivial but solvable scene (authors' decision, 2026-10-08)
     DYNAMIC_SPHERES = {"dynamic_cross_slow": 2, "dynamic_cross_fast": 1}
     SHOULDER = np.array([0.0, 0.0, 0.333])
-    SPAWN_RADIUS = 1.0  # m from the shoulder; the arm reaches ~0.85 m, so spheres start outside the reach envelope
+    # Each sphere crosses its point on the start-goal segment after CROSS_TIME seconds. Agents reach the goal in ~0.8 s
+    # (median, Phase 2); spheres spawned outside the reach envelope (first version) arrived after 1-14 s, so the scene
+    # did not test avoidance (87-99 % success). Spheres now spawn inside the workspace, >= 5 cm clear of the robot
+    # and the goal, so the first step is still collision free.
+    CROSS_TIME = (0.2, 1.5)
 
     def create_scenario_dynamic_cross(self):
         """5 cm spheres (two at 0.1 m/s, one at 0.3 m/s; mass 0, moved by their velocity) cross the workspace on straight lines through random
@@ -681,19 +685,18 @@ class ReachAO(Task):
             self.sim.set_base_velocity(name, np.zeros(3))
         self.set_coll_free_goal(["table", "robot"])
         ee = self.robot.get_ee_position()
+        self.sim.set_base_pose("dummy_sphere", self.goal, np.array([0.0, 0.0, 0.0, 1.0]))  # marks the goal
         for name in names:
             for _ in range(1000):
                 cross = ee + self.np_random.uniform() * (self.goal - ee)
                 direction = np.array([*self.np_random.normal(size=2), self.np_random.uniform(-0.3, 0.3)])
                 direction /= np.linalg.norm(direction)
-                rel = cross - self.SHOULDER
-                b = direction @ rel  # start = cross - L * direction lies on the spawn sphere
-                length = b + np.sqrt(b ** 2 - rel @ rel + self.SPAWN_RADIUS ** 2)
-                start = cross - length * direction
-                if start[2] < 0.05:  # stays above the table at the start
+                start = cross - self.dynamic_speed * self.np_random.uniform(*self.CROSS_TIME) * direction
+                if start[2] < 0.05:  # above the table at the start
                     continue
                 self.sim.set_base_pose(name, start, np.array([0.0, 0.0, 0.0, 1.0]))
-                if not self.check_collision("robot", name, margin=0.05):
+                if not (self.check_collision("robot", name, margin=0.05)
+                        or self.check_collision("dummy_sphere", name, margin=0.0)):
                     break
             self.sim.set_base_velocity(name, self.dynamic_speed * direction)
         self.sim.set_base_pose("dummy_sphere", np.array([0.0, 0.0, -5.0]), np.array([0.0, 0.0, 0.0, 1.0]))
