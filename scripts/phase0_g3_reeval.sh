@@ -6,6 +6,7 @@
 #     --export=ALL,COLLISION_DEF=strict scripts/phase0_g3_reeval.sh
 #SBATCH --job-name=g3-reeval
 set -eu
+export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1  # small helper calls; avoids the per-user thread limit
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
 ROOT=$(pwd -P)  # re-entered before every evaluation (stale working directories on BeeGFS)
 : "${COLLISION_DEF:?e.g. COLLISION_DEF=strict}"

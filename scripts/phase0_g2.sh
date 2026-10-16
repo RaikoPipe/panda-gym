@@ -9,6 +9,7 @@
 # Summary: PYTHONPATH=. .venv/bin/python scripts/summarize_g1.py runs/eval/g2_*.jsonl --out runs/eval/g2_summary.csv
 # GPU jobs avoid gpu01-gpu03 (reserved for other work); override with EXCLUDE_NODES=<slurm node list>.
 set -eu
+export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1  # small helper calls; avoids the per-user thread limit
 cd "$(dirname "$0")/.."
 STEPS=${STEPS:-900000}  # the preset caps each of the three curriculum stages at 300 k steps
 SEEDS=${SEEDS:-"0 1 2"}

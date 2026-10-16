@@ -11,6 +11,7 @@
 #      the thesis collision definition at horizons 150 and 400 -> runs/eval/p2_<name>_s<seed>_<def>_h<h>.jsonl
 # NEO: the same scenes, episodes, definitions and horizons -> runs/eval/p2_neo_<def>_h<h>.jsonl
 set -eu
+export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1  # small helper calls; avoids the per-user thread limit
 cd "$(dirname "$0")/.."
 ROOT=$(pwd -P)
 module load python/python-3.13.2 2>/dev/null || true

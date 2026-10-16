@@ -9,6 +9,7 @@
 # Seeds whose run directory holds a "done" marker are skipped. Every run saves 24 checkpoints (~every 50 k steps).
 # GPU jobs avoid gpu01-gpu03 (reserved for other work); override with EXCLUDE_NODES=<slurm node list>.
 set -eu
+export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1  # small helper calls; avoids the per-user thread limit
 cd "$(dirname "$0")/.."
 CONFIG=${CONFIG:-configs/paper_frozen.json}
 MODE=${MODE:-sequential}

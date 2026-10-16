@@ -8,6 +8,7 @@
 #SBATCH --job-name=g1-eval
 #SBATCH --output=runs/slurm-%j-g1.out
 set -eu
+export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1  # small helper calls; avoids the per-user thread limit
 cd "${SLURM_SUBMIT_DIR:-$(dirname "$0")/..}"
 ROOT=$(pwd -P)  # re-entered before every run: on BeeGFS a long job's working directory can go stale on a compute
                 # node ("failed to make path absolute" in every new Python process)

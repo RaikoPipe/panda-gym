@@ -7,6 +7,7 @@
 # Summary: python scripts/summarize_g3.py -> runs/sweep/g3_summary.csv
 # GPU jobs avoid gpu01-gpu03 (reserved for other work); override with EXCLUDE_NODES=<slurm node list>.
 set -eu
+export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1  # small helper calls; avoids the per-user thread limit
 cd "$(dirname "$0")/.."
 : "${COLLISION_DEF:?set the frozen collision definition (G1/G2 outcome), e.g. COLLISION_DEF=strict}"
 MODE=${MODE:-sequential}

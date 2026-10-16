@@ -300,3 +300,14 @@ HEAD `0596f5d` behaviour except where an entry says otherwise.
   Three population seeds (200 episodes): slow 64-72 % success (22-28 % collisions), fast 85-90 % (10-14 %).
 - The Phase 2 dynamic-scene records are superseded (`runs/eval/p2_superseded/`); the dynamic scenes are re-evaluated
   for all seeds and NEO into `runs/eval/p2_*_dyn_<def>_h<h>.jsonl`.
+
+## Phase 3 — 2026-10-16
+
+- `scripts/phase3_ensembles.py`: members = the 20 validation-selected checkpoints; K-sweep K in {2, 3, 5, 10, 20} with
+  20 random subsets per K (one at K = 20; `default_rng(0)`), strategies min_variance, critic_argmax, mean,
+  precision_weighted, random, 200 episodes per scene; headline: all 20 and the top 5 by Phase 2 validation success,
+  500 episodes. VALIDATION + TEST, strict, horizon 150, episode seeds from 20 000 (single policies and the oracle
+  come from the Phase 2 records on the same episodes). SLURM array on the CPU partition; resumable.
+  415 evaluations, ~1.0 M episodes.
+- Runner scripts export OMP/OpenBLAS/MKL_NUM_THREADS=1: helper Python calls started 64 BLAS threads each and hit the
+  per-user thread limit on a shared node.
