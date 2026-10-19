@@ -87,7 +87,7 @@ def paired(df, single, baseline):
                          diff=mean, lo=lo, hi=hi, episodes=len(both), n_subsets=test["members"].nunique()))
         if test["members"].nunique() == 1:
             for scene, s in both.groupby(level="scene"):
-                p, only_base, only_ens = stats.mcnemar(s["base"] > 0.5, s["ens"] > 0.5)
+                p, only_ens, only_base = stats.mcnemar(s["base"] > 0.5, s["ens"] > 0.5)  # (p, b-only, a-only)
                 mc.append(dict(strategy=strategy, K=k, scene=scene, p=p, only_baseline=only_base,
                                only_ensemble=only_ens, episodes=len(s)))
     return pd.DataFrame(rows), pd.DataFrame(mc)
@@ -119,11 +119,11 @@ def main(args):
     out = outdir()
     table = by_k(df, single)
     pairs, mc = paired(df, single, baseline)
-    table.to_csv(out / "rq2_by_k.csv", index=False)
-    pairs.to_csv(out / "rq2_paired.csv", index=False)
-    mc.to_csv(out / "rq2_mcnemar.csv", index=False)
+    table.to_csv(out / f"rq2{args.tag}_by_k.csv", index=False)
+    pairs.to_csv(out / f"rq2{args.tag}_paired.csv", index=False)
+    mc.to_csv(out / f"rq2{args.tag}_mcnemar.csv", index=False)
     base_test = single[(single["members"] == (baseline,)) & (single["role"] == "test")]["success"].mean()
-    plot(table, base_test, out / "rq2_by_k.pdf")
+    plot(table, base_test, out / f"rq2{args.tag}_by_k.pdf")
     print(f"validation-selected single policy: {baseline} (test success {base_test:.1%})")
     print(table.to_string(index=False))
     print(pairs.to_string(index=False) if len(pairs) else "(no ensemble records)")
@@ -134,4 +134,5 @@ if __name__ == "__main__":
     ap.add_argument("records", nargs="+")
     ap.add_argument("--collision-def")
     ap.add_argument("--horizon", type=int)
+    ap.add_argument("--tag", default="", help="suffix for the output files, e.g. _sweep")
     main(ap.parse_args())

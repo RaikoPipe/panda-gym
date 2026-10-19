@@ -311,3 +311,9 @@ HEAD `0596f5d` behaviour except where an entry says otherwise.
   415 evaluations, ~1.0 M episodes.
 - Runner scripts export OMP/OpenBLAS/MKL_NUM_THREADS=1: helper Python calls started 64 BLAS threads each and hit the
   per-user thread limit on a shared node.
+
+## RQ2 analysis fixes — 2026-10-19
+
+- `analysis/rq2.py`: the McNemar count columns `only_baseline` / `only_ensemble` were swapped (stats.mcnemar returns
+  (p, b-only, a-only)); p-values were unaffected. Fixed, with a test that checks the counts against the episodes.
+- `--tag` suffix for the output files (K-sweep and headline analyses are run separately: they share episodes).

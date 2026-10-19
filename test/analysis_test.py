@@ -67,7 +67,7 @@ def test_unshared_episodes_are_rejected(records, tmp_path):
 
 def test_rq_scripts_write_their_outputs(records, tmp_path):
     path, members, skill = records
-    args = Namespace(records=[path], collision_def="strict", horizon=150)
+    args = Namespace(records=[path], collision_def="strict", horizon=150, tag="")
     for module in (rq1, rq2, rq3):
         module.main(args)
     out = tmp_path / "out"
@@ -103,3 +103,19 @@ def test_subsets_are_reproducible():
     members = [f"m{i}" for i in range(20)]
     a, b = subsets(members, [3, 20], n=50), subsets(members, [3, 20], n=50)
     assert a == b and len(a[3]) == 50 and len(a[20]) == 1
+
+
+def test_mcnemar_counts_are_labelled_by_method(records, tmp_path):
+    """only_ensemble counts episodes the ensemble solved and the baseline did not."""
+    path, _, _ = records
+    rq2.main(Namespace(records=[path], collision_def="strict", horizon=150, tag=""))
+    m = pd.read_csv(tmp_path / "out" / "rq2_mcnemar.csv")
+    df = L.load(path)
+    single = df[df["strategy"] == "single"]
+    base = rq2.episode_success(single[(single["members"] == (rq2.select_single(single),)) & (single["role"] == "test")])
+    for _, row in m.iterrows():
+        ens = df[(df["strategy"] == row["strategy"]) & (df["K"] == row["K"]) & (df["scene"] == row["scene"])]
+        e = rq2.episode_success(ens)
+        b = base.loc[e.index]
+        assert row["only_ensemble"] == int(((e > 0.5) & (b < 0.5)).sum())
+        assert row["only_baseline"] == int(((e < 0.5) & (b > 0.5)).sum())
