@@ -317,3 +317,13 @@ HEAD `0596f5d` behaviour except where an entry says otherwise.
 - `analysis/rq2.py`: the McNemar count columns `only_baseline` / `only_ensemble` were swapped (stats.mcnemar returns
   (p, b-only, a-only)); p-values were unaffected. Fixed, with a test that checks the counts against the episodes.
 - `--tag` suffix for the output files (K-sweep and headline analyses are run separately: they share episodes).
+
+## RQ1 statistics — 2026-10-20
+
+- `analysis/rq1.py`: the mixed model is fitted variationally (reported intervals) and at the posterior mode as a
+  cross-check, both with `scale_fe=True` and up to 5000 iterations, and each row records whether statsmodels reported
+  convergence. New `rq1_heterogeneity.csv`: per OOD scene a chi-square test that all seeds share one success rate.
+- Result (20 seeds, strict, horizon 150): seed x scene SD 1.30 [1.19, 1.43] (variational) and 1.24 [1.13, 1.37]
+  (MAP), seed main effect ~0; statsmodels still reports non-convergence for both (the seed variance sits at the zero
+  boundary; dropping it gives the same SDs, also flagged). Chi-square: seeds differ on every one of the 12 OOD scenes,
+  all p < 1e-6.

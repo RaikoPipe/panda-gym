@@ -1,4 +1,4 @@
 ood,rho,p,n_seeds,scenes
 validation,-0.05505304083393541,0.8176830931523416,20,tunnel workshop2 industrial bookshelves raised_shelves tabletop
-test,0.13725552646268827,0.5639098514804483,20,narrow_tunnel library2 workshop library1 dynamic_cross_slow dynamic_cross_fast
-ood,0.11312268664507276,0.6348905830593552,20,tunnel workshop2 industrial bookshelves raised_shelves tabletop narrow_tunnel library2 workshop library1 dynamic_cross_slow dynamic_cross_fast
+test,0.1711923324562101,0.47050762842005944,20,narrow_tunnel library2 workshop library1 dynamic_cross_slow dynamic_cross_fast
+ood,0.12745156028678195,0.5923234876464409,20,tunnel workshop2 industrial bookshelves raised_shelves tabletop narrow_tunnel library2 workshop library1 dynamic_cross_slow dynamic_cross_fast
