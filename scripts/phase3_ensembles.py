@@ -9,6 +9,8 @@ Members: the validation-selected checkpoint of every population seed (runs/pop/<
   headline   all members and the top --top-k members by Phase 2 validation success x --strategies, 500 episodes
   conditions the all-members headline under the secondary collision definition and at horizon 400 (p3c_* files)
   snapshot   RQ3: the last --snapshot-k checkpoints of single runs (--snapshot-seeds) x --snapshot-strategies
+  xdist      RQ3: cross-distribution population (runs/pop/<name>_xdist/<dist>/s*/selected.txt), pure vs. mixed
+             ensembles of equal size (see xdist_groups) x --snapshot-strategies (p3x_* files)
 Scenes: VALIDATION + TEST; strict collisions, horizon 150 (configs/paper_frozen.json), episode seeds from 20 000 as in
 Phase 2, so single policies (K = 1) and the per-episode oracle come from the Phase 2 records on the same episodes.
 Output: runs/eval/p3_<group>_<strategy>_k<K>_<i>.jsonl; finished files are skipped on resubmission.
@@ -31,6 +33,34 @@ ROOT = Path(__file__).resolve().parent.parent
 def members(name):
     paths = sorted(glob.glob(str(ROOT / f"runs/pop/{name}/s*/selected.txt")), key=lambda p: int(Path(p).parent.name[1:]))
     return [Path(p).read_text().strip() for p in paths]
+
+
+def xdist_members(name):
+    """{distribution: validation-selected checkpoints of its runs} for the cross-distribution population."""
+    out = {}
+    for dist_dir in sorted((ROOT / f"runs/pop/{name}_xdist").iterdir()):
+        sel = sorted(dist_dir.glob("s*/selected.txt"), key=lambda p: int(p.parent.name[1:]))
+        if sel:
+            out[dist_dir.name] = [p.read_text().strip() for p in sel]
+    return out
+
+
+def xdist_groups(by_dist, n=20, seed=0):
+    """Matched comparison (RQ3): ensembles from one training distribution vs. mixtures of equal size.
+    pure-<dist> K=5 (all runs of a distribution); pure-reachao3 K=3 (all 3-subsets: the matched control for mixed K=3);
+    mixed K=3 (one run per distribution), mixed K=5 (2 + 2 + 1 across distributions), mixed K=15 (all)."""
+    from itertools import combinations
+    rng = np.random.default_rng(seed)
+    dists = sorted(by_dist)
+    groups = [(f"pure-{d}", [m]) for d, m in ((d, by_dist[d]) for d in dists)]
+    groups += [("pure-reachao3", [list(c) for c in combinations(by_dist["reachao3"], 3)])]
+    mixed3 = [[str(rng.choice(by_dist[d])) for d in dists] for _ in range(n)]
+    mixed5 = []
+    for i in range(n):
+        single = dists[i % len(dists)]  # the distribution that contributes one run (rotates)
+        mixed5.append([str(m) for d in dists for m in rng.choice(by_dist[d], 1 if d == single else 2, replace=False)])
+    groups += [("mixed", mixed3), ("mixed", mixed5), ("mixed", [[m for d in dists for m in by_dist[d]]])]
+    return [(name, group if isinstance(group[0], list) else group) for name, group in groups]
 
 
 def validation_success(name, collision_def, horizon):
@@ -79,6 +109,18 @@ def main(args):
                 for strategy in args.snapshot_strategies:
                     jobs.append((f"runs/eval/p3_snapshot-s{seed}_{strategy}_k{k}_0.jsonl", group, strategy,
                                  args.episodes, strict, h))
+    if "xdist" in args.groups:
+        by_dist = xdist_members(frozen["name"])
+        if set(by_dist) != {"reachao3", "reachao_dr_plr", "reachao_dr_adr_plr"} or any(len(v) != 5 for v in by_dist.values()):
+            raise SystemExit(f"cross-distribution population incomplete: { {d: len(v) for d, v in by_dist.items()} }")
+        counter = defaultdict(int)
+        for name, subsets_ in xdist_groups(by_dist, n=args.subsets):
+            for group in subsets_:
+                i = counter[(name, len(group))]
+                counter[(name, len(group))] += 1
+                for strategy in args.snapshot_strategies:
+                    jobs.append((f"runs/eval/p3x_{name}_{strategy}_k{len(group)}_{i}.jsonl", group, strategy,
+                                 args.episodes, strict, h))
     out_dir = ROOT / "runs/p3"
     out_dir.mkdir(parents=True, exist_ok=True)
     lines = []
@@ -112,7 +154,7 @@ def main(args):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--groups", nargs="+", default=["sweep", "headline"],
-                    choices=["sweep", "headline", "conditions", "snapshot"])
+                    choices=["sweep", "headline", "conditions", "snapshot", "xdist"])
     ap.add_argument("--k", nargs="+", type=int, default=[2, 3, 5, 10, 20])
     ap.add_argument("--snapshot-seeds", nargs="+", type=int, default=list(range(10)))
     ap.add_argument("--snapshot-k", nargs="+", type=int, default=[5, 10])

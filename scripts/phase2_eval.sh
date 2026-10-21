@@ -3,6 +3,7 @@
 #   scripts/phase2_eval.sh            one CPU job per seed (waits for the seed's training job if it is still queued
 #                                     or running), plus one NEO job
 #   SEEDS="0 1" scripts/phase2_eval.sh   NEO=0 ...   skip NEO      DRY_RUN=1 ...   print the job scripts
+#   POP=<name>_xdist/reachao3 SEEDS="0 1 2 3 4" CONDITIONS="strict:150" NEO=0 ...   another population, one condition
 # Per seed (configs/paper_frozen.json):
 #   1. checkpoint selection: the best of the last 5 checkpoints on VALIDATION (200 episodes per scene, episode seeds
 #      from 10_000, strict, horizon 150) -> runs/pop/<name>/s<seed>/selected.txt
@@ -18,6 +19,9 @@ module load python/python-3.13.2 2>/dev/null || true
 PY=.venv/bin/python
 CONFIG=${CONFIG:-configs/paper_frozen.json}
 NAME=$($PY -c "import json; print(json.load(open('$CONFIG'))['name'])")
+POP=${POP:-$NAME}  # population directory under runs/pop, e.g. POP=${NAME}_xdist/reachao3
+OUT=${POP//\//-}  # output name stem
+CONDITIONS=${CONDITIONS:-"strict:150 strict:400 thesis:150 thesis:400"}
 SEEDS=${SEEDS:-$(seq 0 19)}
 read -r VALIDATION TEST <<< "$($PY -c "from panda_gym import scenes as S; print(','.join(S.VALIDATION), ','.join(S.TEST))")"
 VALIDATION=${VALIDATION//,/ }
@@ -33,46 +37,46 @@ submit() {  # name dependency script
 }
 
 for seed in $SEEDS; do
-  run="runs/pop/$NAME/s$seed"
-  job=$(squeue -u "$USER" -h -n "pop-$NAME-s$seed" -o %i | head -1)
+  run="runs/pop/$POP/s$seed"
+  job=$(squeue -u "$USER" -h -n "pop-$(basename "$POP")-s$seed" -o %i | head -1)  # job names of phase1_seeds.sh
   dep=${job:+--dependency=afterok:$job}
   if [ -z "$job" ] && [ ! -f "$run/done" ]; then echo "s$seed: not trained and no training job, skipped" >&2; continue; fi
   script="set -e; module load python/python-3.13.2
 cd $ROOT
 if [ ! -f $run/selected.txt ]; then
-  if [ ! -f runs/eval/p2_${NAME}_s${seed}_select.jsonl ]; then
+  if [ ! -f runs/eval/p2_${OUT}_s${seed}_select.jsonl ]; then
     last5=\$(ls $run/checkpoints/model_reachao3_*_steps.zip | sed 's/.*model_reachao3_\([0-9]*\)_steps.zip/\1 &/' | sort -n | tail -5 | cut -d' ' -f2)
     $PY evaluate.py \$last5 --select-best --scenes $VALIDATION --collision-def strict --horizon 150 --episodes 200 \
-      --episode-seed-base 10000 --workers 32 --out runs/eval/p2_${NAME}_s${seed}_select.jsonl
+      --episode-seed-base 10000 --workers 32 --out runs/eval/p2_${OUT}_s${seed}_select.jsonl
   fi
   cd $ROOT  # re-entered before every Python process (stale working directories on BeeGFS)
   $PY -c \"import json, collections
 succ = collections.defaultdict(lambda: collections.defaultdict(list))
-for line in open('runs/eval/p2_${NAME}_s${seed}_select.jsonl'):
+for line in open('runs/eval/p2_${OUT}_s${seed}_select.jsonl'):
     r = json.loads(line); succ[r['model']][r['scene']].append(r['outcome'] == 'success')
 score = {m: sum(sum(v) / len(v) for v in s.values()) / len(s) for m, s in succ.items()}
 open('$run/selected.txt', 'w').write(max(score, key=score.get) + '\n')\"
 fi
 cd $ROOT
 model=\$(cat $run/selected.txt)
-for def in strict thesis; do for h in 150 400; do
-  out=runs/eval/p2_${NAME}_s${seed}${TAG:+_$TAG}_\${def}_h\${h}.jsonl
+for c in $CONDITIONS; do def=\${c%:*}; h=\${c#*:}
+  out=runs/eval/p2_${OUT}_s${seed}${TAG:+_$TAG}_\${def}_h\${h}.jsonl
   [ -f \$out ] && continue
   cd $ROOT
   $PY evaluate.py \$model --scenes $SCENES --collision-def \$def --horizon \$h $EVAL --out \${out%.jsonl}.part.jsonl
   mv \${out%.jsonl}.part.run_meta.json \${out%.jsonl}.run_meta.json && mv \${out%.jsonl}.part.jsonl \$out
-done; done"
-  echo "s$seed: eval job $(submit "p2${TAG:+-$TAG}-s$seed" "$dep" "$script")${job:+ (after training job $job)}"
+done"
+  echo "s$seed: eval job $(submit "p2${TAG:+-$TAG}-$(basename "$POP")-s$seed" "$dep" "$script")${job:+ (after training job $job)}"
 done
 
 if [ "${NEO:-1}" = 1 ]; then
   script="set -e; module load python/python-3.13.2
-for def in strict thesis; do for h in 150 400; do
+for c in $CONDITIONS; do def=\${c%:*}; h=\${c#*:}
   out=runs/eval/p2_neo${TAG:+_$TAG}_\${def}_h\${h}.jsonl
   [ -f \$out ] && continue
   cd $ROOT
   $PY evaluate.py --controller neo --scenes $SCENES --collision-def \$def --horizon \$h $EVAL --out \${out%.jsonl}.part.jsonl
   mv \${out%.jsonl}.part.run_meta.json \${out%.jsonl}.run_meta.json && mv \${out%.jsonl}.part.jsonl \$out
-done; done"
+done"
   echo "NEO: eval job $(submit "p2${TAG:+-$TAG}-neo" "" "$script")"
 fi

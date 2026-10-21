@@ -327,3 +327,13 @@ HEAD `0596f5d` behaviour except where an entry says otherwise.
   (MAP), seed main effect ~0; statsmodels still reports non-convergence for both (the seed variance sits at the zero
   boundary; dropping it gives the same SDs, also flagged). Chi-square: seeds differ on every one of the 12 OOD scenes,
   all p < 1e-6.
+
+## Cross-distribution population (RQ3) — 2026-10-21
+
+- `scripts/phase1_seeds.sh --population xdist` (frozen config): a shared stage-2 checkpoint (100 k steps), then 5 runs
+  each of reachao3, reachao_dr_plr and reachao_dr_adr_plr fine-tuned for 300 k steps.
+- `scripts/phase2_eval.sh`: `POP` (population directory), `CONDITIONS` (e.g. strict:150); output and job names
+  derived from POP. The xdist runs are evaluated with the frozen checkpoint selection, strict, horizon 150.
+- `scripts/phase3_ensembles.py --groups xdist`: matched comparison at equal K, same episodes: pure-<dist> K = 5,
+  pure-reachao3 K = 3 (all 10 subsets; the control for mixed K = 3), mixed K = 3 (one run per distribution,
+  20 subsets), mixed K = 5 (2 + 2 + 1, 20 subsets), mixed K = 15; mean, critic_argmax, min_variance; 200 episodes.
