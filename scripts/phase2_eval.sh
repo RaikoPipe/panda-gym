@@ -45,7 +45,8 @@ for seed in $SEEDS; do
 cd $ROOT
 if [ ! -f $run/selected.txt ]; then
   if [ ! -f runs/eval/p2_${OUT}_s${seed}_select.jsonl ]; then
-    last5=\$(ls $run/checkpoints/model_reachao3_*_steps.zip | sed 's/.*model_reachao3_\([0-9]*\)_steps.zip/\1 &/' | sort -n | tail -5 | cut -d' ' -f2)
+    # the last 5 checkpoints by step count (named after the run's last curriculum stage, e.g. model_reachao3_*)
+    last5=\$(ls $run/checkpoints/model_*_steps.zip | sed 's/.*_\([0-9]*\)_steps.zip/\1 &/' | sort -n | tail -5 | cut -d' ' -f2)
     $PY evaluate.py \$last5 --select-best --scenes $VALIDATION --collision-def strict --horizon 150 --episodes 200 \
       --episode-seed-base 10000 --workers 32 --out runs/eval/p2_${OUT}_s${seed}_select.jsonl
   fi
