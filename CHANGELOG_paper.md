@@ -337,3 +337,9 @@ HEAD `0596f5d` behaviour except where an entry says otherwise.
 - `scripts/phase3_ensembles.py --groups xdist`: matched comparison at equal K, same episodes: pure-<dist> K = 5,
   pure-reachao3 K = 3 (all 10 subsets; the control for mixed K = 3), mixed K = 3 (one run per distribution,
   20 subsets), mixed K = 5 (2 + 2 + 1, 20 subsets), mixed K = 15; mean, critic_argmax, min_variance; 200 episodes.
+
+## RQ3 cross-distribution analysis — 2026-10-23
+
+- `analysis/rq3_xdist.py`: single policies per training distribution, pure vs. mixed ensembles at equal K (matched
+  control), per-scene table; outputs `analysis/out/rq3x_*.csv`. CIs bootstrap over subsets; pure K = 5 groups are a
+  single subset each, so their CIs only cover the mixed side.
