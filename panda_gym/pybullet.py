@@ -48,6 +48,9 @@ class PyBullet:
         self.timestep = 1.0 / 500
         self.physics_client.setTimeStep(self.timestep)
         self.physics_client.resetSimulation()
+        # order contact pairs by body ids, not memory addresses: otherwise the solver order (and with the
+        # permanent link1-table contact, the robot's motion) differs between processes for the same seed
+        self.physics_client.setPhysicsEngineParameter(deterministicOverlappingPairs=1)
         self.physics_client.setAdditionalSearchPath(pybullet_data.getDataPath())
         self.physics_client.setGravity(0, 0, -9.81)
         self._bodies_idx = {}

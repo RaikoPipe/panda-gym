@@ -1,0 +1,18 @@
+{
+  "_comment": "Example only. G4 writes configs/paper_frozen.json with the frozen values and tags the commit paper-frozen.",
+  "name": "crossq_utd1",
+  "env": "PandaReachAO-v3",
+  "steps": 1200000,
+  "train_args": ["--algo", "crossq", "--utd", "1", "--batch-size", "1024", "--n-envs", "8",
+                 "--curriculum", "reachao1:50:0.9", "reachao2:75:0.9", "reachao3:100",
+                 "--collision-def", "strict"],
+  "evaluation": {"collision_def": "strict", "horizon": 150, "n_substeps": 20},
+  "xdist": {
+    "stage2_args": ["--curriculum", "reachao1:50:0.9", "reachao2:75:0.9"],
+    "stage2_steps": 100000,
+    "stage3_steps": 300000,
+    "stage3_horizon": 100,
+    "distributions": ["reachao3", "reachao_dr_plr", "reachao_dr_adr_plr"],
+    "seeds": 5
+  }
+}

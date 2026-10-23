@@ -20,6 +20,20 @@ from panda_gym.utils import distance, unit_vector
 
 SCENARIO_DIR = Path(__file__).parent.parent.parent / "assets" / "scenarios"
 
+THESIS_IGNORE_LINKS = ("panda_leftfinger", "panda_rightfinger", "panda_grasptarget")
+
+# Named collision definitions (evaluate.py/train.py --collision-def). "thesis" reproduces the thesis-era code
+# (1624534): fingers and grasp target ignored, table not an obstacle, and the check is a distance query once per
+# control step (after all substeps) instead of the contact manifold of every substep.
+COLLISION_DEFS = {
+    "strict": dict(collision_ignore_links=(), table_collides=True, collision_check="contact"),
+    "strict_notable": dict(collision_ignore_links=(), table_collides=False, collision_check="contact"),
+    "thesis": dict(collision_ignore_links=THESIS_IGNORE_LINKS, table_collides=False, collision_check="distance"),
+    "thesis_table": dict(collision_ignore_links=THESIS_IGNORE_LINKS, table_collides=True, collision_check="distance"),
+    # thesis link/table set, but checked like HEAD (every substep): separates the timing effect from the link set
+    "thesis_substep": dict(collision_ignore_links=THESIS_IGNORE_LINKS, table_collides=False, collision_check="contact"),
+}
+
 
 @dataclass
 class ReachAOConfig:
@@ -40,6 +54,26 @@ class ReachAOConfig:
     show_goal_space: bool = False
     show_debug_labels: bool = False
     debug_collision: bool = False
+    # collision definition (defaults = HEAD behavior; see COLLISION_DEFS, ReachAOConfig.thesis())
+    collision_ignore_links: tuple = ()  # robot link names whose contacts never count
+    table_collides: bool = True  # panda_link1 resting on the table never counts
+    collision_check: str = "contact"  # "contact": contact manifold of every substep; "distance": once per step
+    collision_semantics: str = "terminate"  # "terminate" or "truncate" (thesis: bootstraps through crashes)
+    her_penalty_source: str = "info"  # "info": stored per-transition flag; "live": thesis bug, G2 fidelity only
+
+    @classmethod
+    def strict(cls, **kwargs) -> "ReachAOConfig":
+        return cls(**{**COLLISION_DEFS["strict"], **kwargs})
+
+    @classmethod
+    def thesis(cls, **kwargs) -> "ReachAOConfig":
+        """Thesis-era (1624534) collision definition and training semantics."""
+        return cls(**{**COLLISION_DEFS["thesis"], "collision_semantics": "truncate", "her_penalty_source": "live",
+                      **kwargs})
+
+    @classmethod
+    def from_collision_def(cls, name: str, **kwargs) -> "ReachAOConfig":
+        return cls(**{**COLLISION_DEFS[name], **kwargs})
 
 
 class ReachAO(Task):
@@ -74,6 +108,7 @@ class ReachAO(Task):
 
         self.scenario = scenario
         self.dr = None  # SceneRandomizer for the procedural "reachao_dr*" scenarios
+        self.dynamic_speed = None  # m/s of the crossing spheres in the "dynamic_cross_*" test scenes
         self.randomize_robot_pose = config.randomize_robot_pose
         self.robot_pose_randomizer = lambda: self.set_robot_random_pose(
             self.sample_inside_torus)  # lambda: self.set_robot_random_joint_position_ik_sphere(0.45, 0.5)
@@ -132,6 +167,9 @@ class ReachAO(Task):
         self.cameraDistance = 1.359999656677246
         self.cameraPitch = -33.20000076293945
         self.cameraYaw = 51.800025939941406
+
+        self.np_random = np.random.default_rng(0)  # some scenario builders sample before the first reset (showcase)
+        self.require_reachable_goal = False  # resample goals the end effector cannot reach (see goal_reachable)
 
         # set scene
         with self.sim.no_rendering():
@@ -192,14 +230,25 @@ class ReachAO(Task):
                                          cameraPitch=self.cameraPitch, cameraTargetPosition=self.cameraTargetPosition,
                                          physicsClientId=self.sim_id)
 
+        unknown = set(config.collision_ignore_links) - set(self.robot.link_names)
+        if unknown:
+            raise ValueError(f"collision_ignore_links: unknown robot links {sorted(unknown)}")
+        self.ignored_link_ids = {i for i, n in enumerate(self.robot.link_names) if n in config.collision_ignore_links}
+        self.collision_link = None  # (robot link, other body) of the last collision, for evaluation records
+
         # overwrite standard pybullet step
         def step_check_collision():
-            """Step the simulation and check for collision at each step."""
+            """Step the simulation; "contact" checks every substep and stops at the first collision, "distance"
+            (thesis) checks once after all substeps."""
+            self.collision_link = None
             for _ in range(config.n_substeps):
                 self.sim.physics_client.stepSimulation()
+                if config.collision_check == "contact":
+                    self.is_collided = self.check_collided()
+                    if self.is_collided:
+                        break
+            if config.collision_check == "distance":
                 self.is_collided = self.check_collided()
-                if self.is_collided:
-                    break
 
         sim.step = lambda: step_check_collision()
 
@@ -256,6 +305,8 @@ class ReachAO(Task):
             "reachao_dr_plr": self.create_scenario_reachao_dr,
             "reachao_dr_adr": self.create_scenario_reachao_dr,
             "reachao_dr_adr_plr": self.create_scenario_reachao_dr,
+            "dynamic_cross_slow": self.create_scenario_dynamic_cross,
+            "dynamic_cross_fast": self.create_scenario_dynamic_cross,
             "reach1": self.create_scenario_reach1,
             "reach2": self.create_scenario_reach2,
             "reach3": self.create_scenario_reach3,
@@ -358,6 +409,8 @@ class ReachAO(Task):
         self.setup_benchmark_scenario("tunnel")
 
     def create_scenario_workshop(self):
+        # the default goal box reaches (-0.7, -0.7), ~1 m from the base: ~10 % of its goals are out of reach
+        self.require_reachable_goal = True
 
         # default workshop scenario
         self.goal_range_low = np.array([-0.7, -0.7, 0.4])
@@ -501,16 +554,25 @@ class ReachAO(Task):
 
         self.setup_benchmark_scenario("raised_shelves")
 
-        self.goal_range_low = np.array([0.5, -0.3, 0])
-        self.goal_range_high = np.array([0.85, 0.3, 0.3])
+        # Goals in the open shelf compartments (boards every 0.2 m from z = 0.1, front at x = 0.8) and just in front
+        # of them, within reach. The former box (copied from tabletop2) put every goal in free space in front of the
+        # shelf, which every agent solved (G3 2026-10-09); this box was measured with goal_reachable and the
+        # clearance rule of set_coll_free_goal.
+        self.goal_range_low = np.array([0.72, -0.25, 0.12])
+        self.goal_range_high = np.array([0.92, 0.45, 0.68])
+        self.require_reachable_goal = True
 
     def create_scenario_tabletop(self):
         self.robot.set_joint_neutral()
 
         self.setup_benchmark_scenario("tabletop")
 
-        self.goal_range_low = np.array([0.5, -0.3, 0])
-        self.goal_range_high = np.array([0.85, 0.3, 0.3])
+        # Goals at and among the kitchen front (counters at z = 0.52, sink, open fridge with shelves; front at
+        # x = 0.78), within reach. The former box (copied from tabletop2) lay in free space in front of it, which every
+        # agent solved (G3 2026-10-09).
+        self.goal_range_low = np.array([0.75, -0.6, 0.35])
+        self.goal_range_high = np.array([0.95, 0.7, 0.9])
+        self.require_reachable_goal = True
 
     def create_scenario_tabletop2(self):
         self.robot.set_joint_neutral()
@@ -594,6 +656,55 @@ class ReachAO(Task):
         self._sample_goal = lambda: self.sample_within_hollow_sphere(0.5, 0.8, upper_half_only=True)
         self.dr = SceneRandomizer(self, level_replay="_plr" in self.scenario, curriculum="_adr" in self.scenario)
 
+    # --- dynamic-obstacle test scene (research design T9) ------------------------------------------------------------
+    DYNAMIC_SPEEDS = {"dynamic_cross_slow": 0.1, "dynamic_cross_fast": 0.3}
+    # one sphere at the fast level: with two, a policy holding its start pose collided in 81 % of episodes, above
+    # the design's 20-60 % band for a non-trivial but solvable scene (authors' decision, 2026-10-08)
+    DYNAMIC_SPHERES = {"dynamic_cross_slow": 2, "dynamic_cross_fast": 1}
+    SHOULDER = np.array([0.0, 0.0, 0.333])
+    # Each sphere crosses its point on the start-goal segment after CROSS_TIME seconds. Agents reach the goal in ~0.8 s
+    # (median, Phase 2); spheres spawned outside the reach envelope (first version) arrived after 1-14 s, so the scene
+    # did not test avoidance (87-99 % success). Spheres now spawn inside the workspace, >= 5 cm clear of the robot
+    # and the goal, so the first step is still collision free.
+    CROSS_TIME = (0.2, 1.5)
+
+    def create_scenario_dynamic_cross(self):
+        """5 cm spheres (two at 0.1 m/s, one at 0.3 m/s; mass 0, moved by their velocity) cross the workspace on straight lines through random
+        points between the start end-effector position and the goal, in random directions.
+        Goals as in reachao3, neutral start. Test scene only. The observation is unchanged: it carries no obstacle
+        velocity (partial observability) unless obstacle_obs="vectors+past"."""
+        self.dynamic_speed = self.DYNAMIC_SPEEDS[self.scenario]
+        self._sample_goal = lambda: self.sample_within_hollow_sphere(0.5, 0.8, upper_half_only=True)
+        for _ in range(self.DYNAMIC_SPHERES[self.scenario]):
+            self.create_obstacle_sphere(radius=0.05, position=np.array([0.0, 0.0, -5.0]))
+
+    def reset_dynamic(self):
+        names = list(self.obstacles)
+        for i, name in enumerate(names):  # park while the goal is sampled
+            self.sim.set_base_pose(name, np.array([5.0 + i, 5.0, -5.0]), np.array([0.0, 0.0, 0.0, 1.0]))
+            self.sim.set_base_velocity(name, np.zeros(3))
+        self.set_coll_free_goal(["table", "robot"])
+        ee = self.robot.get_ee_position()
+        self.sim.set_base_pose("dummy_sphere", self.goal, np.array([0.0, 0.0, 0.0, 1.0]))  # marks the goal
+        for name in names:
+            for _ in range(1000):
+                cross = ee + self.np_random.uniform() * (self.goal - ee)
+                direction = np.array([*self.np_random.normal(size=2), self.np_random.uniform(-0.3, 0.3)])
+                direction /= np.linalg.norm(direction)
+                start = cross - self.dynamic_speed * self.np_random.uniform(*self.CROSS_TIME) * direction
+                if start[2] < 0.05:  # above the table at the start
+                    continue
+                self.sim.set_base_pose(name, start, np.array([0.0, 0.0, 0.0, 1.0]))
+                if not (self.check_collision("robot", name, margin=0.05)
+                        or self.check_collision("dummy_sphere", name, margin=0.0)):
+                    break
+            self.sim.set_base_velocity(name, self.dynamic_speed * direction)
+        self.sim.set_base_pose("dummy_sphere", np.array([0.0, 0.0, -5.0]), np.array([0.0, 0.0, 0.0, 1.0]))
+        self.past_obstacle_observations = []
+        if self.obstacle_obs == "vectors+past":
+            for _ in range(2):
+                self.get_obs()
+
     def rebuild_collision_detector(self, obstacle_names):
         """Distance observations only for the obstacles that are currently placed."""
         names = list(obstacle_names) + (["table"] if self.knn else [])
@@ -661,6 +772,7 @@ class ReachAO(Task):
             return self.robot.get_ee_position() + sample
 
     def create_scenario_wang(self):
+        self.require_reachable_goal = True  # goal shell reaches 0.95 m
         goal_radius_minor = 0.4
         goal_radius_major = 0.95
 
@@ -760,7 +872,7 @@ class ReachAO(Task):
         #             ghost=True
         #         )
         for i in range(3):
-            self.create_obstacle_sphere(self.sample_within_hollow_sphere(goal_radius_minor, goal_radius_major))
+            self.create_obstacle_sphere(position=self.sample_within_hollow_sphere(goal_radius_minor, goal_radius_major))
 
         self.sim.create_sphere(
             body_name=f"{obstacle_name}_{len(self.obstacles)}",
@@ -808,12 +920,23 @@ class ReachAO(Task):
         self.robot.set_joint_angles(joint_positions)
 
     def set_robot_random_joint_position_ik_sphere(self, radius_minor, radius_major):
-        collided = True
-        while collided:
+        """Random start pose clear of the table. Runs as robot.reset(), before this episode's obstacles are placed;
+        set_coll_free_robot clears the obstacles afterwards."""
+        for _ in range(1000):
             ee_target = self.sample_within_hollow_sphere(radius_minor, radius_major, upper_half_only=True)
             joint_positions = self.robot.ik(ee_target)
             self.robot.set_joint_angles(joint_positions)
-            collided = self.check_collided(0.0)
+            if not self.robot_touches_table():
+                return
+        self.robot.set_joint_neutral()
+
+    def robot_touches_table(self) -> bool:
+        """Contact with the table under the current collision definition, computed for the current pose (a plain
+        check_collided would read the contact manifold of the previous physics step)."""
+        p.performCollisionDetection(physicsClientId=self.sim_id)
+        table = self.bodies["table"]
+        return any(not self._ignored_contact(c[2], c[3]) and c[8] <= 0.0
+                   for c in p.getContactPoints(self.robot.id, table, physicsClientId=self.sim_id))
 
     def set_robot_random_joint_position_ik_goal_space(self, goal_space):
         ee_target = goal_space()
@@ -910,15 +1033,33 @@ class ReachAO(Task):
         goal = self.np_random.uniform(self.goal_range_low, self.goal_range_high)
         return goal
 
-    def check_collided(self, safety_distance=0.0) -> bool:
-        """Robot touches an obstacle or the table (base links may rest on the table). Uses the contact manifold
-        of the last physics step, which is far cheaper than distance queries. The fixed base link is ignored."""
+    def _ignored_contact(self, other, link) -> bool:
+        """Contacts that never count: self contacts, the fixed base, panda_link1 resting on the table, the table
+        if it is not an obstacle, and links in config.collision_ignore_links."""
         table = self.bodies["table"]
-        for c in p.getContactPoints(bodyA=self.robot.id, physicsClientId=self.sim_id):
+        return (other == self.robot.id or link == -1 or link in self.ignored_link_ids
+                or (other == table and (link == 0 or not self.config.table_collides)))
+
+    def _record_collision(self, other, link):
+        names = {uid: name for name, uid in self.bodies.items()}
+        self.collision_link = (self.robot.link_names[link], names.get(other, str(other)))
+
+    def check_collided(self, safety_distance=0.0) -> bool:
+        """Robot touches an obstacle or the table (see _ignored_contact). "contact" reads the contact manifold of
+        the last physics step, which is far cheaper than distance queries; "distance" (thesis) queries the closest
+        points to every obstacle (and the table if it collides)."""
+        if self.config.collision_check == "distance":
+            others = list(self.obstacles.values()) + ([self.bodies["table"]] if self.config.table_collides else [])
+            points = (c for o in others
+                      for c in p.getClosestPoints(self.robot.id, o, safety_distance, physicsClientId=self.sim_id))
+        else:
+            points = p.getContactPoints(bodyA=self.robot.id, physicsClientId=self.sim_id)
+        for c in points:
             other, link, dist = c[2], c[3], c[8]
-            if other == self.robot.id or link == -1 or (other == table and link == 0):
+            if self._ignored_contact(other, link):
                 continue
             if dist <= safety_distance:
+                self._record_collision(other, link)
                 return True
         return False
 
@@ -995,6 +1136,9 @@ class ReachAO(Task):
         self.robot.previous_action = None
         if self.dr is not None:
             self.dr.reset(collided)
+            return
+        if self.dynamic_speed is not None:
+            self.reset_dynamic()
             return
 
         if self.random_size_cuboids:
@@ -1149,6 +1293,8 @@ class ReachAO(Task):
             self.sim.set_base_pose("dummy_sphere", self.goal, np.array([0.0, 0.0, 0.0, 1.0]))
             # self.sim.physics_client.performCollisionDetection()
             collision = [self.check_collision("dummy_sphere", obj, margin=margin) for obj in coll_obj]
+            if self.require_reachable_goal and not any(collision):
+                collision.append(not self.goal_reachable(self.goal))
             # collision = [self.check_collision("dummy_sphere", "robot", margin=0.05),
             #              self.check_collision("dummy_sphere", "table", margin=0.05)]
 
@@ -1196,6 +1342,20 @@ class ReachAO(Task):
             #         self.sim.set_base_pose_dummy(self.dummy_obstacle_id[obstacle_id], pos,
             #                                      np.array([0.0, 0.0, 0.0, 1.0]),
             #                                      physics_client=self.sim.dummy_collision_client)
+
+    def goal_reachable(self, goal, tolerance=0.01) -> bool:
+        """Position-only IK brings the end-effector point (the ee link's centre of mass, as in get_ee_position)
+        within `tolerance` of the goal. Not collision aware. The robot's configuration is restored."""
+        q = self.robot.get_joint_angles(self.robot.joint_indices)
+        target = np.array(goal, dtype=float)
+        for _ in range(5):  # IK targets the link frame; shift the target until the centre of mass lands on the goal
+            q_ik = p.calculateInverseKinematics(self.robot.id, self.robot.ee_link, target.tolist(), maxNumIterations=500,
+                                                residualThreshold=1e-6, physicsClientId=self.sim_id)[:7]
+            self.robot.set_joint_angles(np.concatenate([q_ik, q[7:]]))
+            target += goal - self.robot.get_ee_position()
+        reachable = np.linalg.norm(self.robot.get_ee_position() - goal) < tolerance
+        self.robot.set_joint_angles(q)
+        return bool(reachable)
 
     def check_collision(self, obstacle_1, obstacle_2, margin=0.0):
         """Check if given bodies collide."""
@@ -1278,7 +1438,12 @@ class ReachAO(Task):
         return success
 
     def is_failure(self) -> bool:
-        return bool(self.is_collided and self.config.terminate_on_collision)
+        return bool(self.is_collided and self.config.terminate_on_collision
+                    and self.config.collision_semantics == "terminate")
+
+    def is_truncated(self) -> bool:
+        return bool(self.is_collided and self.config.terminate_on_collision
+                    and self.config.collision_semantics == "truncate")
 
     def step_info(self) -> Dict[str, Any]:
         return {"is_collided": bool(self.is_collided)}
@@ -1328,6 +1493,12 @@ class ReachAO(Task):
     def compute_reward(self, achieved_goal, desired_goal, info) -> np.ndarray:
         """Vectorized (HER relabeling): collisions are read from the stored step info, not the live sim."""
         ee_error = distance(achieved_goal, desired_goal)
+        if self.config.her_penalty_source == "live" and self.config.reward_type == "sparse":
+            # Thesis-era reward (1624534), kept for the G2 ablation only: the penalty reads the live collision flag
+            # of the env that computes the reward, not the (relabelled) transition's, and success is not gated
+            # by the collision. Wrong for HER, which recomputes rewards of stored transitions.
+            return np.asarray(-(ee_error >= self.ee_error_threshold).astype(np.float32)
+                              + float(self.is_collided) * self.config.collision_reward, dtype=np.float32)
         if isinstance(info, dict):
             collided = np.float32(info.get("is_collided", False))
         else:

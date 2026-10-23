@@ -10,14 +10,19 @@ readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "Richard Reider", email = "richard.reider@ovgu.de" }]
 requires-python = ">=3.11"
-dependencies = ["gymnasium>=1.0", "pybullet>=3.2.6", "numpy>=1.26"]
+dependencies = ["gymnasium>=1.0", "pybullet>=3.2.6", "numpy>=1.26", "scipy"]
 
 [project.optional-dependencies]
-train = ["stable-baselines3>=2.7", "sb3-contrib>=2.7", "torch", "tensorboard", "imageio[ffmpeg]", "tqdm", "rich"]
+train = ["stable-baselines3>=2.7", "sb3-contrib>=2.7", "torch", "tensorboard", "imageio[ffmpeg]", "tqdm", "rich",
+         "qpsolvers[osqp]"]  # NEO reference controller (panda_gym/baselines/neo.py)
 develop = ["pytest"]
+analysis = ["pandas<3", "statsmodels", "rliable", "arch>=5.3.1,<8", "matplotlib"]  # rliable needs arch<8, arch 7 needs pandas<3
 
 [tool.setuptools.packages.find]
 include = ["panda_gym*"]
 
 [tool.setuptools.package-data]
 panda_gym = ["assets/**/*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]  # tests import the top-level scripts (evaluate.py, train.py)
